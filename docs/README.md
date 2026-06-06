@@ -1,1 +1,1 @@
-Renovation app product documents will be stored here.
+Product documents for the Renovations Command Center app.
