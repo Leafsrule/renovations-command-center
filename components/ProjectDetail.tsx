@@ -1,11 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getOwnerProject, type RenovationProject } from "@/lib/projects";
+import { countProjectRooms } from "@/lib/rooms";
 
 function projectTypeLabel(type: RenovationProject["type"]) {
   return type === "bathroom_ensuite" ? "Bathroom / Ensuite" : "Custom";
@@ -21,6 +23,7 @@ export function ProjectDetail() {
   const params = useParams<{ projectId: string }>();
   const { user } = useAuth();
   const [project, setProject] = useState<RenovationProject | null>(null);
+  const [roomCount, setRoomCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,9 +40,13 @@ export function ProjectDetail() {
 
       try {
         const ownerProject = await getOwnerProject(params.projectId, user.uid);
+        const ownerRoomCount = ownerProject
+          ? await countProjectRooms(params.projectId)
+          : null;
 
         if (!cancelled) {
           setProject(ownerProject);
+          setRoomCount(ownerRoomCount);
         }
       } catch (projectError) {
         if (!cancelled) {
@@ -122,6 +129,24 @@ export function ProjectDetail() {
             </dd>
           </div>
         </dl>
+      </article>
+      <article className="rounded-md border border-line bg-white p-4 shadow-soft">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Rooms / areas</h2>
+            <p className="mt-1 text-sm text-muted">
+              {roomCount === null
+                ? "Room count unavailable"
+                : `${roomCount} room${roomCount === 1 ? "" : "s"} added`}
+            </p>
+          </div>
+          <Link
+            className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
+            href={`/projects/${project.id}/rooms`}
+          >
+            Open
+          </Link>
+        </div>
       </article>
     </section>
   );

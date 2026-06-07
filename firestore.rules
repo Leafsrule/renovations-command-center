@@ -2,12 +2,21 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isProjectOwner(projectId) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
+    }
+
     match /projects/{projectId} {
       allow create: if request.auth != null
         && request.resource.data.ownerUserId == request.auth.uid;
 
       allow read, update, delete: if request.auth != null
         && resource.data.ownerUserId == request.auth.uid;
+
+      match /rooms/{roomId} {
+        allow create, read, update, delete: if isProjectOwner(projectId);
+      }
     }
 
     match /{document=**} {
