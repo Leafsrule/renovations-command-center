@@ -10,27 +10,27 @@ export const defaultProjectId = "active";
 
 export const bottomNavItems = [
   {
-    href: `/projects/${defaultProjectId}/today`,
+    path: "today",
     label: "Today",
     icon: Home
   },
   {
-    href: `/projects/${defaultProjectId}/tasks`,
+    path: "tasks",
     label: "Tasks",
     icon: ClipboardList
   },
   {
-    href: `/projects/${defaultProjectId}/schedule`,
+    path: "schedule",
     label: "Schedule",
     icon: CalendarDays
   },
   {
-    href: `/projects/${defaultProjectId}/materials`,
+    path: "materials",
     label: "Materials",
     icon: PackageCheck
   },
   {
-    href: `/projects/${defaultProjectId}/photos`,
+    path: "photos",
     label: "Photos",
     icon: Camera
   }
