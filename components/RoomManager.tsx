@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   createProjectRoom,
@@ -198,10 +199,12 @@ function roomToForm(room: RenovationRoom): RoomFormInput {
 
 export function RoomManager() {
   const params = useParams<{ projectId: string }>();
+  const router = useRouter();
   const projectId = params.projectId;
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -253,6 +256,7 @@ export function RoomManager() {
     try {
       await createProjectRoom(projectId, input);
       await refreshRooms();
+      setShowAddForm(false);
     } catch (roomError) {
       setError(friendlyRoomError(roomError));
     } finally {
@@ -285,74 +289,117 @@ export function RoomManager() {
 
   return (
     <section className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+          onClick={() => router.push(`/projects/${projectId}`)}
+          type="button"
+        >
+          &larr; Back to Project
+        </button>
+        <Link
+          className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+          href="/projects"
+        >
+          Projects
+        </Link>
+        <h1 className="min-h-11 flex items-center text-xl font-semibold text-ink">
+          Rooms / Areas
+        </h1>
+      </div>
+
       {error ? (
         <div className="rounded-md border border-[#e4bbbb] bg-[#fae8e8] p-3 text-sm leading-6 text-danger">
           {error}
         </div>
       ) : null}
 
-      {rooms.length === 0 ? (
-        <div className="rounded-md border border-line bg-panel p-4">
-          <h2 className="text-lg font-semibold text-ink">No rooms yet</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            Add rooms or areas so the renovation can be organized by space.
+      <div className="rounded-md border border-line bg-panel p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Existing Rooms</h2>
+            <p className="mt-1 text-sm text-muted">
+              Saved rooms and areas for this project.
+            </p>
+          </div>
+          <button
+            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white"
+            onClick={() => {
+              setEditingRoomId(null);
+              setShowAddForm(true);
+            }}
+            type="button"
+          >
+            Add Room
+          </button>
+        </div>
+
+        {rooms.length === 0 ? (
+          <p className="mt-4 rounded-md border border-line bg-white p-4 text-sm text-muted">
+            No rooms added yet.
           </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {rooms.map((room) => (
-            <article
-              className="rounded-md border border-line bg-white p-4 shadow-soft"
-              key={room.id}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-ink">
-                    {room.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted">
-                    {labelFromValue(floorOptions, room.floorLevel)}
-                  </p>
-                </div>
-                <StatusBadge label={room.priority} tone="neutral" />
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <StatusBadge label={room.status.replace("_", " ")} />
-                {room.dimensions ? (
-                  <StatusBadge label={room.dimensions} />
-                ) : null}
-              </div>
-
-              <button
-                className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink"
-                onClick={() => setEditingRoomId(room.id)}
-                type="button"
+        ) : (
+          <div className="mt-4 space-y-3">
+            {rooms.map((room) => (
+              <article
+                className="rounded-md border border-line bg-white p-4 shadow-soft"
+                key={room.id}
               >
-                Edit room
-              </button>
-            </article>
-          ))}
-        </div>
-      )}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-ink">
+                      {room.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted">
+                      {labelFromValue(floorOptions, room.floorLevel)}
+                    </p>
+                  </div>
+                  <StatusBadge label={room.priority} tone="neutral" />
+                </div>
 
-      <div className="rounded-md border border-line bg-white p-4 shadow-soft">
-        <h2 className="text-lg font-semibold text-ink">
-          {editingRoom ? "Edit room" : "Add room"}
-        </h2>
-        <div className="mt-4">
-          <RoomForm
-            initialValue={editingRoom ? roomToForm(editingRoom) : emptyForm}
-            isSaving={saving}
-            key={editingRoom?.id || "new-room"}
-            onCancel={
-              editingRoom ? () => setEditingRoomId(null) : undefined
-            }
-            onSubmit={editingRoom ? handleUpdate : handleCreate}
-            submitLabel={editingRoom ? "Save room" : "Add room"}
-          />
-        </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge label={room.status.replace("_", " ")} />
+                  {room.dimensions ? (
+                    <StatusBadge label={room.dimensions} />
+                  ) : null}
+                </div>
+
+                <button
+                  className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingRoomId(room.id);
+                  }}
+                  type="button"
+                >
+                  Edit
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
+
+      {showAddForm || editingRoom ? (
+        <div className="rounded-md border border-line bg-white p-4 shadow-soft">
+          <h2 className="text-lg font-semibold text-ink">
+            {editingRoom ? "Edit Room" : "Add Room"}
+          </h2>
+          <div className="mt-4">
+            <RoomForm
+              initialValue={editingRoom ? roomToForm(editingRoom) : emptyForm}
+              isSaving={saving}
+              key={editingRoom?.id || "new-room"}
+              onCancel={() => {
+                setEditingRoomId(null);
+                setShowAddForm(false);
+              }}
+              onSubmit={editingRoom ? handleUpdate : handleCreate}
+              submitLabel={editingRoom ? "Save Room" : "Add Room"}
+            />
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

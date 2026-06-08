@@ -144,7 +144,7 @@ export function ProjectDetail() {
             className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
             href={`/projects/${project.id}/rooms`}
           >
-            Open
+            Manage Rooms / Areas
           </Link>
         </div>
       </article>
