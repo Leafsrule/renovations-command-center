@@ -2,7 +2,7 @@
 
 ## Current Status
 
-The Room / Area Manager depends on the Firestore rules in:
+The Room / Area Manager and People / Team Manager depend on the Firestore rules in:
 
 `C:\Users\ghajj\OneDrive\Documents\Renovations App\firestore.rules`
 
@@ -29,11 +29,12 @@ Do not loosen the rules to public read/write. The current rules keep project and
    ```
 
 6. Click **Publish**.
-7. Return to the app and run the Room / Area Manager smoke test.
+7. Return to the app and run the Room / Area Manager or People / Team Manager smoke test.
 
 ## Expected Rule Behavior
 
 - Signed-in users can create projects only for their own `ownerUserId`.
 - Signed-in project owners can read, update, and delete only their own projects.
 - Signed-in project owners can create, read, update, and delete rooms only under their own projects.
+- Signed-in project owners can create, read, update, and delete people only under their own projects.
 - All other Firestore reads and writes are denied.

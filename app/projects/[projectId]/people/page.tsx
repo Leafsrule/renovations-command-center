@@ -1,14 +1,13 @@
 import { AppShell } from "@/components/AppShell";
-import { PagePlaceholder } from "@/components/PagePlaceholder";
+import { PeopleManager } from "@/components/PeopleManager";
 
 export default function PeoplePage() {
   return (
-    <AppShell title="People" subtitle="Owner is authenticated; champions/helpers are lightweight records.">
-      <PagePlaceholder
-        title="Champions and helpers"
-        description="People records can later link to real user accounts through an optional linkedUserId."
-        items={["Owner", "Champion", "Helper"]}
-      />
+    <AppShell
+      title="People"
+      subtitle="Owner is authenticated; champions/helpers are lightweight records."
+    >
+      <PeopleManager />
     </AppShell>
   );
 }

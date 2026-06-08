@@ -17,6 +17,10 @@ service cloud.firestore {
       match /rooms/{roomId} {
         allow create, read, update, delete: if isProjectOwner(projectId);
       }
+
+      match /people/{personId} {
+        allow read, write: if isProjectOwner(projectId);
+      }
     }
 
     match /{document=**} {
