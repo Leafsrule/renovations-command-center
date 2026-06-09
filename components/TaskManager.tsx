@@ -12,6 +12,7 @@ import {
   listProjectTasks,
   updateProjectTask,
   type RenovationTask,
+  type TaskCriticalPathRisk,
   type TaskFormInput,
   type TaskPhase,
   type TaskPriority,
@@ -54,6 +55,13 @@ const priorityOptions: Array<{ label: string; value: TaskPriority }> = [
   { label: "Urgent", value: "urgent" }
 ];
 
+const riskOptions: Array<{ label: string; value: TaskCriticalPathRisk }> = [
+  { label: "None", value: "none" },
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" }
+];
+
 const emptyForm: TaskFormInput = {
   name: "",
   roomId: "",
@@ -65,10 +73,12 @@ const emptyForm: TaskFormInput = {
   helperPersonIds: [],
   helperRequired: false,
   estimatedDurationMinutes: "",
+  earliestStartDate: "",
   dueDate: "",
   notes: "",
   photosRequired: false,
-  canRunConcurrent: false
+  canRunConcurrent: false,
+  criticalPathRisk: "none"
 };
 
 function friendlyTaskError(error: unknown) {
@@ -99,10 +109,12 @@ function taskToForm(task: RenovationTask): TaskFormInput {
       task.estimatedDurationMinutes === null
         ? ""
         : String(task.estimatedDurationMinutes),
+    earliestStartDate: task.earliestStartDate || "",
     dueDate: task.dueDate || "",
     notes: task.notes,
     photosRequired: task.photosRequired,
-    canRunConcurrent: task.canRunConcurrent
+    canRunConcurrent: task.canRunConcurrent,
+    criticalPathRisk: task.criticalPathRisk
   };
 }
 
@@ -195,6 +207,11 @@ function TaskForm({
             </option>
           ))}
         </select>
+        {rooms.length === 0 ? (
+          <p className="mt-2 text-sm font-normal text-muted">
+            No rooms added yet.
+          </p>
+        ) : null}
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -291,13 +308,18 @@ function TaskForm({
             </option>
           ))}
         </select>
+        {people.length === 0 ? (
+          <p className="mt-2 text-sm font-normal text-muted">
+            No team members added yet.
+          </p>
+        ) : null}
       </label>
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-ink">Helpers</legend>
         {people.length === 0 ? (
           <p className="rounded-md border border-line bg-panel p-3 text-sm text-muted">
-            No people available yet.
+            No team members added yet.
           </p>
         ) : (
           <div className="space-y-2">
@@ -340,11 +362,27 @@ function TaskForm({
           className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
           inputMode="numeric"
           placeholder="120"
+          type="number"
           value={form.estimatedDurationMinutes}
           onChange={(event) =>
             setForm((current) => ({
               ...current,
               estimatedDurationMinutes: event.target.value
+            }))
+          }
+        />
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
+        Earliest start date
+        <input
+          className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
+          type="date"
+          value={form.earliestStartDate}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              earliestStartDate: event.target.value
             }))
           }
         />
@@ -360,6 +398,26 @@ function TaskForm({
             setForm((current) => ({ ...current, dueDate: event.target.value }))
           }
         />
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
+        Critical path risk
+        <select
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.criticalPathRisk}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              criticalPathRisk: event.target.value as TaskCriticalPathRisk
+            }))
+          }
+        >
+          {riskOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -596,7 +654,7 @@ export function TaskManager() {
                     </h3>
                     {task.roomId ? (
                       <p className="mt-1 text-sm text-muted">
-                        {roomNameById.get(task.roomId) || "Room unavailable"}
+                        {roomNameById.get(task.roomId) || "Unknown room"}
                       </p>
                     ) : null}
                   </div>
@@ -614,7 +672,7 @@ export function TaskManager() {
                     <StatusBadge
                       label={`Champion: ${
                         personNameById.get(task.championPersonId) ||
-                        "Unavailable"
+                        "Unknown person"
                       }`}
                     />
                   ) : null}

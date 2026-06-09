@@ -40,7 +40,7 @@ export type TaskPhase =
 
 export type ReadinessState = "not_ready" | "ready";
 
-export type CriticalPathRisk = "none" | "low" | "medium" | "high";
+export type TaskCriticalPathRisk = "none" | "low" | "medium" | "high";
 
 export type RenovationTask = {
   id: string;
@@ -59,9 +59,9 @@ export type RenovationTask = {
   dueDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
-  readinessState: ReadinessState;
+  readinessState: string;
   readinessReasons: string[];
-  criticalPathRisk: CriticalPathRisk;
+  criticalPathRisk: TaskCriticalPathRisk;
   photosRequired: boolean;
   canRunConcurrent: boolean;
   notes: string;
@@ -80,10 +80,12 @@ export type TaskFormInput = {
   helperPersonIds: string[];
   helperRequired: boolean;
   estimatedDurationMinutes: string;
+  earliestStartDate: string;
   dueDate: string;
   notes: string;
   photosRequired: boolean;
   canRunConcurrent: boolean;
+  criticalPathRisk: TaskCriticalPathRisk;
 };
 
 export type TaskCount = {
@@ -129,9 +131,9 @@ function formDurationToNumber(value: string) {
     return null;
   }
 
-  const parsedValue = Number(trimmedValue);
+  const parsedValue = parseInt(trimmedValue, 10);
 
-  return Number.isFinite(parsedValue) ? parsedValue : null;
+  return Number.isNaN(parsedValue) ? null : parsedValue;
 }
 
 function statusFromValue(value: unknown): TaskStatus {
@@ -198,7 +200,7 @@ function readinessFromValue(value: unknown): ReadinessState {
   return value === "ready" ? "ready" : "not_ready";
 }
 
-function riskFromValue(value: unknown): CriticalPathRisk {
+function riskFromValue(value: unknown): TaskCriticalPathRisk {
   const risk = String(value || "none");
 
   if (risk === "low" || risk === "medium" || risk === "high") {
@@ -292,13 +294,13 @@ export async function createProjectTask(
       input.estimatedDurationMinutes
     ),
     actualDurationMinutes: null,
-    earliestStartDate: null,
+    earliestStartDate: nullableString(input.earliestStartDate),
     dueDate: nullableString(input.dueDate),
     scheduledStart: null,
     scheduledEnd: null,
     readinessState: "not_ready",
     readinessReasons: [],
-    criticalPathRisk: "none",
+    criticalPathRisk: input.criticalPathRisk || "none",
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,
     notes: input.notes.trim(),
@@ -325,7 +327,9 @@ export async function updateProjectTask(
     estimatedDurationMinutes: formDurationToNumber(
       input.estimatedDurationMinutes
     ),
+    earliestStartDate: nullableString(input.earliestStartDate),
     dueDate: nullableString(input.dueDate),
+    criticalPathRisk: input.criticalPathRisk,
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,
     notes: input.notes.trim(),

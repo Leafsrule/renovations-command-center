@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { listProjectPeople, type RenovationPerson } from "@/lib/people";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
@@ -54,6 +55,23 @@ function friendlyTaskError(error: unknown) {
   return error instanceof Error
     ? error.message
     : "Task details could not be loaded. Please try again.";
+}
+
+function formatUnknownTimestamp(value: unknown) {
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    const date = value.toDate();
+
+    if (date instanceof Date && !Number.isNaN(date.getTime())) {
+      return date.toLocaleString();
+    }
+  }
+
+  return "";
 }
 
 export function TaskDetail() {
@@ -136,8 +154,9 @@ export function TaskDetail() {
   }
 
   const helperNames = task.helperPersonIds
-    .map((personId) => personNameById.get(personId))
-    .filter((name): name is string => Boolean(name));
+    .map((personId) => personNameById.get(personId) || "Unknown person");
+  const createdAtLabel = formatUnknownTimestamp(task.createdAt);
+  const updatedAtLabel = formatUnknownTimestamp(task.updatedAt);
 
   return (
     <section className="space-y-5">
@@ -169,6 +188,7 @@ export function TaskDetail() {
           <StatusBadge label={statusLabels[task.status]} />
           <StatusBadge label={`Priority: ${priorityLabels[task.priority]}`} />
           <StatusBadge label={`Phase: ${phaseLabels[task.phase]}`} />
+          <CriticalPathRiskBadge risk={task.criticalPathRisk} />
         </div>
 
         <dl className="mt-4 space-y-3 text-sm">
@@ -176,7 +196,7 @@ export function TaskDetail() {
             <dt className="font-semibold text-ink">Room</dt>
             <dd className="mt-1 text-muted">
               {task.roomId
-                ? roomNameById.get(task.roomId) || "Room unavailable"
+                ? roomNameById.get(task.roomId) || "Unknown room"
                 : "No room selected"}
             </dd>
           </div>
@@ -185,7 +205,7 @@ export function TaskDetail() {
             <dd className="mt-1 text-muted">
               {task.championPersonId
                 ? personNameById.get(task.championPersonId) ||
-                  "Champion unavailable"
+                  "Unknown person"
                 : "No champion selected"}
             </dd>
           </div>
@@ -210,8 +230,26 @@ export function TaskDetail() {
             </dd>
           </div>
           <div>
+            <dt className="font-semibold text-ink">Earliest start date</dt>
+            <dd className="mt-1 text-muted">
+              {task.earliestStartDate || "Not set"}
+            </dd>
+          </div>
+          <div>
             <dt className="font-semibold text-ink">Due date</dt>
             <dd className="mt-1 text-muted">{task.dueDate || "Not set"}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink">Photos required</dt>
+            <dd className="mt-1 text-muted">
+              {task.photosRequired ? "Yes" : "No"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink">Can run concurrent</dt>
+            <dd className="mt-1 text-muted">
+              {task.canRunConcurrent ? "Yes" : "No"}
+            </dd>
           </div>
           <div>
             <dt className="font-semibold text-ink">Description</dt>
@@ -225,6 +263,18 @@ export function TaskDetail() {
               {task.notes || "No notes yet."}
             </dd>
           </div>
+          {createdAtLabel ? (
+            <div>
+              <dt className="font-semibold text-ink">Created</dt>
+              <dd className="mt-1 text-muted">{createdAtLabel}</dd>
+            </div>
+          ) : null}
+          {updatedAtLabel ? (
+            <div>
+              <dt className="font-semibold text-ink">Updated</dt>
+              <dd className="mt-1 text-muted">{updatedAtLabel}</dd>
+            </div>
+          ) : null}
         </dl>
       </article>
     </section>
