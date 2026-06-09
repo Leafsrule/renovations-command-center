@@ -71,6 +71,7 @@ const emptyForm: TaskFormInput = {
   priority: "medium",
   championPersonId: "",
   helperPersonIds: [],
+  dependencyTaskIds: [],
   helperRequired: false,
   estimatedDurationMinutes: "",
   earliestStartDate: "",
@@ -104,6 +105,7 @@ function taskToForm(task: RenovationTask): TaskFormInput {
     priority: task.priority,
     championPersonId: task.championPersonId || "",
     helperPersonIds: task.helperPersonIds,
+    dependencyTaskIds: task.dependencyTaskIds,
     helperRequired: task.helperRequired,
     estimatedDurationMinutes:
       task.estimatedDurationMinutes === null
@@ -125,7 +127,10 @@ function TaskForm({
   onSubmit,
   people,
   rooms,
-  submitLabel
+  roomNameById,
+  submitLabel,
+  tasks,
+  taskId
 }: {
   initialValue: TaskFormInput;
   isSaving: boolean;
@@ -133,10 +138,14 @@ function TaskForm({
   onSubmit: (input: TaskFormInput) => Promise<void>;
   people: RenovationPerson[];
   rooms: RenovationRoom[];
+  roomNameById: Map<string, string>;
   submitLabel: string;
+  tasks: RenovationTask[];
+  taskId: string | null;
 }) {
   const [form, setForm] = useState(initialValue);
   const [error, setError] = useState("");
+  const dependencyOptions = tasks.filter((task) => task.id !== taskId);
 
   function toggleHelper(personId: string) {
     setForm((current) => {
@@ -147,6 +156,23 @@ function TaskForm({
       return {
         ...current,
         helperPersonIds
+      };
+    });
+  }
+
+  function toggleDependency(dependencyTaskId: string) {
+    setForm((current) => {
+      const dependencyTaskIds = current.dependencyTaskIds.includes(
+        dependencyTaskId
+      )
+        ? current.dependencyTaskIds.filter(
+            (taskDependencyId) => taskDependencyId !== dependencyTaskId
+          )
+        : [...current.dependencyTaskIds, dependencyTaskId];
+
+      return {
+        ...current,
+        dependencyTaskIds
       };
     });
   }
@@ -355,6 +381,46 @@ function TaskForm({
         />
         Helper required
       </label>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold text-ink">Dependencies</legend>
+        <p className="text-sm leading-6 text-muted">
+          Select tasks that must be completed before this task can start.
+        </p>
+        {dependencyOptions.length === 0 ? (
+          <p className="rounded-md border border-line bg-panel p-3 text-sm text-muted">
+            No other tasks available to depend on.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {dependencyOptions.map((dependencyTask) => (
+              <label
+                className="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-3 text-sm font-semibold text-ink"
+                key={dependencyTask.id}
+              >
+                <input
+                  checked={form.dependencyTaskIds.includes(dependencyTask.id)}
+                  className="mt-0.5 h-5 w-5"
+                  onChange={() => toggleDependency(dependencyTask.id)}
+                  type="checkbox"
+                />
+                <span>
+                  <span className="block">{dependencyTask.name}</span>
+                  <span className="mt-1 block font-normal text-muted">
+                    {labelFromValue(statusOptions, dependencyTask.status)}
+                    {dependencyTask.roomId
+                      ? ` - ${
+                          roomNameById.get(dependencyTask.roomId) ||
+                          "Unknown room"
+                        }`
+                      : ""}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
 
       <label className="block text-sm font-semibold text-ink">
         Estimated duration in minutes
@@ -575,7 +641,12 @@ export function TaskManager() {
     setError("");
 
     try {
-      await updateProjectTask(projectId, editingTask.id, input);
+      await updateProjectTask(projectId, editingTask.id, {
+        ...input,
+        dependencyTaskIds: input.dependencyTaskIds.filter(
+          (dependencyTaskId) => dependencyTaskId !== editingTask.id
+        )
+      });
       setEditingTaskId(null);
       await refreshTasks();
     } catch (taskError) {
@@ -686,6 +757,13 @@ export function TaskManager() {
                       }`}
                     />
                   ) : null}
+                  {task.dependencyTaskIds.length > 0 ? (
+                    <StatusBadge
+                      label={`Depends on ${task.dependencyTaskIds.length} task${
+                        task.dependencyTaskIds.length === 1 ? "" : "s"
+                      }`}
+                    />
+                  ) : null}
                   {task.criticalPathRisk !== "none" ? (
                     <CriticalPathRiskBadge risk={task.criticalPathRisk} />
                   ) : null}
@@ -738,7 +816,10 @@ export function TaskManager() {
               onSubmit={editingTask ? handleUpdate : handleCreate}
               people={people}
               rooms={rooms}
+              roomNameById={roomNameById}
               submitLabel={editingTask ? "Save Task" : "Add Task"}
+              tasks={tasks}
+              taskId={editingTask?.id || null}
             />
           </div>
         </div>

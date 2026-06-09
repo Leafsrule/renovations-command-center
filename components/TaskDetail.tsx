@@ -9,6 +9,7 @@ import { listProjectPeople, type RenovationPerson } from "@/lib/people";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
 import {
   getProjectTask,
+  listProjectTasks,
   type RenovationTask,
   type TaskPhase,
   type TaskPriority,
@@ -79,6 +80,7 @@ export function TaskDetail() {
   const router = useRouter();
   const { projectId, taskId } = params;
   const [task, setTask] = useState<RenovationTask | null>(null);
+  const [dependencyTasks, setDependencyTasks] = useState<RenovationTask[]>([]);
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [people, setPeople] = useState<RenovationPerson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +108,14 @@ export function TaskDetail() {
           listProjectRooms(projectId),
           listProjectPeople(projectId)
         ]);
+        const projectDependencyTasks =
+          projectTask && projectTask.dependencyTaskIds.length > 0
+            ? await listProjectTasks(projectId).catch(() => [])
+            : [];
 
         if (!cancelled) {
           setTask(projectTask);
+          setDependencyTasks(projectDependencyTasks);
           setRooms(projectRooms);
           setPeople(projectPeople);
         }
@@ -155,6 +162,12 @@ export function TaskDetail() {
 
   const helperNames = task.helperPersonIds
     .map((personId) => personNameById.get(personId) || "Unknown person");
+  const dependencyTaskById = new Map(
+    dependencyTasks.map((dependencyTask) => [
+      dependencyTask.id,
+      dependencyTask
+    ])
+  );
   const createdAtLabel = formatUnknownTimestamp(task.createdAt);
   const updatedAtLabel = formatUnknownTimestamp(task.updatedAt);
 
@@ -219,6 +232,48 @@ export function TaskDetail() {
             <dt className="font-semibold text-ink">Helper required</dt>
             <dd className="mt-1 text-muted">
               {task.helperRequired ? "Yes" : "No"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink">Dependencies</dt>
+            <dd className="mt-2">
+              {task.dependencyTaskIds.length === 0 ? (
+                <span className="text-muted">No dependencies.</span>
+              ) : (
+                <div className="space-y-2">
+                  {task.dependencyTaskIds.map((dependencyTaskId) => {
+                    const dependencyTask =
+                      dependencyTaskById.get(dependencyTaskId) || null;
+
+                    return (
+                      <div
+                        className="rounded-md border border-line bg-panel p-3"
+                        key={dependencyTaskId}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            className="font-semibold text-brand underline"
+                            href={`/projects/${projectId}/tasks/${dependencyTaskId}`}
+                          >
+                            {dependencyTask?.name || "Unknown task"}
+                          </Link>
+                          {dependencyTask ? (
+                            <StatusBadge
+                              label={statusLabels[dependencyTask.status]}
+                            />
+                          ) : null}
+                        </div>
+                        {dependencyTask?.roomId ? (
+                          <p className="mt-2 text-sm text-muted">
+                            {roomNameById.get(dependencyTask.roomId) ||
+                              "Unknown room"}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </dd>
           </div>
           <div>

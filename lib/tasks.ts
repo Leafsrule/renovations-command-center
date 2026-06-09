@@ -52,6 +52,7 @@ export type RenovationTask = {
   priority: TaskPriority;
   championPersonId: string | null;
   helperPersonIds: string[];
+  dependencyTaskIds: string[];
   helperRequired: boolean;
   estimatedDurationMinutes: number | null;
   actualDurationMinutes: number | null;
@@ -78,6 +79,7 @@ export type TaskFormInput = {
   priority: TaskPriority;
   championPersonId: string;
   helperPersonIds: string[];
+  dependencyTaskIds: string[];
   helperRequired: boolean;
   estimatedDurationMinutes: string;
   earliestStartDate: string;
@@ -223,6 +225,12 @@ function toTask(id: string, data: Record<string, unknown>): RenovationTask {
     helperPersonIds: Array.isArray(data.helperPersonIds)
       ? data.helperPersonIds.map(String)
       : [],
+    dependencyTaskIds: Array.isArray(data.dependencyTaskIds)
+      ? data.dependencyTaskIds.filter(
+          (dependencyId): dependencyId is string =>
+            typeof dependencyId === "string"
+        )
+      : [],
     helperRequired: Boolean(data.helperRequired),
     estimatedDurationMinutes: nullableNumber(data.estimatedDurationMinutes),
     actualDurationMinutes: nullableNumber(data.actualDurationMinutes),
@@ -289,6 +297,7 @@ export async function createProjectTask(
     priority: input.priority || "medium",
     championPersonId: nullableString(input.championPersonId),
     helperPersonIds: input.helperPersonIds,
+    dependencyTaskIds: [...new Set(input.dependencyTaskIds)],
     helperRequired: input.helperRequired,
     estimatedDurationMinutes: formDurationToNumber(
       input.estimatedDurationMinutes
@@ -323,6 +332,7 @@ export async function updateProjectTask(
     priority: input.priority,
     championPersonId: nullableString(input.championPersonId),
     helperPersonIds: input.helperPersonIds,
+    dependencyTaskIds: [...new Set(input.dependencyTaskIds)],
     helperRequired: input.helperRequired,
     estimatedDurationMinutes: formDurationToNumber(
       input.estimatedDurationMinutes
