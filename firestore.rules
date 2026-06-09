@@ -21,6 +21,10 @@ service cloud.firestore {
       match /people/{personId} {
         allow read, write: if isProjectOwner(projectId);
       }
+
+      match /tasks/{taskId} {
+        allow read, write: if isProjectOwner(projectId);
+      }
     }
 
     match /{document=**} {

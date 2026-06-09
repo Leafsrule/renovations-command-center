@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { getOwnerProject, type RenovationProject } from "@/lib/projects";
 import { countProjectPeople, type PeopleCount } from "@/lib/people";
 import { countProjectRooms } from "@/lib/rooms";
+import { countProjectTasks, type TaskCount } from "@/lib/tasks";
 
 function projectTypeLabel(type: RenovationProject["type"]) {
   return type === "bathroom_ensuite" ? "Bathroom / Ensuite" : "Custom";
@@ -26,6 +27,7 @@ export function ProjectDetail() {
   const [project, setProject] = useState<RenovationProject | null>(null);
   const [roomCount, setRoomCount] = useState<number | null>(null);
   const [peopleCount, setPeopleCount] = useState<PeopleCount | null>(null);
+  const [taskCount, setTaskCount] = useState<TaskCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -48,11 +50,15 @@ export function ProjectDetail() {
         const ownerPeopleCount = ownerProject
           ? await countProjectPeople(params.projectId).catch(() => null)
           : null;
+        const ownerTaskCount = ownerProject
+          ? await countProjectTasks(params.projectId).catch(() => null)
+          : null;
 
         if (!cancelled) {
           setProject(ownerProject);
           setRoomCount(ownerRoomCount);
           setPeopleCount(ownerPeopleCount);
+          setTaskCount(ownerTaskCount);
         }
       } catch (projectError) {
         if (!cancelled) {
@@ -169,6 +175,24 @@ export function ProjectDetail() {
             href={`/projects/${project.id}/people`}
           >
             Manage People / Team
+          </Link>
+        </div>
+      </article>
+      <article className="rounded-md border border-line bg-white p-4 shadow-soft">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Tasks</h2>
+            {taskCount ? (
+              <p className="mt-1 text-sm text-muted">
+                {taskCount.total} task{taskCount.total === 1 ? "" : "s"}
+              </p>
+            ) : null}
+          </div>
+          <Link
+            className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
+            href={`/projects/${project.id}/tasks`}
+          >
+            Manage Tasks
           </Link>
         </div>
       </article>
