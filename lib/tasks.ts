@@ -299,19 +299,19 @@ function blockerTypeFromValue(value: unknown): TaskBlockerType {
   return "none";
 }
 
-const validMaterialStatuses: TaskMaterialStatus[] = [
-  "not_required",
-  "needed",
-  "ordered",
-  "partial",
-  "ready",
-  "blocked"
-];
-
 function materialStatusFromValue(value: unknown): TaskMaterialStatus {
-  return validMaterialStatuses.includes(value as TaskMaterialStatus)
-    ? (value as TaskMaterialStatus)
-    : "not_required";
+  if (
+    value === "not_required" ||
+    value === "needed" ||
+    value === "ordered" ||
+    value === "partial" ||
+    value === "ready" ||
+    value === "blocked"
+  ) {
+    return value;
+  }
+
+  return "not_required";
 }
 
 function riskFromValue(value: unknown): TaskCriticalPathRisk {

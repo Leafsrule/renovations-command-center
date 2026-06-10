@@ -735,7 +735,7 @@ function TaskForm({
           Material items
           <textarea
             className="mt-2 min-h-28 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
-            placeholder={"Waterproofing membrane\nPrimer\nThinset"}
+            placeholder="Waterproofing membrane"
             value={form.materialItemsText}
             onChange={(event) =>
               setForm((current) => ({
