@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { listProjectPeople, type RenovationPerson } from "@/lib/people";
@@ -934,7 +935,9 @@ export function TaskManager() {
   const [saving, setSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [addFormVersion, setAddFormVersion] = useState(0);
   const [error, setError] = useState("");
+  const formPanelRef = useRef<HTMLDivElement>(null);
 
   const editingTask = useMemo(
     () => tasks.find((task) => task.id === editingTaskId) || null,
@@ -953,6 +956,13 @@ export function TaskManager() {
   async function refreshTasks() {
     const nextTasks = await listProjectTasks(projectId);
     setTasks(nextTasks);
+  }
+
+  function handleStartAddTask() {
+    setError("");
+    setEditingTaskId(null);
+    setAddFormVersion((version) => version + 1);
+    setShowAddForm(true);
   }
 
   useEffect(() => {
@@ -1000,12 +1010,24 @@ export function TaskManager() {
       await createProjectTask(projectId, input);
       await refreshTasks();
       setShowAddForm(false);
+      setAddFormVersion((version) => version + 1);
     } catch (taskError) {
       setError(friendlyTaskError(taskError));
     } finally {
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!showAddForm && !editingTask) {
+      return;
+    }
+
+    formPanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, [editingTask, showAddForm]);
 
   async function handleUpdate(input: TaskFormInput) {
     if (!editingTask) {
@@ -1072,10 +1094,7 @@ export function TaskManager() {
           </div>
           <button
             className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white"
-            onClick={() => {
-              setEditingTaskId(null);
-              setShowAddForm(true);
-            }}
+            onClick={handleStartAddTask}
             type="button"
           >
             Add Task
@@ -1248,7 +1267,10 @@ export function TaskManager() {
       </div>
 
       {showAddForm || editingTask ? (
-        <div className="rounded-md border border-line bg-white p-4 shadow-soft">
+        <div
+          className="rounded-md border border-line bg-white p-4 shadow-soft"
+          ref={formPanelRef}
+        >
           <h2 className="text-lg font-semibold text-ink">
             {editingTask ? "Edit Task" : "Add Task"}
           </h2>
@@ -1256,10 +1278,11 @@ export function TaskManager() {
             <TaskForm
               initialValue={editingTask ? taskToForm(editingTask) : emptyForm}
               isSaving={saving}
-              key={editingTask?.id || "new-task"}
+              key={editingTask?.id || `new-task-${addFormVersion}`}
               onCancel={() => {
                 setEditingTaskId(null);
                 setShowAddForm(false);
+                setAddFormVersion((version) => version + 1);
               }}
               onSubmit={editingTask ? handleUpdate : handleCreate}
               people={people}
@@ -1271,6 +1294,17 @@ export function TaskManager() {
             />
           </div>
         </div>
+      ) : null}
+
+      {!showAddForm && !editingTask ? (
+        <button
+          aria-label="Add task"
+          className="touch-target fixed bottom-24 left-1/2 z-20 ml-32 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft"
+          onClick={handleStartAddTask}
+          type="button"
+        >
+          <Plus aria-hidden="true" className="h-6 w-6" />
+        </button>
       ) : null}
     </section>
   );

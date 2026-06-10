@@ -15,6 +15,7 @@ type AppShellProps = {
   subtitle?: string;
   requireAuth?: boolean;
   showProjectHeader?: boolean;
+  showFloatingAddButton?: boolean;
 };
 
 export function AppShell({
@@ -23,7 +24,8 @@ export function AppShell({
   title,
   subtitle,
   requireAuth = true,
-  showProjectHeader = true
+  showProjectHeader = true,
+  showFloatingAddButton = true
 }: AppShellProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -60,7 +62,7 @@ export function AppShell({
           <ProjectHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
         ) : null}
         <main className="flex-1 px-4 pb-28 pt-4">{children}</main>
-        {showProjectHeader ? <FloatingAddButton /> : null}
+        {showProjectHeader && showFloatingAddButton ? <FloatingAddButton /> : null}
         {showProjectHeader ? <MobileBottomNav /> : null}
       </div>
     </div>
