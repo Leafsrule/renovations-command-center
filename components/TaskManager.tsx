@@ -12,10 +12,12 @@ import {
   listProjectTasks,
   updateProjectTask,
   type RenovationTask,
+  type TaskBlockerType,
   type TaskCriticalPathRisk,
   type TaskFormInput,
   type TaskPhase,
   type TaskPriority,
+  type TaskReadinessState,
   type TaskStatus
 } from "@/lib/tasks";
 
@@ -62,6 +64,40 @@ const riskOptions: Array<{ label: string; value: TaskCriticalPathRisk }> = [
   { label: "High", value: "high" }
 ];
 
+const readinessOptions: Array<{ label: string; value: TaskReadinessState }> = [
+  { label: "Not ready", value: "not_ready" },
+  { label: "Ready", value: "ready" },
+  { label: "Blocked", value: "blocked" },
+  { label: "Needs review", value: "needs_review" }
+];
+
+const readinessReasonOptions: Array<{ label: string; value: string }> = [
+  { label: "Dependency not complete", value: "dependency_not_complete" },
+  { label: "Materials not ready", value: "materials_not_ready" },
+  { label: "Site not prepared", value: "site_not_prepared" },
+  { label: "Access not ready", value: "access_not_ready" },
+  { label: "Labor not available", value: "labor_not_available" },
+  { label: "Inspection required", value: "inspection_required" },
+  { label: "Client decision needed", value: "client_decision_needed" },
+  { label: "Weather issue", value: "weather_issue" },
+  { label: "Safety concern", value: "safety_concern" },
+  { label: "Other", value: "other" }
+];
+
+const blockerOptions: Array<{ label: string; value: TaskBlockerType }> = [
+  { label: "None", value: "none" },
+  { label: "Dependency", value: "dependency" },
+  { label: "Material", value: "material" },
+  { label: "Site condition", value: "site_condition" },
+  { label: "Labor", value: "labor" },
+  { label: "Access", value: "access" },
+  { label: "Inspection", value: "inspection" },
+  { label: "Client decision", value: "client_decision" },
+  { label: "Weather", value: "weather" },
+  { label: "Safety", value: "safety" },
+  { label: "Other", value: "other" }
+];
+
 const emptyForm: TaskFormInput = {
   name: "",
   roomId: "",
@@ -79,7 +115,12 @@ const emptyForm: TaskFormInput = {
   notes: "",
   photosRequired: false,
   canRunConcurrent: false,
-  criticalPathRisk: "none"
+  criticalPathRisk: "none",
+  readinessState: "not_ready",
+  readinessReasons: [],
+  blockerType: "none",
+  blockerNotes: "",
+  blockedUntilDate: ""
 };
 
 function friendlyTaskError(error: unknown) {
@@ -116,7 +157,45 @@ function taskToForm(task: RenovationTask): TaskFormInput {
     notes: task.notes,
     photosRequired: task.photosRequired,
     canRunConcurrent: task.canRunConcurrent,
-    criticalPathRisk: task.criticalPathRisk
+    criticalPathRisk: task.criticalPathRisk,
+    readinessState: task.readinessState,
+    readinessReasons: task.readinessReasons,
+    blockerType: task.blockerType,
+    blockerNotes: task.blockerNotes,
+    blockedUntilDate: task.blockedUntilDate ?? ""
+  };
+}
+
+function readinessTone(
+  readinessState: TaskReadinessState
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (readinessState === "ready") {
+    return "ready";
+  }
+
+  if (readinessState === "blocked") {
+    return "blocked";
+  }
+
+  if (readinessState === "needs_review") {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function dependencyCompletion(
+  dependencyTaskIds: string[],
+  tasks: RenovationTask[]
+) {
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const completed = dependencyTaskIds.filter(
+    (dependencyTaskId) => taskById.get(dependencyTaskId)?.status === "complete"
+  ).length;
+
+  return {
+    completed,
+    total: dependencyTaskIds.length
   };
 }
 
@@ -177,6 +256,21 @@ function TaskForm({
     });
   }
 
+  function toggleReadinessReason(reason: string) {
+    setForm((current) => {
+      const readinessReasons = current.readinessReasons.includes(reason)
+        ? current.readinessReasons.filter(
+            (readinessReason) => readinessReason !== reason
+          )
+        : [...current.readinessReasons, reason];
+
+      return {
+        ...current,
+        readinessReasons
+      };
+    });
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -194,8 +288,20 @@ function TaskForm({
       return;
     }
 
+    if (Number(form.estimatedDurationMinutes.trim()) < 0) {
+      setError("Estimated duration cannot be negative.");
+      return;
+    }
+
     await onSubmit(form);
   }
+
+  const formDependencyCompletion = dependencyCompletion(
+    form.dependencyTaskIds,
+    tasks
+  );
+  const incompleteDependencyCount =
+    formDependencyCompletion.total - formDependencyCompletion.completed;
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
@@ -420,6 +526,122 @@ function TaskForm({
             ))}
           </div>
         )}
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-md border border-line bg-panel p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Readiness / Blockers
+        </legend>
+        <p className="text-sm leading-6 text-muted">
+          Mark whether this task is ready to start and record anything blocking
+          it.
+        </p>
+
+        {formDependencyCompletion.total > 0 ? (
+          <div className="rounded-md border border-line bg-white p-3 text-sm text-muted">
+            <p className="font-semibold text-ink">
+              Dependencies complete: {formDependencyCompletion.completed}/
+              {formDependencyCompletion.total}
+            </p>
+            {incompleteDependencyCount > 0 ? (
+              <p className="mt-1">
+                Some dependency tasks are not complete yet.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <label className="block text-sm font-semibold text-ink">
+          Readiness state
+          <select
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.readinessState}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                readinessState: event.target.value as TaskReadinessState
+              }))
+            }
+          >
+            {readinessOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold text-ink">
+            Readiness reasons
+          </legend>
+          <div className="space-y-2">
+            {readinessReasonOptions.map((reason) => (
+              <label
+                className="flex min-h-11 items-center gap-3 rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+                key={reason.value}
+              >
+                <input
+                  checked={form.readinessReasons.includes(reason.value)}
+                  className="h-5 w-5"
+                  onChange={() => toggleReadinessReason(reason.value)}
+                  type="checkbox"
+                />
+                {reason.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block text-sm font-semibold text-ink">
+          Blocker type
+          <select
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.blockerType}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockerType: event.target.value as TaskBlockerType
+              }))
+            }
+          >
+            {blockerOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Blocker notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Waiting for inspection before tile can begin."
+            value={form.blockerNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockerNotes: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Blocked until / review date
+          <input
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            type="date"
+            value={form.blockedUntilDate}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockedUntilDate: event.target.value
+              }))
+            }
+          />
+        </label>
       </fieldset>
 
       <label className="block text-sm font-semibold text-ink">
@@ -718,6 +940,14 @@ export function TaskManager() {
                 className="rounded-md border border-line bg-white p-4 shadow-soft"
                 key={task.id}
               >
+                {(() => {
+                  const taskDependencyCompletion = dependencyCompletion(
+                    task.dependencyTaskIds,
+                    tasks
+                  );
+
+                  return (
+                    <>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-ink">
@@ -769,6 +999,38 @@ export function TaskManager() {
                   ) : null}
                 </div>
 
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge
+                    label={labelFromValue(
+                      readinessOptions,
+                      task.readinessState
+                    )}
+                    tone={readinessTone(task.readinessState)}
+                  />
+                  {task.blockerType !== "none" ? (
+                    <StatusBadge
+                      label={`Blocker: ${labelFromValue(
+                        blockerOptions,
+                        task.blockerType
+                      )}`}
+                      tone="blocked"
+                    />
+                  ) : null}
+                  {task.readinessReasons.length > 0 ? (
+                    <StatusBadge
+                      label={`${task.readinessReasons.length} readiness reason${
+                        task.readinessReasons.length === 1 ? "" : "s"
+                      }`}
+                      tone="warning"
+                    />
+                  ) : null}
+                  {taskDependencyCompletion.total > 0 ? (
+                    <StatusBadge
+                      label={`Dependencies complete: ${taskDependencyCompletion.completed}/${taskDependencyCompletion.total}`}
+                    />
+                  ) : null}
+                </div>
+
                 {task.dueDate ? (
                   <p className="mt-3 text-sm text-muted">
                     Due: {task.dueDate}
@@ -793,6 +1055,9 @@ export function TaskManager() {
                     View Details
                   </Link>
                 </div>
+                    </>
+                  );
+                })()}
               </article>
             ))}
           </div>

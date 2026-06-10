@@ -38,7 +38,24 @@ export type TaskPhase =
   | "cleanup"
   | "other";
 
-export type ReadinessState = "not_ready" | "ready";
+export type TaskReadinessState =
+  | "not_ready"
+  | "ready"
+  | "blocked"
+  | "needs_review";
+
+export type TaskBlockerType =
+  | "none"
+  | "dependency"
+  | "material"
+  | "site_condition"
+  | "labor"
+  | "access"
+  | "inspection"
+  | "client_decision"
+  | "weather"
+  | "safety"
+  | "other";
 
 export type TaskCriticalPathRisk = "none" | "low" | "medium" | "high";
 
@@ -60,8 +77,11 @@ export type RenovationTask = {
   dueDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
-  readinessState: string;
+  readinessState: TaskReadinessState;
   readinessReasons: string[];
+  blockerType: TaskBlockerType;
+  blockerNotes: string;
+  blockedUntilDate: string | null;
   criticalPathRisk: TaskCriticalPathRisk;
   photosRequired: boolean;
   canRunConcurrent: boolean;
@@ -88,6 +108,11 @@ export type TaskFormInput = {
   photosRequired: boolean;
   canRunConcurrent: boolean;
   criticalPathRisk: TaskCriticalPathRisk;
+  readinessState: TaskReadinessState;
+  readinessReasons: string[];
+  blockerType: TaskBlockerType;
+  blockerNotes: string;
+  blockedUntilDate: string;
 };
 
 export type TaskCount = {
@@ -133,9 +158,19 @@ function formDurationToNumber(value: string) {
     return null;
   }
 
+  const numericValue = Number(trimmedValue);
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error("Estimated duration must be a number of minutes.");
+  }
+
   const parsedValue = parseInt(trimmedValue, 10);
 
-  return Number.isNaN(parsedValue) ? null : parsedValue;
+  if (parsedValue < 0) {
+    throw new Error("Estimated duration cannot be negative.");
+  }
+
+  return parsedValue;
 }
 
 function statusFromValue(value: unknown): TaskStatus {
@@ -198,8 +233,41 @@ function phaseFromValue(value: unknown): TaskPhase {
   return "setup";
 }
 
-function readinessFromValue(value: unknown): ReadinessState {
-  return value === "ready" ? "ready" : "not_ready";
+function readinessFromValue(value: unknown): TaskReadinessState {
+  const readinessState = String(value || "not_ready");
+
+  if (
+    readinessState === "not_ready" ||
+    readinessState === "ready" ||
+    readinessState === "blocked" ||
+    readinessState === "needs_review"
+  ) {
+    return readinessState;
+  }
+
+  return "not_ready";
+}
+
+function blockerTypeFromValue(value: unknown): TaskBlockerType {
+  const blockerType = String(value || "none");
+
+  if (
+    blockerType === "none" ||
+    blockerType === "dependency" ||
+    blockerType === "material" ||
+    blockerType === "site_condition" ||
+    blockerType === "labor" ||
+    blockerType === "access" ||
+    blockerType === "inspection" ||
+    blockerType === "client_decision" ||
+    blockerType === "weather" ||
+    blockerType === "safety" ||
+    blockerType === "other"
+  ) {
+    return blockerType;
+  }
+
+  return "none";
 }
 
 function riskFromValue(value: unknown): TaskCriticalPathRisk {
@@ -240,8 +308,18 @@ function toTask(id: string, data: Record<string, unknown>): RenovationTask {
     scheduledEnd: nullableString(data.scheduledEnd),
     readinessState: readinessFromValue(data.readinessState),
     readinessReasons: Array.isArray(data.readinessReasons)
-      ? data.readinessReasons.map(String)
+      ? data.readinessReasons.filter(
+          (value): value is string => typeof value === "string"
+        )
       : [],
+    blockerType: blockerTypeFromValue(data.blockerType),
+    blockerNotes:
+      typeof data.blockerNotes === "string" ? data.blockerNotes : "",
+    blockedUntilDate:
+      typeof data.blockedUntilDate === "string" &&
+      data.blockedUntilDate !== ""
+        ? data.blockedUntilDate
+        : null,
     criticalPathRisk: riskFromValue(data.criticalPathRisk),
     photosRequired: Boolean(data.photosRequired),
     canRunConcurrent: Boolean(data.canRunConcurrent),
@@ -307,8 +385,11 @@ export async function createProjectTask(
     dueDate: nullableString(input.dueDate),
     scheduledStart: null,
     scheduledEnd: null,
-    readinessState: "not_ready",
-    readinessReasons: [],
+    readinessState: input.readinessState,
+    readinessReasons: [...new Set(input.readinessReasons)],
+    blockerType: input.blockerType,
+    blockerNotes: input.blockerNotes.trim(),
+    blockedUntilDate: input.blockedUntilDate || null,
     criticalPathRisk: input.criticalPathRisk || "none",
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,
@@ -339,6 +420,11 @@ export async function updateProjectTask(
     ),
     earliestStartDate: nullableString(input.earliestStartDate),
     dueDate: nullableString(input.dueDate),
+    readinessState: input.readinessState,
+    readinessReasons: [...new Set(input.readinessReasons)],
+    blockerType: input.blockerType,
+    blockerNotes: input.blockerNotes.trim(),
+    blockedUntilDate: input.blockedUntilDate || null,
     criticalPathRisk: input.criticalPathRisk,
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,

@@ -11,8 +11,10 @@ import {
   getProjectTask,
   listProjectTasks,
   type RenovationTask,
+  type TaskBlockerType,
   type TaskPhase,
   type TaskPriority,
+  type TaskReadinessState,
   type TaskStatus
 } from "@/lib/tasks";
 
@@ -52,6 +54,40 @@ const priorityLabels: Record<TaskPriority, string> = {
   urgent: "Urgent"
 };
 
+const readinessLabels: Record<TaskReadinessState, string> = {
+  not_ready: "Not ready",
+  ready: "Ready",
+  blocked: "Blocked",
+  needs_review: "Needs review"
+};
+
+const blockerLabels: Record<TaskBlockerType, string> = {
+  none: "None",
+  dependency: "Dependency",
+  material: "Material",
+  site_condition: "Site condition",
+  labor: "Labor",
+  access: "Access",
+  inspection: "Inspection",
+  client_decision: "Client decision",
+  weather: "Weather",
+  safety: "Safety",
+  other: "Other"
+};
+
+const readinessReasonLabels: Record<string, string> = {
+  dependency_not_complete: "Dependency not complete",
+  materials_not_ready: "Materials not ready",
+  site_not_prepared: "Site not prepared",
+  access_not_ready: "Access not ready",
+  labor_not_available: "Labor not available",
+  inspection_required: "Inspection required",
+  client_decision_needed: "Client decision needed",
+  weather_issue: "Weather issue",
+  safety_concern: "Safety concern",
+  other: "Other"
+};
+
 function friendlyTaskError(error: unknown) {
   return error instanceof Error
     ? error.message
@@ -73,6 +109,24 @@ function formatUnknownTimestamp(value: unknown) {
   }
 
   return "";
+}
+
+function readinessTone(
+  readinessState: TaskReadinessState
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (readinessState === "ready") {
+    return "ready";
+  }
+
+  if (readinessState === "blocked") {
+    return "blocked";
+  }
+
+  if (readinessState === "needs_review") {
+    return "warning";
+  }
+
+  return "neutral";
 }
 
 export function TaskDetail() {
@@ -168,6 +222,16 @@ export function TaskDetail() {
       dependencyTask
     ])
   );
+  const dependencyCompletion =
+    task.dependencyTaskIds.length > 0 && dependencyTasks.length > 0
+      ? {
+          completed: task.dependencyTaskIds.filter(
+            (dependencyTaskId) =>
+              dependencyTaskById.get(dependencyTaskId)?.status === "complete"
+          ).length,
+          total: task.dependencyTaskIds.length
+        }
+      : null;
   const createdAtLabel = formatUnknownTimestamp(task.createdAt);
   const updatedAtLabel = formatUnknownTimestamp(task.updatedAt);
 
@@ -274,6 +338,72 @@ export function TaskDetail() {
                   })}
                 </div>
               )}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink">Readiness / Blockers</dt>
+            <dd className="mt-2 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge
+                  label={readinessLabels[task.readinessState]}
+                  tone={readinessTone(task.readinessState)}
+                />
+                <StatusBadge
+                  label={`Blocker: ${blockerLabels[task.blockerType]}`}
+                  tone={task.blockerType === "none" ? "neutral" : "blocked"}
+                />
+              </div>
+
+              {dependencyCompletion ? (
+                <div className="rounded-md border border-line bg-panel p-3">
+                  <p className="font-semibold text-ink">
+                    Dependencies complete: {dependencyCompletion.completed}/
+                    {dependencyCompletion.total}
+                  </p>
+                  {dependencyCompletion.completed < dependencyCompletion.total ? (
+                    <p className="mt-1 text-muted">
+                      Some dependency tasks are not complete yet.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div>
+                <p className="font-semibold text-ink">Readiness reasons</p>
+                {task.readinessReasons.length > 0 ? (
+                  <ul className="mt-1 list-inside list-disc text-muted">
+                    {task.readinessReasons.map((reason) => (
+                      <li key={reason}>
+                        {readinessReasonLabels[reason] || reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-muted">
+                    No readiness reasons listed.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="font-semibold text-ink">Blocker notes</p>
+                {task.blockerType === "none" && !task.blockerNotes ? (
+                  <p className="mt-1 text-muted">No blocker recorded.</p>
+                ) : (
+                  <p className="mt-1 leading-6 text-muted">
+                    {task.blockerNotes || "No blocker notes listed."}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p className="font-semibold text-ink">
+                  Blocked until / review date
+                </p>
+                <p className="mt-1 text-muted">
+                  {task.blockedUntilDate || "Not set"}
+                </p>
+              </div>
             </dd>
           </div>
           <div>
