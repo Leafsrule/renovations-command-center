@@ -12,6 +12,7 @@ import {
   listProjectTasks,
   type RenovationTask,
   type TaskBlockerType,
+  type TaskMaterialStatus,
   type TaskPhase,
   type TaskPriority,
   type TaskReadinessState,
@@ -88,6 +89,15 @@ const readinessReasonLabels: Record<string, string> = {
   other: "Other"
 };
 
+const materialLabels: Record<TaskMaterialStatus, string> = {
+  not_required: "Not required",
+  needed: "Needed",
+  ordered: "Ordered",
+  partial: "Partially ready",
+  ready: "Ready",
+  blocked: "Blocked"
+};
+
 function friendlyTaskError(error: unknown) {
   return error instanceof Error
     ? error.message
@@ -123,6 +133,28 @@ function readinessTone(
   }
 
   if (readinessState === "needs_review") {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function materialTone(
+  materialStatus: TaskMaterialStatus
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (materialStatus === "ready") {
+    return "ready";
+  }
+
+  if (materialStatus === "blocked") {
+    return "blocked";
+  }
+
+  if (
+    materialStatus === "needed" ||
+    materialStatus === "ordered" ||
+    materialStatus === "partial"
+  ) {
     return "warning";
   }
 
@@ -404,6 +436,86 @@ export function TaskDetail() {
                   {task.blockedUntilDate || "Not set"}
                 </p>
               </div>
+            </dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink">Materials</dt>
+            <dd className="mt-2 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge
+                  label={materialLabels[task.materialStatus]}
+                  tone={materialTone(task.materialStatus)}
+                />
+                {task.materialStatus === "blocked" ? (
+                  <StatusBadge label="Material blocker" tone="blocked" />
+                ) : null}
+              </div>
+
+              {task.materialStatus === "needed" ||
+              task.materialStatus === "partial" ||
+              task.materialStatus === "blocked" ? (
+                <div className="rounded-md border border-line bg-panel p-3">
+                  <p className="font-semibold text-ink">
+                    Materials may not be ready for this task.
+                  </p>
+                  {task.materialStatus === "blocked" ? (
+                    <p className="mt-1 text-muted">
+                      Material blocker recorded.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {task.materialStatus === "not_required" &&
+              task.materialItems.length === 0 &&
+              !task.materialNotes &&
+              !task.materialBlockerNotes ? (
+                <p className="text-muted">No material requirements recorded.</p>
+              ) : null}
+
+              <div>
+                <p className="font-semibold text-ink">Material items</p>
+                {task.materialItems.length > 0 ? (
+                  <ul className="mt-1 list-inside list-disc text-muted">
+                    {task.materialItems.map((materialItem) => (
+                      <li key={materialItem}>{materialItem}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-muted">
+                    No material items listed.
+                  </p>
+                )}
+              </div>
+
+              {task.materialNotes ? (
+                <div>
+                  <p className="font-semibold text-ink">Material notes</p>
+                  <p className="mt-1 leading-6 text-muted">
+                    {task.materialNotes}
+                  </p>
+                </div>
+              ) : null}
+
+              {task.materialNeededByDate ? (
+                <div>
+                  <p className="font-semibold text-ink">Materials needed by</p>
+                  <p className="mt-1 text-muted">
+                    {task.materialNeededByDate}
+                  </p>
+                </div>
+              ) : null}
+
+              {task.materialBlockerNotes ? (
+                <div>
+                  <p className="font-semibold text-ink">
+                    Material blocker notes
+                  </p>
+                  <p className="mt-1 leading-6 text-muted">
+                    {task.materialBlockerNotes}
+                  </p>
+                </div>
+              ) : null}
             </dd>
           </div>
           <div>

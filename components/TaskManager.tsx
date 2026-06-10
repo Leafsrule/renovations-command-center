@@ -15,6 +15,7 @@ import {
   type TaskBlockerType,
   type TaskCriticalPathRisk,
   type TaskFormInput,
+  type TaskMaterialStatus,
   type TaskPhase,
   type TaskPriority,
   type TaskReadinessState,
@@ -98,6 +99,15 @@ const blockerOptions: Array<{ label: string; value: TaskBlockerType }> = [
   { label: "Other", value: "other" }
 ];
 
+const materialOptions: Array<{ label: string; value: TaskMaterialStatus }> = [
+  { label: "Not required", value: "not_required" },
+  { label: "Needed", value: "needed" },
+  { label: "Ordered", value: "ordered" },
+  { label: "Partially ready", value: "partial" },
+  { label: "Ready", value: "ready" },
+  { label: "Blocked", value: "blocked" }
+];
+
 const emptyForm: TaskFormInput = {
   name: "",
   roomId: "",
@@ -120,7 +130,12 @@ const emptyForm: TaskFormInput = {
   readinessReasons: [],
   blockerType: "none",
   blockerNotes: "",
-  blockedUntilDate: ""
+  blockedUntilDate: "",
+  materialStatus: "not_required",
+  materialItemsText: "",
+  materialNotes: "",
+  materialNeededByDate: "",
+  materialBlockerNotes: ""
 };
 
 function friendlyTaskError(error: unknown) {
@@ -162,7 +177,12 @@ function taskToForm(task: RenovationTask): TaskFormInput {
     readinessReasons: task.readinessReasons,
     blockerType: task.blockerType,
     blockerNotes: task.blockerNotes,
-    blockedUntilDate: task.blockedUntilDate ?? ""
+    blockedUntilDate: task.blockedUntilDate ?? "",
+    materialStatus: task.materialStatus,
+    materialItemsText: task.materialItems.join("\n"),
+    materialNotes: task.materialNotes,
+    materialNeededByDate: task.materialNeededByDate ?? "",
+    materialBlockerNotes: task.materialBlockerNotes
   };
 }
 
@@ -197,6 +217,28 @@ function dependencyCompletion(
     completed,
     total: dependencyTaskIds.length
   };
+}
+
+function materialTone(
+  materialStatus: TaskMaterialStatus
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (materialStatus === "ready") {
+    return "ready";
+  }
+
+  if (materialStatus === "blocked") {
+    return "blocked";
+  }
+
+  if (
+    materialStatus === "needed" ||
+    materialStatus === "ordered" ||
+    materialStatus === "partial"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
 }
 
 function TaskForm({
@@ -644,6 +686,117 @@ function TaskForm({
         </label>
       </fieldset>
 
+      <fieldset className="space-y-4 rounded-md border border-line bg-panel p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Materials
+        </legend>
+        <p className="text-sm leading-6 text-muted">
+          Track whether this task has the materials needed before work starts.
+        </p>
+
+        {form.materialStatus === "needed" ||
+        form.materialStatus === "partial" ||
+        form.materialStatus === "blocked" ? (
+          <div className="rounded-md border border-line bg-white p-3 text-sm text-muted">
+            <p className="font-semibold text-ink">
+              Materials may not be ready for this task.
+            </p>
+            {form.materialStatus === "blocked" ? (
+              <p className="mt-1">
+                Consider setting Blocker type to Material if this task is
+                blocked by materials.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <label className="block text-sm font-semibold text-ink">
+          Material status
+          <select
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.materialStatus}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialStatus: event.target.value as TaskMaterialStatus
+              }))
+            }
+          >
+            {materialOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material items
+          <textarea
+            className="mt-2 min-h-28 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder={"Waterproofing membrane\nPrimer\nThinset"}
+            value={form.materialItemsText}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialItemsText: event.target.value
+              }))
+            }
+          />
+          <span className="mt-2 block text-sm font-normal text-muted">
+            Enter one item per line.
+          </span>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Tile is available but setting materials still need confirmation."
+            value={form.materialNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialNotes: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Materials needed by
+          <input
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            type="date"
+            value={form.materialNeededByDate}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialNeededByDate: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material blocker notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Thinset and grout still need to be confirmed."
+            value={form.materialBlockerNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialBlockerNotes: event.target.value
+              }))
+            }
+          />
+          <span className="mt-2 block text-sm font-normal text-muted">
+            Use this if material issues are delaying or blocking the task.
+          </span>
+        </label>
+      </fieldset>
+
       <label className="block text-sm font-semibold text-ink">
         Estimated duration in minutes
         <input
@@ -1030,6 +1183,36 @@ export function TaskManager() {
                     />
                   ) : null}
                 </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge
+                    label={labelFromValue(materialOptions, task.materialStatus)}
+                    tone={materialTone(task.materialStatus)}
+                  />
+                  {task.materialItems.length > 0 ? (
+                    <StatusBadge
+                      label={`${task.materialItems.length} material item${
+                        task.materialItems.length === 1 ? "" : "s"
+                      }`}
+                    />
+                  ) : null}
+                  {task.materialNeededByDate ? (
+                    <StatusBadge
+                      label={`Needed by: ${task.materialNeededByDate}`}
+                    />
+                  ) : null}
+                  {task.materialStatus === "blocked" ? (
+                    <StatusBadge label="Material blocker" tone="blocked" />
+                  ) : null}
+                </div>
+
+                {task.materialStatus === "needed" ||
+                task.materialStatus === "partial" ||
+                task.materialStatus === "blocked" ? (
+                  <p className="mt-3 text-sm text-muted">
+                    Materials may not be ready for this task.
+                  </p>
+                ) : null}
 
                 {task.dueDate ? (
                   <p className="mt-3 text-sm text-muted">

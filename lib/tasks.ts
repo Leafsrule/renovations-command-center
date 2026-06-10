@@ -57,6 +57,14 @@ export type TaskBlockerType =
   | "safety"
   | "other";
 
+export type TaskMaterialStatus =
+  | "not_required"
+  | "needed"
+  | "ordered"
+  | "partial"
+  | "ready"
+  | "blocked";
+
 export type TaskCriticalPathRisk = "none" | "low" | "medium" | "high";
 
 export type RenovationTask = {
@@ -82,6 +90,11 @@ export type RenovationTask = {
   blockerType: TaskBlockerType;
   blockerNotes: string;
   blockedUntilDate: string | null;
+  materialStatus: TaskMaterialStatus;
+  materialItems: string[];
+  materialNotes: string;
+  materialNeededByDate: string | null;
+  materialBlockerNotes: string;
   criticalPathRisk: TaskCriticalPathRisk;
   photosRequired: boolean;
   canRunConcurrent: boolean;
@@ -113,6 +126,11 @@ export type TaskFormInput = {
   blockerType: TaskBlockerType;
   blockerNotes: string;
   blockedUntilDate: string;
+  materialStatus: TaskMaterialStatus;
+  materialItemsText: string;
+  materialNotes: string;
+  materialNeededByDate: string;
+  materialBlockerNotes: string;
 };
 
 export type TaskCount = {
@@ -171,6 +189,17 @@ function formDurationToNumber(value: string) {
   }
 
   return parsedValue;
+}
+
+function parseMaterialItems(text: string): string[] {
+  return [
+    ...new Set(
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+    )
+  ];
 }
 
 function statusFromValue(value: unknown): TaskStatus {
@@ -270,6 +299,21 @@ function blockerTypeFromValue(value: unknown): TaskBlockerType {
   return "none";
 }
 
+const validMaterialStatuses: TaskMaterialStatus[] = [
+  "not_required",
+  "needed",
+  "ordered",
+  "partial",
+  "ready",
+  "blocked"
+];
+
+function materialStatusFromValue(value: unknown): TaskMaterialStatus {
+  return validMaterialStatuses.includes(value as TaskMaterialStatus)
+    ? (value as TaskMaterialStatus)
+    : "not_required";
+}
+
 function riskFromValue(value: unknown): TaskCriticalPathRisk {
   const risk = String(value || "none");
 
@@ -320,6 +364,23 @@ function toTask(id: string, data: Record<string, unknown>): RenovationTask {
       data.blockedUntilDate !== ""
         ? data.blockedUntilDate
         : null,
+    materialStatus: materialStatusFromValue(data.materialStatus),
+    materialItems: Array.isArray(data.materialItems)
+      ? data.materialItems.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : [],
+    materialNotes:
+      typeof data.materialNotes === "string" ? data.materialNotes : "",
+    materialNeededByDate:
+      typeof data.materialNeededByDate === "string" &&
+      data.materialNeededByDate !== ""
+        ? data.materialNeededByDate
+        : null,
+    materialBlockerNotes:
+      typeof data.materialBlockerNotes === "string"
+        ? data.materialBlockerNotes
+        : "",
     criticalPathRisk: riskFromValue(data.criticalPathRisk),
     photosRequired: Boolean(data.photosRequired),
     canRunConcurrent: Boolean(data.canRunConcurrent),
@@ -390,6 +451,11 @@ export async function createProjectTask(
     blockerType: input.blockerType,
     blockerNotes: input.blockerNotes.trim(),
     blockedUntilDate: input.blockedUntilDate || null,
+    materialStatus: input.materialStatus,
+    materialItems: parseMaterialItems(input.materialItemsText),
+    materialNotes: input.materialNotes.trim(),
+    materialNeededByDate: input.materialNeededByDate || null,
+    materialBlockerNotes: input.materialBlockerNotes.trim(),
     criticalPathRisk: input.criticalPathRisk || "none",
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,
@@ -425,6 +491,11 @@ export async function updateProjectTask(
     blockerType: input.blockerType,
     blockerNotes: input.blockerNotes.trim(),
     blockedUntilDate: input.blockedUntilDate || null,
+    materialStatus: input.materialStatus,
+    materialItems: parseMaterialItems(input.materialItemsText),
+    materialNotes: input.materialNotes.trim(),
+    materialNeededByDate: input.materialNeededByDate || null,
+    materialBlockerNotes: input.materialBlockerNotes.trim(),
     criticalPathRisk: input.criticalPathRisk,
     photosRequired: input.photosRequired,
     canRunConcurrent: input.canRunConcurrent,
