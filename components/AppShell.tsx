@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
@@ -18,6 +19,38 @@ type AppShellProps = {
   showFloatingAddButton?: boolean;
 };
 
+function AuthStatusScreen({
+  message,
+  showFallback
+}: {
+  message: string;
+  showFallback?: boolean;
+}) {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-panel px-4 py-8 text-center text-ink">
+      <div className="w-full max-w-md rounded-md border border-line bg-white p-6 shadow-soft">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          Renovations Command Center
+        </p>
+        <h1 className="mt-3 text-xl font-semibold text-ink">{message}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          {showFallback
+            ? "Try refreshing the page or return to sign in."
+            : "This should only take a moment."}
+        </p>
+        {showFallback ? (
+          <Link
+            className="touch-target mt-5 flex items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
+            href="/login"
+          >
+            Go to sign in
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({
   children,
   eyebrow = "Active project",
@@ -30,6 +63,7 @@ export function AppShell({
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   useEffect(() => {
     if (!requireAuth || loading || user) {
@@ -39,20 +73,34 @@ export function AppShell({
     router.replace(`/login?next=${encodeURIComponent(pathname)}`);
   }, [loading, pathname, requireAuth, router, user]);
 
+  useEffect(() => {
+    if (!requireAuth || !loading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 10000);
+
+    return () => window.clearTimeout(timeout);
+  }, [loading, requireAuth]);
+
   if (requireAuth && loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#eef3f4] px-6 text-center text-sm text-muted">
-        Checking your sign-in...
-      </div>
+      <AuthStatusScreen
+        message={
+          loadingTimedOut
+            ? "Still checking your sign-in."
+            : "Checking your sign-in..."
+        }
+        showFallback={loadingTimedOut}
+      />
     );
   }
 
   if (requireAuth && !user) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#eef3f4] px-6 text-center text-sm text-muted">
-        Taking you to sign in...
-      </div>
-    );
+    return <AuthStatusScreen message="Taking you to sign in..." />;
   }
 
   return (
