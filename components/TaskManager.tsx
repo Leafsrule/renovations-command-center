@@ -9,6 +9,12 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { listProjectPeople, type RenovationPerson } from "@/lib/people";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
 import {
+  getProjectSchedulingInsights,
+  getProjectSchedulingSummary,
+  getTodayDateString,
+  type TaskSchedulingCategory
+} from "@/lib/scheduling";
+import {
   createProjectTask,
   listProjectTasks,
   updateProjectTask,
@@ -108,6 +114,20 @@ const materialOptions: Array<{ label: string; value: TaskMaterialStatus }> = [
   { label: "Ready", value: "ready" },
   { label: "Blocked", value: "blocked" }
 ];
+
+const schedulingLabels: Record<TaskSchedulingCategory, string> = {
+  completed: "Completed",
+  recommended_next: "Recommended next",
+  ready_now: "Ready now",
+  overdue: "Overdue",
+  due_soon: "Due soon",
+  blocked: "Blocked",
+  waiting_on_dependencies: "Waiting - deps",
+  waiting_on_materials: "Waiting - materials",
+  needs_review: "Needs review",
+  scheduled_later: "Scheduled later",
+  not_ready: "Not ready"
+};
 
 const emptyForm: TaskFormInput = {
   name: "",
@@ -235,6 +255,29 @@ function materialTone(
     materialStatus === "needed" ||
     materialStatus === "ordered" ||
     materialStatus === "partial"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function schedulingTone(
+  category: TaskSchedulingCategory
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (category === "recommended_next" || category === "ready_now") {
+    return "ready";
+  }
+
+  if (category === "blocked" || category === "overdue") {
+    return "blocked";
+  }
+
+  if (
+    category === "waiting_on_dependencies" ||
+    category === "waiting_on_materials" ||
+    category === "needs_review" ||
+    category === "due_soon"
   ) {
     return "warning";
   }
@@ -952,6 +995,30 @@ export function TaskManager() {
     () => new Map(people.map((person) => [person.id, person.name])),
     [people]
   );
+  const today = useMemo(() => getTodayDateString(), []);
+  const schedulingInsights = useMemo(
+    () => getProjectSchedulingInsights(tasks, today),
+    [tasks, today]
+  );
+  const schedulingSummary = useMemo(
+    () => getProjectSchedulingSummary(schedulingInsights),
+    [schedulingInsights]
+  );
+  const schedulingInsightByTaskId = useMemo(
+    () =>
+      new Map(schedulingInsights.map((insight) => [insight.taskId, insight])),
+    [schedulingInsights]
+  );
+  const recommendedTasks = useMemo(
+    () =>
+      schedulingInsights
+        .filter((insight) => insight.category === "recommended_next")
+        .sort((a, b) => b.sortScore - a.sortScore)
+        .slice(0, 3)
+        .map((insight) => tasks.find((task) => task.id === insight.taskId))
+        .filter((task): task is RenovationTask => Boolean(task)),
+    [schedulingInsights, tasks]
+  );
 
   async function refreshTasks() {
     const nextTasks = await listProjectTasks(projectId);
@@ -1084,6 +1151,87 @@ export function TaskManager() {
         </div>
       ) : null}
 
+      <section className="rounded-md border border-line bg-white p-4 shadow-soft">
+        <h2 className="text-lg font-semibold text-ink">
+          Scheduling Intelligence
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <StatusBadge
+            label={`Recommended next: ${schedulingSummary.recommendedNextCount}`}
+            tone="ready"
+          />
+          <StatusBadge
+            label={`Ready now: ${schedulingSummary.readyNowCount}`}
+            tone="ready"
+          />
+          <StatusBadge
+            label={`Blocked: ${schedulingSummary.blockedCount}`}
+            tone="blocked"
+          />
+          <StatusBadge
+            label={`Waiting - deps: ${schedulingSummary.waitingOnDependenciesCount}`}
+            tone="warning"
+          />
+          <StatusBadge
+            label={`Waiting - materials: ${schedulingSummary.waitingOnMaterialsCount}`}
+            tone="warning"
+          />
+          <StatusBadge
+            label={`Needs review: ${schedulingSummary.needsReviewCount}`}
+            tone="warning"
+          />
+          <StatusBadge
+            label={`Overdue: ${schedulingSummary.overdueCount}`}
+            tone="blocked"
+          />
+          <StatusBadge
+            label={`Due soon: ${schedulingSummary.dueSoonCount}`}
+            tone="warning"
+          />
+          <StatusBadge
+            label={`Scheduled later: ${schedulingSummary.scheduledLaterCount}`}
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-ink">Recommended Next</h3>
+          {recommendedTasks.length === 0 ? (
+            <p className="mt-2 rounded-md border border-line bg-panel p-3 text-sm text-muted">
+              No recommended next tasks yet.
+            </p>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {recommendedTasks.map((task) => {
+                const insight = schedulingInsightByTaskId.get(task.id);
+
+                return (
+                  <div
+                    className="rounded-md border border-line bg-panel p-3"
+                    key={task.id}
+                  >
+                    <p className="font-semibold text-ink">{task.name}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {labelFromValue(phaseOptions, task.phase)} -{" "}
+                      {labelFromValue(priorityOptions, task.priority)}
+                      {task.estimatedDurationMinutes !== null
+                        ? ` - ${task.estimatedDurationMinutes} min`
+                        : ""}
+                    </p>
+                    {insight ? (
+                      <ul className="mt-2 list-inside list-disc text-sm text-muted">
+                        {insight.reasons.slice(0, 2).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
       <div className="rounded-md border border-line bg-panel p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1116,6 +1264,9 @@ export function TaskManager() {
                   const taskDependencyCompletion = dependencyCompletion(
                     task.dependencyTaskIds,
                     tasks
+                  );
+                  const schedulingInsight = schedulingInsightByTaskId.get(
+                    task.id
                   );
 
                   return (
@@ -1237,6 +1388,22 @@ export function TaskManager() {
                   <p className="mt-3 text-sm text-muted">
                     Due: {task.dueDate}
                   </p>
+                ) : null}
+
+                {schedulingInsight ? (
+                  <div className="mt-3">
+                    <StatusBadge
+                      label={schedulingLabels[schedulingInsight.category]}
+                      tone={schedulingTone(schedulingInsight.category)}
+                    />
+                    {schedulingInsight.reasons.length > 0 ? (
+                      <ul className="mt-2 list-inside list-disc text-sm text-muted">
+                        {schedulingInsight.reasons.slice(0, 2).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <div className="mt-4 grid grid-cols-1 gap-2">

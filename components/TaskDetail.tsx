@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import {
+  getTaskSchedulingInsight,
+  getTodayDateString,
+  type TaskSchedulingCategory
+} from "@/lib/scheduling";
 import { listProjectPeople, type RenovationPerson } from "@/lib/people";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
 import {
@@ -98,6 +103,20 @@ const materialLabels: Record<TaskMaterialStatus, string> = {
   blocked: "Blocked"
 };
 
+const schedulingLabels: Record<TaskSchedulingCategory, string> = {
+  completed: "Completed",
+  recommended_next: "Recommended next",
+  ready_now: "Ready now",
+  overdue: "Overdue",
+  due_soon: "Due soon",
+  blocked: "Blocked",
+  waiting_on_dependencies: "Waiting - deps",
+  waiting_on_materials: "Waiting - materials",
+  needs_review: "Needs review",
+  scheduled_later: "Scheduled later",
+  not_ready: "Not ready"
+};
+
 function friendlyTaskError(error: unknown) {
   return error instanceof Error
     ? error.message
@@ -161,6 +180,29 @@ function materialTone(
   return "neutral";
 }
 
+function schedulingTone(
+  category: TaskSchedulingCategory
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (category === "recommended_next" || category === "ready_now") {
+    return "ready";
+  }
+
+  if (category === "blocked" || category === "overdue") {
+    return "blocked";
+  }
+
+  if (
+    category === "waiting_on_dependencies" ||
+    category === "waiting_on_materials" ||
+    category === "needs_review" ||
+    category === "due_soon"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
 export function TaskDetail() {
   const params = useParams<{ projectId: string; taskId: string }>();
   const router = useRouter();
@@ -179,6 +221,26 @@ export function TaskDetail() {
   const personNameById = useMemo(
     () => new Map(people.map((person) => [person.id, person.name])),
     [people]
+  );
+  const today = useMemo(() => getTodayDateString(), []);
+  const schedulingTaskMap = useMemo(() => {
+    const taskMap = new Map(
+      dependencyTasks.map((dependencyTask) => [
+        dependencyTask.id,
+        dependencyTask
+      ])
+    );
+
+    if (task) {
+      taskMap.set(task.id, task);
+    }
+
+    return taskMap;
+  }, [dependencyTasks, task]);
+  const schedulingInsight = useMemo(
+    () =>
+      task ? getTaskSchedulingInsight(task, schedulingTaskMap, today) : null,
+    [schedulingTaskMap, task, today]
   );
 
   useEffect(() => {
@@ -518,6 +580,59 @@ export function TaskDetail() {
               ) : null}
             </dd>
           </div>
+          {schedulingInsight ? (
+            <div>
+              <dt className="font-semibold text-ink">Scheduling Insight</dt>
+              <dd className="mt-2 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge
+                    label={schedulingLabels[schedulingInsight.category]}
+                    tone={schedulingTone(schedulingInsight.category)}
+                  />
+                  {schedulingInsight.isOverdue ? (
+                    <StatusBadge label="Due date passed" tone="blocked" />
+                  ) : null}
+                  {schedulingInsight.isDueSoon ? (
+                    <StatusBadge label="Due soon" tone="warning" />
+                  ) : null}
+                </div>
+
+                {schedulingInsight.reasons.length > 0 ? (
+                  <ul className="list-inside list-disc text-muted">
+                    {schedulingInsight.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted">
+                    No scheduling issues detected.
+                  </p>
+                )}
+
+                {schedulingInsight.blockingDependencyIds.length > 0 ? (
+                  <div>
+                    <p className="font-semibold text-ink">
+                      Blocking dependencies
+                    </p>
+                    <ul className="mt-1 list-inside list-disc text-muted">
+                      {schedulingInsight.blockingDependencyIds.map(
+                        (dependencyTaskId) => {
+                          const dependencyTask =
+                            dependencyTaskById.get(dependencyTaskId);
+
+                          return (
+                            <li key={dependencyTaskId}>
+                              {dependencyTask?.name || "Unknown task"}
+                            </li>
+                          );
+                        }
+                      )}
+                    </ul>
+                  </div>
+                ) : null}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="font-semibold text-ink">Estimated duration</dt>
             <dd className="mt-1 text-muted">
