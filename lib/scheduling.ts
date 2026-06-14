@@ -353,8 +353,11 @@ export function getTaskSchedulingInsight(
   const readiness = getTaskReadinessEvaluation(task, taskMap, { today });
   const isCompleted = isTaskCompletedOrCancelled(task);
   const isWaitingOnDependencies = readiness.blockingDependencyIds.length > 0;
-  const isWaitingOnMaterials = taskHasMissingMaterials(task);
-  const isBlocked = readiness.isBlocked;
+  const isWaitingOnMaterials = readiness.missingMaterial;
+  // Treat "blocked" in scheduling insight as an active blocker (site/labor/etc.),
+  // separate from waiting-on-dependencies or waiting-on-materials so the UI can
+  // surface more specific categories.
+  const isBlocked = readiness.activeBlocker;
   const isOverdue = !isCompleted && isDateBefore(task.dueDate, today);
   const isDueSoon =
     !isCompleted && !isOverdue && isDateWithinDays(task.dueDate, today, 7);
