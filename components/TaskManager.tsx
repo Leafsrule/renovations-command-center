@@ -11,6 +11,7 @@ import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
 import {
   getProjectSchedulingInsights,
   getProjectSchedulingSummary,
+  getRecommendedNextTasks,
   getTodayDateString,
   type TaskSchedulingCategory
 } from "@/lib/scheduling";
@@ -1011,13 +1012,10 @@ export function TaskManager() {
   );
   const recommendedTasks = useMemo(
     () =>
-      schedulingInsights
-        .filter((insight) => insight.category === "recommended_next")
-        .sort((a, b) => b.sortScore - a.sortScore)
+      getRecommendedNextTasks(tasks, { today })
         .slice(0, 3)
-        .map((insight) => tasks.find((task) => task.id === insight.taskId))
-        .filter((task): task is RenovationTask => Boolean(task)),
-    [schedulingInsights, tasks]
+        .map((recommendation) => recommendation.task),
+    [tasks, today]
   );
 
   async function refreshTasks() {

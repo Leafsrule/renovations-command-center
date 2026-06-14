@@ -1,4 +1,4 @@
-import type { RenovationTask } from "./tasks";
+import type { RenovationTask, TaskPhase } from "./tasks";
 
 export type TaskSchedulingCategory =
   | "completed"
@@ -44,11 +44,56 @@ export type ProjectSchedulingSummary = {
   notReadyCount: number;
 };
 
-type InsightInput = {
-  task: RenovationTask;
-  taskMap: Map<string, RenovationTask>;
-  today: string;
+export type TaskReadinessEvaluationState =
+  | "ready"
+  | "blocked"
+  | "invalid"
+  | "not_ready";
+
+export type TaskReadinessEvaluation = {
+  taskId: string;
+  state: TaskReadinessEvaluationState;
+  isReady: boolean;
+  isBlocked: boolean;
+  isInvalid: boolean;
+  blockingDependencyIds: string[];
+  missingMaterial: boolean;
+  activeBlocker: boolean;
+  helperRequiredAndUnavailable: boolean;
+  earliestStartBlocked: boolean;
+  isCompletedOrCancelled: boolean;
+  reasons: string[];
 };
+
+export type RecommendationOptions = {
+  today?: string;
+  availableMinutes?: number;
+  helperAvailable?: boolean;
+  passiveWaitActive?: boolean;
+  maxRecommendations?: number;
+};
+
+export type TaskRecommendation = {
+  task: RenovationTask;
+  rank: number;
+  reasons: string[];
+};
+
+const phaseOrder: TaskPhase[] = [
+  "setup",
+  "demolition",
+  "prep",
+  "rough_in",
+  "waterproofing",
+  "tile",
+  "flooring",
+  "drywall",
+  "paint",
+  "trim",
+  "fixtures",
+  "cleanup",
+  "other"
+];
 
 function isValidDateString(value: string | null | undefined): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -97,17 +142,40 @@ export function getTodayDateString(): string {
   ].join("-");
 }
 
-function isTaskCompletedForScheduling(task: RenovationTask) {
+function isTaskCompletedOrCancelled(task: RenovationTask) {
   return task.status === "complete" || task.status === "cancelled";
 }
 
-function taskIsWaitingOnMaterials(task: RenovationTask) {
+function taskHasIncompleteDependencies(
+  task: RenovationTask,
+  taskMap: Map<string, RenovationTask>
+) {
+  return task.dependencyTaskIds.filter((dependencyTaskId) => {
+    const dependencyTask = taskMap.get(dependencyTaskId);
+    return !dependencyTask || !isTaskCompletedOrCancelled(dependencyTask);
+  });
+}
+
+function taskHasMissingMaterials(task: RenovationTask) {
   return (
     task.materialStatus === "needed" ||
     task.materialStatus === "ordered" ||
     task.materialStatus === "partial" ||
     task.materialStatus === "blocked"
   );
+}
+
+function taskHasActiveBlocker(task: RenovationTask, today: string) {
+  return (
+    task.status === "blocked" ||
+    task.readinessState === "blocked" ||
+    task.blockerType !== "none" ||
+    isDateAfter(task.blockedUntilDate, today)
+  );
+}
+
+function taskHasInvalidDuration(task: RenovationTask) {
+  return task.estimatedDurationMinutes === null || task.estimatedDurationMinutes <= 0;
 }
 
 function priorityScore(task: RenovationTask) {
@@ -159,30 +227,137 @@ function durationScore(task: RenovationTask) {
 }
 
 function capReasons(reasons: string[]) {
-  return reasons.slice(0, 4);
+  return reasons.filter(Boolean).slice(0, 5);
 }
 
-function getBaseSchedulingInsight({
-  task,
-  taskMap,
-  today
-}: InsightInput): TaskSchedulingInsight {
-  const isCompleted = isTaskCompletedForScheduling(task);
-  const blockingDependencyIds = task.dependencyTaskIds.filter(
-    (dependencyTaskId) => {
-      const dependencyTask = taskMap.get(dependencyTaskId);
+function evaluateTaskReadiness(
+  task: RenovationTask,
+  taskMap: Map<string, RenovationTask>,
+  options: RecommendationOptions = {}
+): TaskReadinessEvaluation {
+  const today = options.today ?? getTodayDateString();
+  const isCompletedOrCancelled = isTaskCompletedOrCancelled(task);
+  const blockingDependencyIds = taskHasIncompleteDependencies(task, taskMap);
+  const missingMaterial = taskHasMissingMaterials(task);
+  const activeBlocker = taskHasActiveBlocker(task, today);
+  const invalidDuration = taskHasInvalidDuration(task);
+  const earliestStartBlocked = isDateAfter(task.earliestStartDate, today);
+  const helperRequiredAndUnavailable =
+    task.helperRequired === true && options.helperAvailable === false;
+  const reasons: string[] = [];
 
-      return !dependencyTask || !isTaskCompletedForScheduling(dependencyTask);
-    }
-  );
-  const isWaitingOnDependencies = blockingDependencyIds.length > 0;
-  const isWaitingOnMaterials = taskIsWaitingOnMaterials(task);
-  const isBlocked =
-    task.status === "blocked" ||
-    task.readinessState === "blocked" ||
-    task.blockerType !== "none" ||
-    isValidDateString(task.blockedUntilDate) ||
-    task.materialStatus === "blocked";
+  if (isCompletedOrCancelled) {
+    reasons.push(
+      task.status === "cancelled"
+        ? "Task is cancelled and excluded from recommendations."
+        : "Task is complete and excluded from recommendations."
+    );
+  }
+
+  if (invalidDuration) {
+    reasons.push("Estimated duration must be a positive number.");
+  }
+
+  if (activeBlocker) {
+    reasons.push("An active blocker is recorded.");
+  }
+
+  if (blockingDependencyIds.length > 0) {
+    reasons.push(
+      `${blockingDependencyIds.length} dependency ${
+        blockingDependencyIds.length === 1 ? "is" : "are"
+      } incomplete.`
+    );
+  }
+
+  if (missingMaterial) {
+    reasons.push("Required materials are not available.");
+  }
+
+  if (earliestStartBlocked) {
+    reasons.push(
+      `Earliest start is ${task.earliestStartDate}, which is after today.`
+    );
+  }
+
+  if (helperRequiredAndUnavailable) {
+    reasons.push("Helper is required but not available.");
+  }
+
+  if (
+    !isCompletedOrCancelled &&
+    !invalidDuration &&
+    !activeBlocker &&
+    blockingDependencyIds.length === 0 &&
+    !missingMaterial &&
+    !earliestStartBlocked &&
+    !helperRequiredAndUnavailable &&
+    task.readinessState !== "ready" &&
+    task.status !== "ready"
+  ) {
+    reasons.push("Task is not marked ready yet.");
+  }
+
+  if (
+    !isCompletedOrCancelled &&
+    !invalidDuration &&
+    !activeBlocker &&
+    blockingDependencyIds.length === 0 &&
+    !missingMaterial &&
+    !earliestStartBlocked &&
+    !helperRequiredAndUnavailable &&
+    (task.readinessState === "ready" || task.status === "ready")
+  ) {
+    reasons.push("Task is ready for work.");
+  }
+
+  const state: TaskReadinessEvaluationState = isCompletedOrCancelled
+    ? "not_ready"
+    : invalidDuration
+    ? "invalid"
+    : activeBlocker || blockingDependencyIds.length > 0 || missingMaterial || earliestStartBlocked || helperRequiredAndUnavailable
+    ? "blocked"
+    : task.readinessState === "ready" || task.status === "ready"
+    ? "ready"
+    : "not_ready";
+
+  return {
+    taskId: task.id,
+    state,
+    isReady: state === "ready",
+    isBlocked: state === "blocked",
+    isInvalid: state === "invalid",
+    blockingDependencyIds,
+    missingMaterial,
+    activeBlocker,
+    helperRequiredAndUnavailable,
+    earliestStartBlocked,
+    isCompletedOrCancelled,
+    reasons: capReasons(reasons)
+  };
+}
+
+export function getTaskReadinessEvaluation(
+  task: RenovationTask,
+  taskMap: Map<string, RenovationTask>,
+  options: RecommendationOptions = {}
+): TaskReadinessEvaluation {
+  return evaluateTaskReadiness(task, taskMap, options);
+}
+
+export function getTaskSchedulingInsight(
+  task: RenovationTask,
+  taskMap: Map<string, RenovationTask>,
+  today = getTodayDateString()
+): TaskSchedulingInsight {
+  const readiness = getTaskReadinessEvaluation(task, taskMap, { today });
+  const isCompleted = isTaskCompletedOrCancelled(task);
+  const isWaitingOnDependencies = readiness.blockingDependencyIds.length > 0;
+  const isWaitingOnMaterials = readiness.missingMaterial;
+  // Treat "blocked" in scheduling insight as an active blocker (site/labor/etc.),
+  // separate from waiting-on-dependencies or waiting-on-materials so the UI can
+  // surface more specific categories.
+  const isBlocked = readiness.activeBlocker;
   const isOverdue = !isCompleted && isDateBefore(task.dueDate, today);
   const isDueSoon =
     !isCompleted && !isOverdue && isDateWithinDays(task.dueDate, today, 7);
@@ -194,37 +369,10 @@ function getBaseSchedulingInsight({
       task.status === "qc_review" ||
       task.status === "rework_required");
   const isReadyNow =
-    !isCompleted &&
-    !isBlocked &&
-    !isWaitingOnDependencies &&
-    !isWaitingOnMaterials &&
+    readiness.isReady &&
     !isScheduledLater &&
-    (task.readinessState === "ready" || task.status === "ready");
-  const reasons: string[] = [];
-
-  if (isCompleted) {
-    reasons.push(task.status === "cancelled" ? "Task is cancelled." : "Task is complete.");
-  }
-
-  if (isBlocked) {
-    reasons.push("A blocker is recorded.");
-  }
-
-  if (isWaitingOnDependencies) {
-    reasons.push(
-      `${blockingDependencyIds.length} dependency ${
-        blockingDependencyIds.length === 1 ? "is" : "are"
-      } not complete.`
-    );
-  }
-
-  if (isWaitingOnMaterials) {
-    reasons.push("Materials may not be ready.");
-  }
-
-  if (needsReview) {
-    reasons.push("Task needs review.");
-  }
+    !isOverdue;
+  const reasons = [...readiness.reasons];
 
   if (isOverdue) {
     reasons.push(`Due date has passed: ${task.dueDate}.`);
@@ -234,14 +382,6 @@ function getBaseSchedulingInsight({
 
   if (isScheduledLater) {
     reasons.push(`Earliest start is ${task.earliestStartDate}.`);
-  }
-
-  if (isReadyNow) {
-    reasons.push("No blockers are currently stopping this task.");
-  }
-
-  if (!isCompleted && !isReadyNow && task.readinessState === "not_ready") {
-    reasons.push("Task is marked not ready.");
   }
 
   let category: TaskSchedulingCategory = "not_ready";
@@ -284,17 +424,108 @@ function getBaseSchedulingInsight({
     isDueSoon,
     isScheduledLater,
     reasons: capReasons(reasons),
-    blockingDependencyIds,
+    blockingDependencyIds: readiness.blockingDependencyIds,
     sortScore
   };
 }
 
-export function getTaskSchedulingInsight(
-  task: RenovationTask,
-  taskMap: Map<string, RenovationTask>,
-  today = getTodayDateString()
-): TaskSchedulingInsight {
-  return getBaseSchedulingInsight({ task, taskMap, today });
+function compareTaskPriority(a: RenovationTask, b: RenovationTask) {
+  const priorityRank = { urgent: 4, high: 3, medium: 2, low: 1 } as const;
+
+  if (priorityRank[a.priority] !== priorityRank[b.priority]) {
+    return priorityRank[b.priority] - priorityRank[a.priority];
+  }
+
+  const phaseA = phaseOrder.indexOf(a.phase);
+  const phaseB = phaseOrder.indexOf(b.phase);
+
+  if (phaseA !== phaseB) {
+    return phaseA - phaseB;
+  }
+
+  if (a.estimatedDurationMinutes !== null && b.estimatedDurationMinutes !== null) {
+    if (a.estimatedDurationMinutes !== b.estimatedDurationMinutes) {
+      return a.estimatedDurationMinutes - b.estimatedDurationMinutes;
+    }
+  } else if (a.estimatedDurationMinutes === null && b.estimatedDurationMinutes !== null) {
+    return 1;
+  } else if (a.estimatedDurationMinutes !== null && b.estimatedDurationMinutes === null) {
+    return -1;
+  }
+
+  if (a.name !== b.name) {
+    return a.name.localeCompare(b.name);
+  }
+
+  return a.id.localeCompare(b.id);
+}
+
+export function getRecommendedNextTasks(
+  tasks: RenovationTask[],
+  options: RecommendationOptions = {}
+): TaskRecommendation[] {
+  const today = options.today ?? getTodayDateString();
+  const taskMap = new Map(tasks.map((task) => [task.id, task]));
+
+  const candidates = tasks
+    .map((task) => ({
+      task,
+      readiness: getTaskReadinessEvaluation(task, taskMap, {
+        today,
+        helperAvailable: options.helperAvailable
+      })
+    }))
+    .filter(({ readiness }) => readiness.state === "ready")
+    .filter(({ task, readiness }) => {
+      if (options.helperAvailable === false && readiness.helperRequiredAndUnavailable) {
+        return false;
+      }
+
+      if (options.passiveWaitActive && !task.canRunConcurrent) {
+        return false;
+      }
+
+      if (
+        typeof options.availableMinutes === "number" &&
+        task.estimatedDurationMinutes !== null &&
+        task.estimatedDurationMinutes > options.availableMinutes
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => compareTaskPriority(a.task, b.task));
+
+  return candidates
+    .sort((a, b) => compareTaskPriority(a.task, b.task))
+    .map(({ task }, index) => {
+      const reasons: string[] = ["Ready for work."];
+
+    if (options.availableMinutes !== undefined) {
+      reasons.push("Fits within the supplied remaining capacity.");
+    }
+
+    if (options.helperAvailable === false && task.helperRequired) {
+      reasons.push("Helper is required but unavailable.");
+    } else if (task.helperRequired) {
+      reasons.push("Helper is required and available.");
+    }
+
+    if (options.passiveWaitActive && task.canRunConcurrent) {
+      reasons.push("Eligible to run while another task is waiting.");
+    }
+
+    if (!options.passiveWaitActive) {
+      reasons.push("Eligible for normal task scheduling.");
+    }
+
+    return {
+      task,
+      rank: index + 1,
+      reasons: capReasons(reasons)
+    };
+  });
 }
 
 export function getProjectSchedulingInsights(
@@ -303,7 +534,7 @@ export function getProjectSchedulingInsights(
 ): TaskSchedulingInsight[] {
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   const baseInsights = tasks.map((task) =>
-    getBaseSchedulingInsight({ task, taskMap, today })
+    getTaskSchedulingInsight(task, taskMap, today)
   );
   const recommendedTaskIds = new Set(
     baseInsights
