@@ -259,7 +259,16 @@ function evaluateTaskReadiness(
   }
 
   if (activeBlocker) {
-    reasons.push("An active blocker is recorded.");
+    const blockerLabel = task.blockerType.replaceAll("_", " ");
+    reasons.push(
+      task.blockerNotes.trim()
+        ? `Blocker (${blockerLabel}): ${task.blockerNotes.trim()}`
+        : "An active blocker is recorded."
+    );
+
+    if (task.blockedUntilDate) {
+      reasons.push(`Blocked until ${task.blockedUntilDate}.`);
+    }
   }
 
   if (blockingDependencyIds.length > 0) {

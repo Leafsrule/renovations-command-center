@@ -6,8 +6,6 @@ import {
   PackageCheck
 } from "lucide-react";
 
-export const defaultProjectId = "active";
-
 export const bottomNavItems = [
   {
     path: "today",
