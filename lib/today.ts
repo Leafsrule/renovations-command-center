@@ -14,13 +14,16 @@ export type TodayPlanTask = {
 
 export type TodayPlanCapacity = {
   availableMinutes: number;
+  bufferPercent: number;
   bufferMinutes: number;
   schedulableMinutes: number;
+  inProgressMinutes: number;
   plannedMinutes: number;
   remainingMinutes: number;
 };
 
 export type TodayPlan = {
+  currentWork: TodayPlanTask[];
   startFirst: TodayPlanTask[];
   doNext: TodayPlanTask[];
   prepWhileWaiting: TodayPlanTask[];
@@ -33,12 +36,13 @@ export type TodayPlanInput = {
   tasks: RenovationTask[];
   today?: string;
   availableMinutes?: number;
+  bufferPercent?: number;
   bufferMinutes?: number;
   helperAvailable?: boolean;
 };
 
 const DEFAULT_AVAILABLE_MINUTES = 10 * 60;
-const DEFAULT_BUFFER_MINUTES = 2 * 60;
+const DEFAULT_BUFFER_PERCENT = 20;
 
 function copyTask(task: RenovationTask): RenovationTask {
   return JSON.parse(JSON.stringify(task)) as RenovationTask;
@@ -56,33 +60,62 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
       ? input.availableMinutes
       : DEFAULT_AVAILABLE_MINUTES
   );
-  const bufferMinutes = Math.max(
-    0,
-    typeof input.bufferMinutes === "number"
-      ? input.bufferMinutes
-      : DEFAULT_BUFFER_MINUTES
+  const bufferPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      typeof input.bufferPercent === "number"
+        ? input.bufferPercent
+        : typeof input.bufferMinutes === "number" && availableMinutes > 0
+          ? (input.bufferMinutes / availableMinutes) * 100
+          : DEFAULT_BUFFER_PERCENT
+    )
   );
+  const bufferMinutes = Math.round(availableMinutes * (bufferPercent / 100));
   const schedulableMinutes = Math.max(0, availableMinutes - bufferMinutes);
   const helperAvailable = input.helperAvailable ?? true;
   const taskMap = new Map(input.tasks.map((task) => [task.id, task]));
+  const currentWork = input.tasks
+    .filter((task) => task.status === "in_progress")
+    .map((task) => ({
+      task: copyTask(task),
+      reasons: ["Currently in progress."],
+      isHelperWork: task.helperRequired === true,
+      isPassiveWaitWork: false,
+      durationMinutes: task.estimatedDurationMinutes
+    }));
+  const currentWorkIds = new Set(currentWork.map((item) => item.task.id));
+  const inProgressMinutes = currentWork.reduce(
+    (sum, item) =>
+      sum +
+      (item.durationMinutes !== null && item.durationMinutes > 0
+        ? item.durationMinutes
+        : 0),
+    0
+  );
+  const recommendationCapacity = Math.max(
+    0,
+    schedulableMinutes - inProgressMinutes
+  );
 
   const primaryCandidates = input.tasks.filter(
     (task) =>
       !isCompletedOrCancelled(task) &&
+      task.status !== "in_progress" &&
       !task.helperRequired &&
       !task.canRunConcurrent
   );
 
   const recommended = getRecommendedNextTasks(primaryCandidates, {
     today,
-    availableMinutes: schedulableMinutes,
+    availableMinutes: recommendationCapacity,
     helperAvailable,
     passiveWaitActive: false
   });
 
   const scheduledTasks: TodayPlanTask[] = [];
   const scheduledTaskIds = new Set<string>();
-  let remainingCapacity = schedulableMinutes;
+  let remainingCapacity = recommendationCapacity;
 
   for (const recommendation of recommended) {
     const duration = recommendation.task.estimatedDurationMinutes ?? 0;
@@ -110,7 +143,11 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
   const blockedOrNotToday: TodayPlanTask[] = [];
 
   for (const task of input.tasks) {
-    if (scheduledTaskIds.has(task.id) || isCompletedOrCancelled(task)) {
+    if (
+      scheduledTaskIds.has(task.id) ||
+      currentWorkIds.has(task.id) ||
+      isCompletedOrCancelled(task)
+    ) {
       continue;
     }
 
@@ -180,11 +217,13 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     });
   }
 
-  const plannedMinutes = startFirst.concat(doNext).reduce((sum, item) => {
+  const recommendedMinutes = startFirst.concat(doNext).reduce((sum, item) => {
     return sum + (item.durationMinutes ?? 0);
   }, 0);
+  const plannedMinutes = inProgressMinutes + recommendedMinutes;
 
   return {
+    currentWork,
     startFirst,
     doNext,
     prepWhileWaiting,
@@ -192,8 +231,10 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     blockedOrNotToday,
     capacity: {
       availableMinutes,
+      bufferPercent,
       bufferMinutes,
       schedulableMinutes,
+      inProgressMinutes,
       plannedMinutes,
       remainingMinutes: Math.max(0, schedulableMinutes - plannedMinutes)
     }

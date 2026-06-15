@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { getTodayDateString, getTaskReadinessEvaluation } from "@/lib/scheduling";
+import { getTodayDateString } from "@/lib/scheduling";
 import { getTodayPlan } from "@/lib/today";
 import {
+  executeProjectTaskAction,
   listProjectTasks,
-  updateProjectTask,
   type RenovationTask,
-  type TaskFormInput
+  type TaskBlockerType
 } from "@/lib/tasks";
+import {
+  evaluateTaskTransition,
+  type TaskExecutionAction
+} from "@/lib/task-execution";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -24,40 +28,21 @@ function formatMinutes(minutes: number) {
   return `${remaining}m`;
 }
 
-function taskToFormInput(task: RenovationTask): TaskFormInput {
-  return {
-    name: task.name,
-    roomId: task.roomId || "",
-    phase: task.phase,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    championPersonId: task.championPersonId || "",
-    helperPersonIds: task.helperPersonIds,
-    dependencyTaskIds: task.dependencyTaskIds,
-    helperRequired: task.helperRequired,
-    estimatedDurationMinutes:
-      task.estimatedDurationMinutes === null
-        ? ""
-        : String(task.estimatedDurationMinutes),
-    earliestStartDate: task.earliestStartDate || "",
-    dueDate: task.dueDate || "",
-    notes: task.notes,
-    photosRequired: task.photosRequired,
-    canRunConcurrent: task.canRunConcurrent,
-    criticalPathRisk: task.criticalPathRisk,
-    readinessState: task.readinessState,
-    readinessReasons: task.readinessReasons,
-    blockerType: task.blockerType,
-    blockerNotes: task.blockerNotes,
-    blockedUntilDate: task.blockedUntilDate || "",
-    materialStatus: task.materialStatus,
-    materialItemsText: task.materialItems.join("\n"),
-    materialNotes: task.materialNotes,
-    materialNeededByDate: task.materialNeededByDate || "",
-    materialBlockerNotes: task.materialBlockerNotes
-  };
-}
+const blockerOptions: Array<{
+  label: string;
+  value: Exclude<TaskBlockerType, "none">;
+}> = [
+  { label: "Dependency", value: "dependency" },
+  { label: "Material", value: "material" },
+  { label: "Site condition", value: "site_condition" },
+  { label: "Labor", value: "labor" },
+  { label: "Access", value: "access" },
+  { label: "Inspection", value: "inspection" },
+  { label: "Client decision", value: "client_decision" },
+  { label: "Weather", value: "weather" },
+  { label: "Safety", value: "safety" },
+  { label: "Other", value: "other" }
+];
 
 function getStatusLabel(status: RenovationTask["status"]) {
   const labels: Record<RenovationTask["status"], string> = {
@@ -91,9 +76,13 @@ export function TodayPlanner() {
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [blockingTaskId, setBlockingTaskId] = useState<string | null>(null);
+  const [blockerType, setBlockerType] = useState<TaskBlockerType>("none");
+  const [blockerNotes, setBlockerNotes] = useState("");
+  const [blockedUntilDate, setBlockedUntilDate] = useState("");
   const [availableHours, setAvailableHours] = useState(10);
-  const [bufferHours, setBufferHours] = useState(2);
+  const [bufferPercent, setBufferPercent] = useState(20);
   const [helperAvailable, setHelperAvailable] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -145,7 +134,12 @@ export function TodayPlanner() {
     const savedAvailable = window.localStorage.getItem(
       "today-available-hours"
     );
-    const savedBuffer = window.localStorage.getItem("today-buffer-hours");
+    const savedBufferPercent = window.localStorage.getItem(
+      "today-buffer-percent"
+    );
+    const savedBufferHours = window.localStorage.getItem(
+      "today-buffer-hours"
+    );
     const savedHelper = window.localStorage.getItem("today-helper-available");
 
     if (savedAvailable !== null) {
@@ -155,10 +149,20 @@ export function TodayPlanner() {
       }
     }
 
-    if (savedBuffer !== null) {
-      const parsed = Number(savedBuffer);
+    if (savedBufferPercent !== null) {
+      const parsed = Number(savedBufferPercent);
       if (!Number.isNaN(parsed)) {
-        setBufferHours(parsed);
+        setBufferPercent(parsed);
+      }
+    } else if (savedBufferHours !== null) {
+      const parsedHours = Number(savedBufferHours);
+      const parsedAvailable = Number(savedAvailable ?? 10);
+      if (
+        !Number.isNaN(parsedHours) &&
+        !Number.isNaN(parsedAvailable) &&
+        parsedAvailable > 0
+      ) {
+        setBufferPercent(Math.round((parsedHours / parsedAvailable) * 100));
       }
     }
 
@@ -176,12 +180,15 @@ export function TodayPlanner() {
       "today-available-hours",
       String(availableHours)
     );
-    window.localStorage.setItem("today-buffer-hours", String(bufferHours));
+    window.localStorage.setItem(
+      "today-buffer-percent",
+      String(bufferPercent)
+    );
     window.localStorage.setItem(
       "today-helper-available",
       String(helperAvailable)
     );
-  }, [availableHours, bufferHours, helperAvailable, mounted]);
+  }, [availableHours, bufferPercent, helperAvailable, mounted]);
 
   const today = useMemo(() => getTodayDateString(), []);
 
@@ -191,10 +198,10 @@ export function TodayPlanner() {
         tasks,
         today,
         availableMinutes: Math.round(availableHours * 60),
-        bufferMinutes: Math.round(bufferHours * 60),
+        bufferPercent,
         helperAvailable
       }),
-    [tasks, today, availableHours, bufferHours, helperAvailable]
+    [tasks, today, availableHours, bufferPercent, helperAvailable]
   );
 
   async function refreshTasks() {
@@ -216,70 +223,138 @@ export function TodayPlanner() {
 
   async function applyTaskAction(
     task: RenovationTask,
-    action: "start" | "resume" | "complete" | "wait" | "block" | "unblock"
+    action: TaskExecutionAction,
+    blocker?: {
+      blockerType: TaskBlockerType;
+      blockerNotes: string;
+      blockedUntilDate: string | null;
+    }
   ) {
-    const targetTask = { ...task };
-
-    switch (action) {
-      case "start":
-        targetTask.status = "in_progress";
-        targetTask.readinessState = "ready";
-        targetTask.blockerType = "none";
-        break;
-      case "resume":
-        targetTask.status = "in_progress";
-        targetTask.readinessState = "ready";
-        break;
-      case "complete":
-        targetTask.status = "complete";
-        targetTask.readinessState = "ready";
-        break;
-      case "wait":
-        targetTask.status = "waiting_curing";
-        targetTask.readinessState = "ready";
-        break;
-      case "block":
-        targetTask.status = "blocked";
-        targetTask.readinessState = "blocked";
-        targetTask.blockerType = "other";
-        targetTask.blockerNotes = "Blocked from Today view.";
-        break;
-      case "unblock":
-        targetTask.status = "ready";
-        targetTask.readinessState = "ready";
-        targetTask.blockerType = "none";
-        targetTask.blockerNotes = "";
-        targetTask.blockedUntilDate = null;
-        break;
-      default:
-        break;
+    if (
+      action === "complete" &&
+      !window.confirm(`Mark "${task.name}" complete?`)
+    ) {
+      return false;
     }
 
-    setSaving(true);
+    setSavingTaskId(task.id);
     setError("");
 
     try {
-      await updateProjectTask(projectId, targetTask.id, taskToFormInput(targetTask));
+      await executeProjectTaskAction(projectId, task, action, {
+        tasks,
+        today,
+        helperAvailable,
+        blocker
+      });
       await refreshTasks();
+      return true;
     } catch (updateError) {
       setError(
         updateError instanceof Error
           ? updateError.message
           : "Unable to update task. Please try again."
       );
+      return false;
     } finally {
-      setSaving(false);
+      setSavingTaskId(null);
     }
   }
 
+  function openBlockerForm(task: RenovationTask) {
+    setError("");
+    setBlockingTaskId(task.id);
+    setBlockerType("none");
+    setBlockerNotes("");
+    setBlockedUntilDate("");
+  }
+
+  function closeBlockerForm() {
+    if (savingTaskId) {
+      return;
+    }
+
+    setBlockingTaskId(null);
+    setBlockerType("none");
+    setBlockerNotes("");
+    setBlockedUntilDate("");
+  }
+
+  async function submitBlocker(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const task = tasks.find((item) => item.id === blockingTaskId);
+
+    if (!task) {
+      setError(
+        "The selected task is no longer available. Refresh and try again."
+      );
+      return;
+    }
+
+    const result = evaluateTaskTransition(task, "block", {
+      tasks,
+      today,
+      helperAvailable,
+      blocker: {
+        blockerType,
+        blockerNotes,
+        blockedUntilDate: blockedUntilDate || null
+      }
+    });
+
+    if (!result.allowed) {
+      setError(result.reason);
+      return;
+    }
+
+    const saved = await applyTaskAction(task, "block", {
+      blockerType,
+      blockerNotes,
+      blockedUntilDate: blockedUntilDate || null
+    });
+
+    if (!saved) {
+      return;
+    }
+
+    setBlockingTaskId(null);
+    setBlockerType("none");
+    setBlockerNotes("");
+    setBlockedUntilDate("");
+  }
+
   function renderTaskCard(task: RenovationTask, reasons: string[]) {
-    const readiness = getTaskReadinessEvaluation(task, new Map(tasks.map((item) => [item.id, item])), { today, helperAvailable });
-    const canStart = task.status === "ready" && readiness.state === "ready";
-    const canResume = task.status === "waiting_curing";
-    const canComplete = task.status === "in_progress";
-    const canWait = task.status === "in_progress";
-    const canBlock = task.status === "ready" || task.status === "in_progress" || task.status === "waiting_curing";
-    const canUnblock = task.status === "blocked" || task.status === "waiting_curing";
+    const transitionContext = { tasks, today, helperAvailable };
+    const canStart = evaluateTaskTransition(
+      task,
+      "start",
+      transitionContext
+    ).allowed;
+    const canResume = evaluateTaskTransition(
+      task,
+      "resume",
+      transitionContext
+    ).allowed;
+    const canComplete = evaluateTaskTransition(
+      task,
+      "complete",
+      transitionContext
+    ).allowed;
+    const canWait = evaluateTaskTransition(
+      task,
+      "mark_waiting",
+      transitionContext
+    ).allowed;
+    const canBlock = evaluateTaskTransition(task, "block", {
+      ...transitionContext,
+      blocker: { blockerType: "other", blockerNotes: "Pending blocker details" }
+    }).allowed;
+    const canUnblock = evaluateTaskTransition(
+      task,
+      "clear_blocker",
+      transitionContext
+    ).allowed;
+    const saving = savingTaskId !== null;
     const roomLabel = getTaskDetails(task, rooms);
 
     return (
@@ -340,7 +415,7 @@ export function TodayPlanner() {
             <button
               className="touch-target rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink"
               disabled={saving}
-              onClick={() => applyTaskAction(task, "wait")}
+              onClick={() => applyTaskAction(task, "mark_waiting")}
               type="button"
             >
               Mark waiting
@@ -350,7 +425,7 @@ export function TodayPlanner() {
             <button
               className="touch-target rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink"
               disabled={saving}
-              onClick={() => applyTaskAction(task, "block")}
+              onClick={() => openBlockerForm(task)}
               type="button"
             >
               Block
@@ -360,10 +435,10 @@ export function TodayPlanner() {
             <button
               className="touch-target rounded-md border border-amber-500 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700"
               disabled={saving}
-              onClick={() => applyTaskAction(task, "unblock")}
+              onClick={() => applyTaskAction(task, "clear_blocker")}
               type="button"
             >
-              Return to ready
+              Clear blocker
             </button>
           ) : null}
         </div>
@@ -402,7 +477,12 @@ export function TodayPlanner() {
         </div>
         <div className="rounded-2xl border border-line bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Protected buffer</p>
-          <p className="mt-2 text-2xl font-semibold text-ink">{bufferHours}h</p>
+          <p className="mt-2 text-2xl font-semibold text-ink">
+            {bufferPercent}%
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {formatMinutes(todayPlan.capacity.bufferMinutes)} of crew capacity
+          </p>
         </div>
         <div className="rounded-2xl border border-line bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Schedulable target</p>
@@ -416,7 +496,7 @@ export function TodayPlanner() {
         <h2 className="text-sm font-semibold text-ink">Planning controls</h2>
         <div className="mt-4 space-y-4">
           <label className="grid gap-2 text-sm font-semibold text-ink">
-            Available work hours
+            Crew capacity hours
             <input
               className="rounded-md border border-line px-3 py-2 text-sm"
               min={0}
@@ -427,14 +507,17 @@ export function TodayPlanner() {
             />
           </label>
           <label className="grid gap-2 text-sm font-semibold text-ink">
-            Protected buffer hours
+            Protected crew buffer percentage
             <input
               className="rounded-md border border-line px-3 py-2 text-sm"
               min={0}
-              step={0.5}
+              max={100}
+              step={5}
               type="number"
-              value={bufferHours}
-              onChange={(event) => setBufferHours(Number(event.target.value))}
+              value={bufferPercent}
+              onChange={(event) =>
+                setBufferPercent(Number(event.target.value))
+              }
             />
           </label>
           <label className="flex items-center gap-3 text-sm font-semibold text-ink">
@@ -452,12 +535,40 @@ export function TodayPlanner() {
       <section className="rounded-2xl border border-line bg-white p-4">
         <h2 className="text-lg font-semibold text-ink">Today&apos;s capacity</h2>
         <div className="mt-3 grid gap-2 text-sm text-muted">
-          <p>Planned: {formatMinutes(todayPlan.capacity.plannedMinutes)}</p>
+          <p>
+            Current work: {formatMinutes(todayPlan.capacity.inProgressMinutes)}
+          </p>
+          <p>Committed: {formatMinutes(todayPlan.capacity.plannedMinutes)}</p>
           <p>Remaining: {formatMinutes(todayPlan.capacity.remainingMinutes)}</p>
         </div>
       </section>
 
       <section className="space-y-4">
+        <div className="rounded-2xl border border-line bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-ink">In progress</h2>
+              <p className="text-sm text-muted">
+                Current work reserved against today&apos;s crew capacity.
+              </p>
+            </div>
+            <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+              {todayPlan.currentWork.length} tasks
+            </span>
+          </div>
+          {todayPlan.currentWork.length === 0 ? (
+            <p className="mt-4 text-sm text-muted">
+              No task is currently in progress.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {todayPlan.currentWork.map((item) =>
+                renderTaskCard(item.task, item.reasons)
+              )}
+            </ul>
+          )}
+        </div>
+
         <div className="rounded-2xl border border-line bg-white p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -553,6 +664,94 @@ export function TodayPlanner() {
           )}
         </div>
       </section>
+
+      {blockingTaskId ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end bg-black/40 p-3 sm:items-center sm:justify-center"
+          role="dialog"
+        >
+          <form
+            className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-5 shadow-xl"
+            onSubmit={submitBlocker}
+          >
+            <div>
+              <h2 className="text-lg font-semibold text-ink">Block task</h2>
+              <p className="mt-1 text-sm text-muted">
+                Record what is stopping work so the task can be reassessed
+                accurately.
+              </p>
+            </div>
+
+            {error ? (
+              <p className="rounded-md border border-danger bg-panel p-3 text-sm text-danger">
+                {error}
+              </p>
+            ) : null}
+
+            <label className="grid gap-2 text-sm font-semibold text-ink">
+              Blocker type
+              <select
+                className="rounded-md border border-line px-3 py-2 text-sm"
+                disabled={savingTaskId !== null}
+                onChange={(event) =>
+                  setBlockerType(event.target.value as TaskBlockerType)
+                }
+                required
+                value={blockerType}
+              >
+                <option value="none">Choose a blocker</option>
+                {blockerOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-ink">
+              Blocker note
+              <textarea
+                className="min-h-28 rounded-md border border-line px-3 py-2 text-sm"
+                disabled={savingTaskId !== null}
+                onChange={(event) => setBlockerNotes(event.target.value)}
+                placeholder="Describe the specific condition preventing work."
+                required
+                value={blockerNotes}
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-ink">
+              Blocked until (optional)
+              <input
+                className="rounded-md border border-line px-3 py-2 text-sm"
+                disabled={savingTaskId !== null}
+                onChange={(event) => setBlockedUntilDate(event.target.value)}
+                type="date"
+                value={blockedUntilDate}
+              />
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className="touch-target rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink"
+                disabled={savingTaskId !== null}
+                onClick={closeBlockerForm}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="touch-target rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white"
+                disabled={savingTaskId !== null}
+                type="submit"
+              >
+                {savingTaskId ? "Saving..." : "Save blocker"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

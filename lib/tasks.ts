@@ -8,6 +8,11 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import {
+  evaluateTaskTransition,
+  type TaskExecutionAction,
+  type TaskTransitionContext
+} from "@/lib/task-execution";
 
 export type TaskStatus =
   | "draft"
@@ -502,4 +507,29 @@ export async function updateProjectTask(
     notes: input.notes.trim(),
     updatedAt: serverTimestamp()
   });
+}
+
+export async function executeProjectTaskAction(
+  projectId: string,
+  task: RenovationTask,
+  action: TaskExecutionAction,
+  context: TaskTransitionContext
+) {
+  const transition = evaluateTaskTransition(task, action, context);
+
+  if (!transition.allowed) {
+    throw new Error(transition.reason);
+  }
+
+  await updateDoc(taskDocument(projectId, task.id), {
+    ...transition.updates,
+    updatedAt: serverTimestamp()
+  });
+
+  const refreshedTask = await getProjectTask(projectId, task.id);
+  if (!refreshedTask) {
+    throw new Error("Task was updated but could not be refreshed.");
+  }
+
+  return { task: refreshedTask, transition };
 }

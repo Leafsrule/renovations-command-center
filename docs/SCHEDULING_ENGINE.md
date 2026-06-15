@@ -127,3 +127,55 @@ Planned future improvements include:
 - richer task dependency graph analysis
 - user interfaces dedicated to scheduling and Today recommendations
 - expanded task readiness workflows for `waiting_curing` and inspections
+
+## Centralized task execution
+
+Task execution commands are evaluated by the pure
+`evaluateTaskTransition` function in `lib/task-execution.ts`. The evaluator
+accepts a plain task, an action, and project context. It has no React or
+Firebase dependencies, does not mutate inputs, and returns either targeted
+field updates or a friendly denied-transition reason.
+
+Supported actions are:
+
+- `start`: only a `ready` task that passes deterministic readiness may start
+- `resume`: only `waiting_curing` work that still passes readiness may resume
+- `mark_waiting`: only `in_progress` work may enter passive waiting or curing
+- `complete`: only `in_progress` work may complete, after UI confirmation
+- `block`: actionable work requires a blocker type and non-empty note
+- `clear_blocker`: clears blocker metadata and reevaluates all other readiness constraints
+
+Start and resume evaluate dependencies, materials, active blockers, estimated
+duration, earliest start date, completed or cancelled state, and helper
+availability when supplied. Denied actions return the first relevant readiness
+reason for display to the user.
+
+`executeProjectTaskAction` in `lib/tasks.ts` is the single persistence path for
+execution commands. It evaluates the transition, updates only the returned
+status/readiness/blocker fields plus `updatedAt`, and reads the task back after
+the Firestore update. Existing task documents remain compatible and unrelated
+fields are preserved.
+
+## Blocker workflow
+
+Today uses a task-scoped blocker dialog with blocker type, blocker note, and an
+optional blocked-until date. Cancelling does not write data. Submitted blocker
+details appear in Blocked / Not Today explanations.
+
+Clearing a blocker first removes blocker metadata on an evaluation copy. The
+scheduler then reevaluates dependencies, materials, dates, duration, and helper
+availability. The task returns to `ready` only when that evaluation passes;
+otherwise it becomes `not_ready` with the remaining readiness reasons retained.
+
+Task Manager remains the full metadata and readiness editor, and Task Detail is
+read-only. Today is currently the execution-command UI and routes all of its
+Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker actions through
+the centralized workflow.
+
+## Execution limitations
+
+- Waiting and curing share the existing `waiting_curing` status; timed cure periods are not automated.
+- Completion records do not yet capture elapsed time or a detailed audit history.
+- Helper availability is supplied by the Today planning control and is not stored as a workforce calendar.
+- Existing documents are not migrated; missing fields continue to use the task parser defaults.
+- Future time-tracking work should add explicit start/pause/resume events without changing these transition rules implicitly.
