@@ -121,6 +121,56 @@ describe("Today planning", () => {
     expect(plan.capacity.schedulableMinutes).toBe(240);
   });
 
+  it("calculates the protected buffer as a crew capacity percentage", () => {
+    const plan = getTodayPlan({
+      tasks: [],
+      today,
+      availableMinutes: 600,
+      bufferPercent: 15
+    });
+
+    expect(plan.capacity.bufferMinutes).toBe(90);
+    expect(plan.capacity.schedulableMinutes).toBe(510);
+  });
+
+  it("shows in-progress work and reserves its capacity before recommendations", () => {
+    const tasks = [
+      createTask({ id: "active", status: "in_progress", estimatedDurationMinutes: 180 }),
+      createTask({ id: "next", status: "ready", estimatedDurationMinutes: 180 })
+    ];
+
+    const plan = getTodayPlan({
+      tasks,
+      today,
+      availableMinutes: 360,
+      bufferPercent: 0
+    });
+
+    expect(plan.currentWork.map((item) => item.task.id)).toEqual(["active"]);
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["next"]);
+    expect(plan.capacity.inProgressMinutes).toBe(180);
+    expect(plan.capacity.plannedMinutes).toBe(360);
+    expect(plan.capacity.remainingMinutes).toBe(0);
+  });
+
+  it("does not recommend work that exceeds capacity remaining after active work", () => {
+    const tasks = [
+      createTask({ id: "active", status: "in_progress", estimatedDurationMinutes: 240 }),
+      createTask({ id: "too-large", status: "ready", estimatedDurationMinutes: 180 })
+    ];
+
+    const plan = getTodayPlan({
+      tasks,
+      today,
+      availableMinutes: 360,
+      bufferPercent: 0
+    });
+
+    expect(plan.currentWork).toHaveLength(1);
+    expect(plan.startFirst).toHaveLength(0);
+    expect(plan.blockedOrNotToday[0].task.id).toBe("too-large");
+  });
+
   it("does not exceed schedulable capacity for planned work", () => {
     const tasks = [
       createTask({ id: "a", estimatedDurationMinutes: 180, priority: "urgent" }),
@@ -184,6 +234,7 @@ describe("Today planning", () => {
     const plan = getTodayPlan({ tasks: [], today });
 
     expect(plan.startFirst).toEqual([]);
+    expect(plan.currentWork).toEqual([]);
     expect(plan.doNext).toEqual([]);
     expect(plan.prepWhileWaiting).toEqual([]);
     expect(plan.helperWork).toEqual([]);
