@@ -76,6 +76,7 @@ export function TodayPlanner() {
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [blockingTaskId, setBlockingTaskId] = useState<string | null>(null);
   const [blockerType, setBlockerType] = useState<TaskBlockerType>("none");
@@ -238,7 +239,7 @@ export function TodayPlanner() {
     }
 
     setSavingTaskId(task.id);
-    setError("");
+    setActionError("");
 
     try {
       await executeProjectTaskAction(projectId, task, action, {
@@ -250,7 +251,7 @@ export function TodayPlanner() {
       await refreshTasks();
       return true;
     } catch (updateError) {
-      setError(
+      setActionError(
         updateError instanceof Error
           ? updateError.message
           : "Unable to update task. Please try again."
@@ -262,7 +263,7 @@ export function TodayPlanner() {
   }
 
   function openBlockerForm(task: RenovationTask) {
-    setError("");
+    setActionError("");
     setBlockingTaskId(task.id);
     setBlockerType("none");
     setBlockerNotes("");
@@ -278,6 +279,7 @@ export function TodayPlanner() {
     setBlockerType("none");
     setBlockerNotes("");
     setBlockedUntilDate("");
+    setActionError("");
   }
 
   async function submitBlocker(event: FormEvent<HTMLFormElement>) {
@@ -285,7 +287,7 @@ export function TodayPlanner() {
     const task = tasks.find((item) => item.id === blockingTaskId);
 
     if (!task) {
-      setError(
+      setActionError(
         "The selected task is no longer available. Refresh and try again."
       );
       return;
@@ -303,7 +305,7 @@ export function TodayPlanner() {
     });
 
     if (!result.allowed) {
-      setError(result.reason);
+      setActionError(result.reason);
       return;
     }
 
@@ -321,6 +323,7 @@ export function TodayPlanner() {
     setBlockerType("none");
     setBlockerNotes("");
     setBlockedUntilDate("");
+    setActionError("");
   }
 
   function renderTaskCard(task: RenovationTask, reasons: string[]) {
@@ -470,6 +473,12 @@ export function TodayPlanner() {
 
   return (
     <div className="space-y-6">
+      {actionError && !blockingTaskId ? (
+        <div className="rounded-md border border-danger bg-panel p-4 text-sm leading-6 text-danger">
+          {actionError}
+        </div>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-line bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Available today</p>
@@ -683,9 +692,9 @@ export function TodayPlanner() {
               </p>
             </div>
 
-            {error ? (
+            {actionError ? (
               <p className="rounded-md border border-danger bg-panel p-3 text-sm text-danger">
-                {error}
+                {actionError}
               </p>
             ) : null}
 
