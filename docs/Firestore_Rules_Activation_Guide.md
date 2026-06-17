@@ -4,17 +4,31 @@
 
 The Room / Area Manager, People / Team Manager, and Task Manager depend on the Firestore rules in:
 
-`C:\Users\ghajj\OneDrive\Documents\Renovations App\firestore.rules`
+`firestore.rules`
 
-Firebase CLI deployment is not currently available from this workspace because:
+Photo and file access depends on the Storage rules in:
 
-- `firebase` is not installed or not on PATH.
-- `firebase.json` is not present.
-- `.firebaserc` is not present.
+`storage.rules`
 
-Do not loosen the rules to public read/write. The current rules keep project and room access owner-scoped.
+Do not loosen these rules to public read/write. The current rules keep project, room, person, task, and file access owner-scoped.
+
+## Remote Deployment
+
+`firebase.json` maps both rule files for Firebase CLI deployment. The remote-first path is the `Firebase Rules Deploy` GitHub Actions workflow:
+
+1. Add the required GitHub Actions secrets from `docs/CODESPACES_DEVELOPMENT.md`.
+2. Merge rule changes to `main`, or run the workflow manually from the Actions tab.
+3. Confirm the workflow validates production infrastructure and deploys `firestore.rules` plus `storage.rules`.
+
+For an emergency manual deploy from Codespaces, authenticate with Firebase or Google Cloud credentials that are allowed to deploy rules, then run:
+
+```bash
+npx --yes firebase-tools@latest deploy --only firestore:rules,storage --project "$FIREBASE_PROJECT_ID" --non-interactive
+```
 
 ## Two-Minute Firebase Console Checklist
+
+Use this only if the GitHub Actions workflow is unavailable.
 
 1. Open the Firebase Console and select the existing Renovations Command Center Firebase project.
 2. Go to **Firestore Database**.
@@ -29,7 +43,11 @@ Do not loosen the rules to public read/write. The current rules keep project and
    ```
 
 6. Click **Publish**.
-7. Return to the app and run the Room / Area Manager, People / Team Manager, or Task Manager smoke test.
+7. Go to **Storage**.
+8. Open the **Rules** tab.
+9. Replace the editor contents with the contents of `storage.rules` from this local project.
+10. Click **Publish**.
+11. Return to the app and run the Room / Area Manager, People / Team Manager, Task Manager, or photo/file smoke test.
 
 ## Expected Rule Behavior
 
@@ -38,4 +56,6 @@ Do not loosen the rules to public read/write. The current rules keep project and
 - Signed-in project owners can create, read, update, and delete rooms only under their own projects.
 - Signed-in project owners can create, read, update, and delete people only under their own projects.
 - Signed-in project owners can create, read, update, and delete tasks only under their own projects.
+- Signed-in project owners can read and write files only under their own project storage path.
 - All other Firestore reads and writes are denied.
+- All other Storage reads and writes are denied.

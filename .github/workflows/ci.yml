@@ -24,14 +24,9 @@ jobs:
         run: npm run lint
       - name: Run typecheck
         run: npm run typecheck
+      - name: Validate production infrastructure
+        run: npm run validate:production
       - name: Build Next.js app
-        env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: fake-api-key
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: fake-auth-domain
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: fake-project-id
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: fake-storage-bucket
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: fake-messaging-sender-id
-          NEXT_PUBLIC_FIREBASE_APP_ID: fake-app-id
         run: npm run build
       - name: Run npm audit
         run: npm audit --audit-level=high

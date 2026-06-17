@@ -1,0 +1,9 @@
+# Firebase App Hosting configuration for the Next.js production backend.
+# Environment-specific Firebase web config values are managed in the
+# Firebase App Hosting console or Secret Manager, not committed here.
+runConfig:
+  minInstances: 0
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
