@@ -26,6 +26,10 @@ jobs:
         run: npm run typecheck
       - name: Validate production infrastructure
         run: npm run validate:production
+      - name: Validate Render Blueprint
+        run: npm run validate:render
+      - name: Validate Firebase rules configuration
+        run: npm run validate:firebase
       - name: Build Next.js app
         run: npm run build
       - name: Run npm audit

@@ -14,11 +14,12 @@ Do not loosen these rules to public read/write. The current rules keep project, 
 
 ## Remote Deployment
 
-`firebase.json` maps both rule files for Firebase CLI deployment. The remote-first path is the `Firebase Rules Deploy` GitHub Actions workflow:
+`firebase.json` maps both rule files for Firebase CLI deployment. The remote-first path is the `Firebase Rules Deploy` GitHub Actions workflow, but that workflow must remain inactive until its required GitHub Actions secrets and Firebase permissions are verified:
 
 1. Add the required GitHub Actions secrets from `docs/CODESPACES_DEVELOPMENT.md`.
 2. Merge rule changes to `main`, or run the workflow manually from the Actions tab.
 3. Confirm the workflow validates production infrastructure and deploys `firestore.rules` plus `storage.rules`.
+4. Do not run the workflow until the deploy identity is confirmed to have only the permissions needed to deploy Firestore and Storage rules.
 
 For an emergency manual deploy from Codespaces, authenticate with Firebase or Google Cloud credentials that are allowed to deploy rules, then run:
 
