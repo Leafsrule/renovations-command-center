@@ -2,17 +2,15 @@ name: Firebase Rules Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - firebase.json
-      - firestore.rules
-      - storage.rules
-      - .github/workflows/firebase-rules.yml
+    inputs:
+      confirmation:
+        description: "Type DEPLOY to deploy Firebase security rules."
+        required: true
+        type: string
 
 jobs:
   deploy_rules:
+    if: ${{ github.event.inputs.confirmation == 'DEPLOY' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

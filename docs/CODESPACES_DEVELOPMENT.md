@@ -47,9 +47,13 @@ Render is the sole production web host. Create or update production web hosting 
 
 The Render Blueprint keeps Firebase web configuration as `sync: false` environment variables, so values must be entered only in Render's secure environment-variable UI. Do not commit Firebase values to repository files.
 
-Firestore and Storage security rules deploy from GitHub Actions through `.github/workflows/firebase-rules.yml` whenever rule files change on `main`. You can also run that workflow manually from the Actions tab.
+Firestore and Storage security rules deploy from GitHub Actions through the manually triggered `.github/workflows/firebase-rules.yml` workflow. The dispatch confirmation must be exactly `DEPLOY`.
 
 The rules workflow must remain inactive until all required GitHub Actions secrets exist and the Firebase deploy identity has been verified to have only the permissions needed to deploy Firestore and Storage rules.
+
+Automatic rules deployment may be considered only after required GitHub Actions secrets are verified, the deploy identity and least-privilege permissions are verified, deployed Firestore and Storage rules are compared against this repository, and one successful manually triggered deployment plus rollback check has completed.
+
+Render release-candidate validation must happen before merge. Prefer a Render pull-request preview. If previews are unavailable, use one temporary release-candidate service for `infra/remote-first-production`, keep `render.yaml` pointed at `main`, and delete the temporary service after final production verification.
 
 Before merging production infrastructure changes:
 

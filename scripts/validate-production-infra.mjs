@@ -3,9 +3,11 @@ import { existsSync, readFileSync } from "node:fs";
 import YAML from "yaml";
 
 const requiredFiles = [
+  ".github/workflows/firebase-rules.yml",
   "app/api/health/route.ts",
   "firebase.json",
   "firestore.rules",
+  "docs/RENDER_RELEASE_PROCESS.md",
   "render.yaml",
   "storage.rules"
 ];
@@ -73,6 +75,46 @@ if (existsSync("firebase.json")) {
 
   if (firebaseConfig?.hosting) {
     errors.push("firebase.json must not define Firebase Hosting; Firebase is backend-only.");
+  }
+}
+
+if (existsSync(".github/workflows/firebase-rules.yml")) {
+  const workflowConfig = readText(".github/workflows/firebase-rules.yml");
+  let workflow = null;
+
+  try {
+    workflow = YAML.parse(workflowConfig);
+  } catch (error) {
+    errors.push(`Firebase rules workflow must be valid YAML: ${error.message}`);
+  }
+
+  const triggers = workflow?.on ?? {};
+  const dispatch = triggers.workflow_dispatch;
+  const confirmation = dispatch?.inputs?.confirmation;
+  const deployJob = workflow?.jobs?.deploy_rules;
+
+  if (Object.keys(triggers).some((trigger) => trigger !== "workflow_dispatch")) {
+    errors.push("Firebase rules workflow must only use workflow_dispatch.");
+  }
+
+  if (triggers.push) {
+    errors.push("Firebase rules workflow must not include an automatic push trigger.");
+  }
+
+  if (confirmation?.required !== true) {
+    errors.push("Firebase rules workflow confirmation input must be required.");
+  }
+
+  if (confirmation?.type !== "string") {
+    errors.push("Firebase rules workflow confirmation input must be a string.");
+  }
+
+  if (!workflowConfig.includes("github.event.inputs.confirmation == 'DEPLOY'")) {
+    errors.push("Firebase rules workflow deployment job must require exact DEPLOY confirmation.");
+  }
+
+  if (deployJob?.permissions?.contents !== "read") {
+    errors.push("Firebase rules workflow must keep contents: read permissions.");
   }
 }
 
@@ -179,9 +221,14 @@ if (existsSync("render.yaml")) {
   }
 
   for (const name of firebasePublicEnvVars) {
+    const envVar = renderEnvVars.get(name);
     const envVarPattern = new RegExp(`key:\\s*${name}\\s*\\n\\s*sync:\\s*false`, "m");
-    if (!envVarPattern.test(renderConfig)) {
+    if (!envVarPattern.test(renderConfig) || envVar?.sync !== false) {
       errors.push(`render.yaml must define ${name} with sync: false.`);
+    }
+
+    if (Object.hasOwn(envVar ?? {}, "value")) {
+      errors.push(`render.yaml must not commit a value for ${name}.`);
     }
   }
 
@@ -232,6 +279,25 @@ for (const file of documentationFiles) {
   }
 }
 
+if (existsSync("docs/RENDER_RELEASE_PROCESS.md")) {
+  const releaseProcess = readText("docs/RENDER_RELEASE_PROCESS.md");
+  const normalizedReleaseProcess = releaseProcess.toLowerCase();
+
+  for (const pattern of [
+    "pull-request preview",
+    "temporary release-candidate service",
+    "infra/remote-first-production",
+    "avoid changing `render.yaml` away from `main`",
+    "/api/health` returns HTTP 200",
+    "no secrets appear in responses or logs",
+    "Mobile-width layout remains usable"
+  ]) {
+    if (!normalizedReleaseProcess.includes(pattern.toLowerCase())) {
+      errors.push(`docs/RENDER_RELEASE_PROCESS.md must document: ${pattern}`);
+    }
+  }
+}
+
 const firebaseConfig = existsSync("firebase.json") ? readJson("firebase.json") : null;
 const activeWebHosts = [
   existsSync("render.yaml") ? "Render" : null,
@@ -247,7 +313,9 @@ if (activeWebHosts.length !== 1 || activeWebHosts[0] !== "Render") {
 
 const secretValuePatterns = [
   [/AIza[0-9A-Za-z_-]{20,}/, "Google API key"],
-  [new RegExp("-----BEGIN " + "PRIVATE KEY-----"), "private key"]
+  [new RegExp("-----BEGIN " + "PRIVATE KEY-----"), "private key"],
+  [new RegExp('"' + "private_key" + '"\\s*:'), "service account private key"],
+  [new RegExp('"' + "client_email" + '"\\s*:'), "service account client email"]
 ];
 
 for (const name of ["FIREBASE_SERVICE_ACCOUNT", "NEXT_PUBLIC_FIREBASE_API_KEY"]) {

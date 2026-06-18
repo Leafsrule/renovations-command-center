@@ -16,9 +16,11 @@ GitHub is the authoritative source for code, infrastructure, tests, documentatio
 - Render service expectation: Node web service from `render.yaml`, production branch `main`, Starter plan, approximately $7 USD/month before taxes or account-specific charges.
 - Backend services: Firebase Authentication, Cloud Firestore, Firebase Storage.
 - Backend rules: `firestore.rules` and `storage.rules`, mapped by `firebase.json`.
-- Automation: GitHub Actions validates pull requests and provides Firebase rules-deployment automation after required secrets and Firebase permissions are verified.
+- Automation: GitHub Actions validates pull requests and provides manual-only Firebase rules-deployment automation after required secrets and Firebase permissions are verified.
 
 Firebase is backend-only. It is not an approved production web-hosting target for this repository.
+
+No Render resource or paid Render plan is known to exist unless independently verified in Render. Repository files describe desired infrastructure; they do not prove provider-side resources exist.
 
 ## Recovery Branches
 
@@ -37,6 +39,16 @@ The following application data is cloud-backed in Firebase:
 - Firebase Storage objects under project-scoped paths.
 
 Security rules must remain owner-scoped and must retain deny-all fallbacks.
+
+Firebase rules deployment remains manual-only until all of these are complete:
+
+1. Required GitHub Actions secrets are verified.
+2. The Firebase deploy identity and least-privilege permissions are verified.
+3. Deployed Firestore rules are compared with `firestore.rules`.
+4. Deployed Storage rules are compared with `storage.rules`.
+5. One successful manually triggered deployment and rollback check has completed.
+
+Render release-candidate testing occurs before merge. Prefer Render pull-request previews when available. If unavailable, use one temporary release-candidate service pointed at `infra/remote-first-production`, then delete it after final production verification. Permanent production deploys from `main`.
 
 ## Browser-Local State
 
