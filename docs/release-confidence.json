@@ -1,0 +1,79 @@
+{
+  "pullRequest": 5,
+  "branch": "infra/remote-first-production",
+  "scope": "P2 remediation for Today Planner, task execution, blocker workflow, active-project navigation, and Firestore persistence boundaries",
+  "externalProviderChanges": {
+    "renderResourcesCreated": false,
+    "firebaseRulesDeployed": false,
+    "githubSecretsChanged": false
+  },
+  "validation": {
+    "npmCi": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "tests": "passed: 87 tests",
+    "build": "passed",
+    "npmAuditHigh": "passed; moderate advisories reported",
+    "validateProduction": "passed",
+    "validateRender": "passed",
+    "validateFirebase": "passed",
+    "diffCheck": "passed"
+  },
+  "historicalReviewDisposition": [
+    {
+      "source": "PR #3",
+      "finding": "Dependency evaluation used only the primary candidate subset.",
+      "status": "fixed by this commit",
+      "evidence": "Full task-universe scheduling support and regression tests."
+    },
+    {
+      "source": "PR #3",
+      "finding": "Completed dependencies outside the candidate subset were not recognized.",
+      "status": "fixed by this commit",
+      "evidence": "Completed helper dependency outside the primary subset is recognized."
+    },
+    {
+      "source": "PR #3",
+      "finding": "Oversized tasks prevented later fitting tasks from filling capacity.",
+      "status": "fixed by this commit",
+      "evidence": "Oversized recommendations are skipped and covered by regression tests."
+    },
+    {
+      "source": "PR #3",
+      "finding": "Waiting or curing tasks could re-enter primary planning.",
+      "status": "fixed by this commit",
+      "evidence": "Primary planning excludes waiting_curing tasks."
+    },
+    {
+      "source": "PR #3",
+      "finding": "Over-capacity Not Today tasks could still show Start.",
+      "status": "fixed by this commit",
+      "evidence": "Today Planner hides Start when the capacity reason is present."
+    },
+    {
+      "source": "PR #3",
+      "finding": "Quick actions risked stale-field overwrites.",
+      "status": "already fixed and now regression-tested",
+      "evidence": "Persistence-boundary tests inspect actual Firestore update payloads."
+    },
+    {
+      "source": "PR #4",
+      "finding": "Blocker validation errors escaped the modal.",
+      "status": "fixed by this commit",
+      "evidence": "Modal-local blockerError handles validation and failed modal writes."
+    },
+    {
+      "source": "PR #4",
+      "finding": "Mobile navigation could retain a stale active-project id.",
+      "status": "fixed by this commit",
+      "evidence": "Active-project changes refresh navigation and helper tests cover alias behavior."
+    },
+    {
+      "source": "PR #4",
+      "finding": "Start and resume did not synchronize readiness fields.",
+      "status": "fixed by this commit",
+      "evidence": "Transition updates now include coherent readiness fields."
+    }
+  ],
+  "confidenceLimit": "Do not claim more than 95 percent confidence until CI, independent review, and supervisor verification are complete."
+}

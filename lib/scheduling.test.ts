@@ -167,6 +167,28 @@ describe("scheduling engine", () => {
     expect(evaluation.state).toBe("ready");
   });
 
+  it("evaluates recommendations with a complete task universe separate from candidates", () => {
+    const completedDependency = createTask({
+      id: "completed-helper-dependency",
+      status: "complete",
+      helperRequired: true
+    });
+    const candidate = createTask({
+      id: "candidate",
+      dependencyTaskIds: [completedDependency.id],
+      status: "ready",
+      readinessState: "ready"
+    });
+
+    const recommendations = getRecommendedNextTasks([candidate], {
+      today,
+      taskUniverse: [completedDependency, candidate]
+    });
+
+    expect(recommendations.map((recommendation) => recommendation.task.id))
+      .toEqual(["candidate"]);
+  });
+
   it("excludes a task too large for remaining capacity", () => {
     const task = createTask({ id: "flooring", estimatedDurationMinutes: 300, status: "ready", readinessState: "ready" });
 

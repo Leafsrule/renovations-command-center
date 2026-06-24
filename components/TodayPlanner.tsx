@@ -78,6 +78,7 @@ export function TodayPlanner() {
   const [error, setError] = useState("");
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [blockingTaskId, setBlockingTaskId] = useState<string | null>(null);
+  const [blockerError, setBlockerError] = useState("");
   const [blockerType, setBlockerType] = useState<TaskBlockerType>("none");
   const [blockerNotes, setBlockerNotes] = useState("");
   const [blockedUntilDate, setBlockedUntilDate] = useState("");
@@ -228,7 +229,8 @@ export function TodayPlanner() {
       blockerType: TaskBlockerType;
       blockerNotes: string;
       blockedUntilDate: string | null;
-    }
+    },
+    reportError: (message: string) => void = setError
   ) {
     if (
       action === "complete" &&
@@ -250,7 +252,7 @@ export function TodayPlanner() {
       await refreshTasks();
       return true;
     } catch (updateError) {
-      setError(
+      reportError(
         updateError instanceof Error
           ? updateError.message
           : "Unable to update task. Please try again."
@@ -262,7 +264,7 @@ export function TodayPlanner() {
   }
 
   function openBlockerForm(task: RenovationTask) {
-    setError("");
+    setBlockerError("");
     setBlockingTaskId(task.id);
     setBlockerType("none");
     setBlockerNotes("");
@@ -275,6 +277,7 @@ export function TodayPlanner() {
     }
 
     setBlockingTaskId(null);
+    setBlockerError("");
     setBlockerType("none");
     setBlockerNotes("");
     setBlockedUntilDate("");
@@ -285,7 +288,7 @@ export function TodayPlanner() {
     const task = tasks.find((item) => item.id === blockingTaskId);
 
     if (!task) {
-      setError(
+      setBlockerError(
         "The selected task is no longer available. Refresh and try again."
       );
       return;
@@ -303,7 +306,7 @@ export function TodayPlanner() {
     });
 
     if (!result.allowed) {
-      setError(result.reason);
+      setBlockerError(result.reason);
       return;
     }
 
@@ -311,13 +314,14 @@ export function TodayPlanner() {
       blockerType,
       blockerNotes,
       blockedUntilDate: blockedUntilDate || null
-    });
+    }, setBlockerError);
 
     if (!saved) {
       return;
     }
 
     setBlockingTaskId(null);
+    setBlockerError("");
     setBlockerType("none");
     setBlockerNotes("");
     setBlockedUntilDate("");
@@ -325,11 +329,12 @@ export function TodayPlanner() {
 
   function renderTaskCard(task: RenovationTask, reasons: string[]) {
     const transitionContext = { tasks, today, helperAvailable };
-    const canStart = evaluateTaskTransition(
-      task,
-      "start",
-      transitionContext
-    ).allowed;
+    const isOverCapacity = reasons.some((reason) =>
+      reason.includes("Does not fit today's remaining capacity.")
+    );
+    const canStart =
+      !isOverCapacity &&
+      evaluateTaskTransition(task, "start", transitionContext).allowed;
     const canResume = evaluateTaskTransition(
       task,
       "resume",
@@ -683,9 +688,9 @@ export function TodayPlanner() {
               </p>
             </div>
 
-            {error ? (
+            {blockerError ? (
               <p className="rounded-md border border-danger bg-panel p-3 text-sm text-danger">
-                {error}
+                {blockerError}
               </p>
             ) : null}
 
@@ -694,9 +699,10 @@ export function TodayPlanner() {
               <select
                 className="rounded-md border border-line px-3 py-2 text-sm"
                 disabled={savingTaskId !== null}
-                onChange={(event) =>
-                  setBlockerType(event.target.value as TaskBlockerType)
-                }
+                onChange={(event) => {
+                  setBlockerError("");
+                  setBlockerType(event.target.value as TaskBlockerType);
+                }}
                 required
                 value={blockerType}
               >
@@ -714,7 +720,10 @@ export function TodayPlanner() {
               <textarea
                 className="min-h-28 rounded-md border border-line px-3 py-2 text-sm"
                 disabled={savingTaskId !== null}
-                onChange={(event) => setBlockerNotes(event.target.value)}
+                onChange={(event) => {
+                  setBlockerError("");
+                  setBlockerNotes(event.target.value);
+                }}
                 placeholder="Describe the specific condition preventing work."
                 required
                 value={blockerNotes}
@@ -726,7 +735,10 @@ export function TodayPlanner() {
               <input
                 className="rounded-md border border-line px-3 py-2 text-sm"
                 disabled={savingTaskId !== null}
-                onChange={(event) => setBlockedUntilDate(event.target.value)}
+                onChange={(event) => {
+                  setBlockerError("");
+                  setBlockedUntilDate(event.target.value);
+                }}
                 type="date"
                 value={blockedUntilDate}
               />
