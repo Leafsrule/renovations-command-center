@@ -1,79 +1,227 @@
 {
+  "schemaVersion": "1.2",
+  "timestamp": "2026-06-25T20:05:40-04:00",
+  "repository": "Leafsrule/renovations-command-center",
   "pullRequest": 5,
   "branch": "infra/remote-first-production",
-  "scope": "P2 remediation for Today Planner, task execution, blocker workflow, active-project navigation, and Firestore persistence boundaries",
-  "externalProviderChanges": {
-    "renderResourcesCreated": false,
-    "firebaseRulesDeployed": false,
-    "githubSecretsChanged": false
+  "productionBranch": "main",
+  "baseSha": "f053f7f4b1ebd32e61465e60d8a5eddc98323ec2",
+  "auditedApplicationCommit": "e2208f78f8e191a9a2368c8c32d1b45e02686786",
+  "evidenceBaselineCommit": "e2208f78f8e191a9a2368c8c32d1b45e02686786",
+  "lastObservedBranchHead": "3632197f36c68a03d579be4662ff0e4338758177",
+  "branchHeadObservedAt": "2026-06-25T20:05:40-04:00",
+  "authoritativeCurrentHeadSource": "GitHub PR metadata or git rev-parse HEAD",
+  "commitModel": {
+    "auditedApplicationCommitDefinition": "Latest code-bearing application checkpoint that completed the applicable validation.",
+    "evidenceBaselineCommitDefinition": "Application commit against which the current confidence conclusions were produced.",
+    "lastObservedBranchHeadDefinition": "Timestamped observation only; not self-currenting.",
+    "evidenceMaintenanceCommitDefinition": "Documentation-only commit that does not replace the audited application commit unless executable, test, workflow, dependency, lockfile, infrastructure, configuration, build, deployment, or security-rule files also change."
+  },
+  "latestObservedCi": {
+    "runId": 28122609980,
+    "headSha": "3632197f36c68a03d579be4662ff0e4338758177",
+    "workflow": "CI",
+    "job": "validate",
+    "status": "completed",
+    "conclusion": "success",
+    "verifiedSteps": [
+      "npm ci",
+      "git diff --check",
+      "npm run lint",
+      "npm run typecheck",
+      "npm run validate:production",
+      "npm run validate:render",
+      "npm run validate:firebase",
+      "npm run build",
+      "npm audit --audit-level=high",
+      "npm test"
+    ]
   },
   "validation": {
-    "npmCi": "passed",
-    "lint": "passed",
-    "typecheck": "passed",
-    "tests": "passed: 87 tests",
-    "build": "passed",
-    "npmAuditHigh": "passed; moderate advisories reported",
-    "validateProduction": "passed",
-    "validateRender": "passed",
-    "validateFirebase": "passed",
-    "diffCheck": "passed"
+    "auditedApplicationCommit": {
+      "npmCi": "passed",
+      "lint": "passed",
+      "typecheck": "passed",
+      "tests": "passed: 87 tests",
+      "build": "passed",
+      "npmAuditHigh": "passed; moderate advisories reported",
+      "validateProduction": "passed",
+      "validateRender": "passed",
+      "validateFirebase": "passed",
+      "diffCheck": "passed"
+    },
+    "mountedTodayPlannerTests": "missing",
+    "mountedMobileNavigationTests": "missing",
+    "firestorePayloadCoverage": {
+      "start": "verified",
+      "markWaiting": "verified",
+      "resume": "missing explicit boundary assertion",
+      "complete": "missing explicit boundary assertion",
+      "block": "missing explicit boundary assertion",
+      "clearBlocker": "missing explicit boundary assertion",
+      "staleFieldExclusion": "verified for tested paths",
+      "permissionDeniedNoRefresh": "verified",
+      "mountedUiFailureRecovery": "missing"
+    }
   },
   "historicalReviewDisposition": [
     {
       "source": "PR #3",
       "finding": "Dependency evaluation used only the primary candidate subset.",
-      "status": "fixed by this commit",
-      "evidence": "Full task-universe scheduling support and regression tests."
+      "status": "implemented and regression-tested"
     },
     {
       "source": "PR #3",
       "finding": "Completed dependencies outside the candidate subset were not recognized.",
-      "status": "fixed by this commit",
-      "evidence": "Completed helper dependency outside the primary subset is recognized."
+      "status": "implemented and regression-tested"
     },
     {
       "source": "PR #3",
       "finding": "Oversized tasks prevented later fitting tasks from filling capacity.",
-      "status": "fixed by this commit",
-      "evidence": "Oversized recommendations are skipped and covered by regression tests."
+      "status": "implemented and regression-tested"
     },
     {
       "source": "PR #3",
       "finding": "Waiting or curing tasks could re-enter primary planning.",
-      "status": "fixed by this commit",
-      "evidence": "Primary planning excludes waiting_curing tasks."
+      "status": "implemented and regression-tested"
     },
     {
       "source": "PR #3",
       "finding": "Over-capacity Not Today tasks could still show Start.",
-      "status": "fixed by this commit",
-      "evidence": "Today Planner hides Start when the capacity reason is present."
+      "status": "implementation present; mounted behavioural proof pending"
     },
     {
       "source": "PR #3",
       "finding": "Quick actions risked stale-field overwrites.",
-      "status": "already fixed and now regression-tested",
-      "evidence": "Persistence-boundary tests inspect actual Firestore update payloads."
+      "status": "targeted persistence implemented; remaining action payload matrix pending"
     },
     {
       "source": "PR #4",
       "finding": "Blocker validation errors escaped the modal.",
-      "status": "fixed by this commit",
-      "evidence": "Modal-local blockerError handles validation and failed modal writes."
+      "status": "implementation present; mounted behavioural proof pending"
     },
     {
       "source": "PR #4",
       "finding": "Mobile navigation could retain a stale active-project id.",
-      "status": "fixed by this commit",
-      "evidence": "Active-project changes refresh navigation and helper tests cover alias behavior."
+      "status": "implementation present; mounted runtime proof pending"
     },
     {
       "source": "PR #4",
-      "finding": "Start and resume did not synchronize readiness fields.",
-      "status": "fixed by this commit",
-      "evidence": "Transition updates now include coherent readiness fields."
+      "finding": "Start and Resume did not synchronize readiness fields.",
+      "status": "implemented and unit-tested"
     }
   ],
-  "confidenceLimit": "Do not claim more than 95 percent confidence until CI, independent review, and supervisor verification are complete."
+  "genuineClaudeReview": {
+    "status": "pending",
+    "packetStatus": "not-created",
+    "reviewedCommit": null,
+    "invocationMethod": null,
+    "verdict": null,
+    "openP1": null,
+    "openP2": null,
+    "fallbackCodexReviewIsIndependent": false
+  },
+  "render": {
+    "blueprintPresent": true,
+    "blueprintValidation": "passed",
+    "permanentBlueprintBranch": "main",
+    "releaseCandidateExpectedBranch": "infra/remote-first-production",
+    "providerStateVerified": false,
+    "repositoryAuthorizationVerified": false,
+    "workspaceVerified": false,
+    "releaseCandidateStatus": "not-verified",
+    "deploymentStatus": "not-verified",
+    "healthStatus": "not-verified",
+    "logsStatus": "not-verified",
+    "rollbackStatus": "not-tested",
+    "billingStatus": "not-verified",
+    "temporaryResourceCleanupStatus": "not-applicable-until-created"
+  },
+  "firebase": {
+    "repositoryConfigurationPresent": true,
+    "configurationValidation": "passed",
+    "providerStateVerified": false,
+    "projectIdentityVerified": false,
+    "authenticationProvidersVerified": false,
+    "authorizedDomainsVerified": false,
+    "deployedFirestoreRulesCompared": false,
+    "deployedStorageRulesCompared": false,
+    "githubSecretsPresenceVerified": false,
+    "deployIdentityLeastPrivilegeVerified": false,
+    "rulesDeploymentStatus": "not-deployed-for-release-candidate",
+    "authorizationSmokeTests": "not-run",
+    "rollbackStatus": "not-tested"
+  },
+  "releaseCandidate": {
+    "status": "not-created-or-not-verified",
+    "authenticatedSmokeTestStatus": "not-run",
+    "productionEquivalentValidation": "not-run"
+  },
+  "recovery": {
+    "rescueBranchesVerifiedPresent": true,
+    "gitRecovery": "partially evidenced",
+    "codespaceReconstruction": "not-tested",
+    "renderRollback": "not-tested",
+    "firestoreRulesRollback": "not-tested",
+    "storageRulesRollback": "not-tested",
+    "failedDeploymentRecovery": "not-tested",
+    "temporaryReleaseCandidateDeletion": "not-applicable-until-created",
+    "orphanedBillingCheck": "not-run"
+  },
+  "confidenceCategories": {
+    "applicationCorrectness": {
+      "score": 90,
+      "status": "P2 implementation present; mounted runtime proof incomplete"
+    },
+    "dataIntegrityAndPersistence": {
+      "score": 91,
+      "status": "Targeted write evidence exists for selected paths; full action matrix and UI failure proof incomplete"
+    },
+    "securityAndAccessControl": {
+      "score": 78,
+      "status": "Repository rules exist; live provider state and denial testing unverified"
+    },
+    "automatedQualityAssurance": {
+      "score": 92,
+      "status": "CI green with 87 tests; primary UI behaviour tests remain source-based"
+    },
+    "infrastructureAndDeployment": {
+      "score": 70,
+      "status": "Blueprint and validators pass; no verified RC deployment"
+    },
+    "recoveryRollbackAndCostControl": {
+      "score": 65,
+      "status": "Rescue branches exist; provider rollback, cleanup, and billing verification incomplete"
+    },
+    "documentationAndReleaseGovernance": {
+      "score": 84,
+      "status": "Living records exist; independent review and provider evidence incomplete"
+    }
+  },
+  "lowestCategory": {
+    "name": "recoveryRollbackAndCostControl",
+    "score": 65
+  },
+  "overallConfidence": 65,
+  "openDeficiencies": [
+    "Mounted Today Planner behavioural tests are missing.",
+    "Mounted MobileBottomNav runtime tests are missing.",
+    "Explicit Firestore payload assertions for Resume, Complete, Block, and Clear Blocker are missing.",
+    "Mounted UI proof for rejected-write recovery and no false success is missing.",
+    "A genuine Claude review packet has not been created.",
+    "A genuine Claude review has not been completed.",
+    "Live Render provider state and RC deployment are unverified.",
+    "Live Firebase project, deployed Rules, secrets, authorization tests, and rollback are unverified.",
+    "Production-equivalent smoke testing has not been completed.",
+    "Render and Firebase rollback rehearsals have not been completed.",
+    "Temporary-resource cleanup and final billing verification have not been completed."
+  ],
+  "nextControlledWork": [
+    "Verify the corrected evidence checkpoint on the resulting PR head and CI run.",
+    "Add mounted Today Planner behavioural tests.",
+    "Add mounted MobileBottomNav runtime tests.",
+    "Complete Firestore payload-boundary coverage for Resume, Complete, Block, and Clear Blocker.",
+    "Create a factual Claude review packet for the next green code-bearing commit."
+  ],
+  "releaseDecision": "DO NOT RELEASE"
 }
