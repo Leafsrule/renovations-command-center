@@ -26,14 +26,10 @@ export function resolveProjectRouteId(
 }
 
 export function getNavigationProjectId(
-  routeProjectId: string | null,
+  _routeProjectId: string | null,
   activeProjectId: string | null
 ) {
-  if (activeProjectId) {
-    return activeProjectId;
-  }
-
-  return resolveProjectRouteId(routeProjectId, activeProjectId);
+  return activeProjectId;
 }
 
 export function getProjectSectionHref(

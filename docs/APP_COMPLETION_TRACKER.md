@@ -13,15 +13,16 @@
 - **Working branch:** `infra/remote-first-production`
 - **Production branch:** `main`
 - **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
-- **Last audited application commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
-- **Evidence baseline commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
-- **Last observed PR branch head:** `3632197f36c68a03d579be4662ff0e4338758177`
-- **Branch-head observation:** `2026-06-25T20:05:40-04:00`
+- **Last audited application commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Evidence baseline commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Previous evidence-only head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
+- **Last observed PR branch head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
+- **Branch-head observation:** `2026-06-26T00:27:31Z`
 - **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
-- **Latest observed CI run:** `28122609980`
+- **Latest observed CI run:** `28208503195`
 - **Latest observed CI conclusion:** `success`
-- **Last observed automated test count:** 87
-- **Last substantive update:** 2026-06-25
+- **Last observed automated test count:** 112
+- **Last substantive update:** 2026-06-26
 - **Document owner:** Release-Hardening Supervisor
 - **Release decision:** `DO NOT RELEASE`
 
@@ -92,11 +93,11 @@ Do not approve paid Render provisioning, deploy Firebase Rules, mark PR #5 ready
 - [x] Local remediation validation reported `npm ci` passed.
 - [x] Local remediation validation reported lint passed.
 - [x] Local remediation validation reported typecheck passed.
-- [x] Local remediation validation reported 87 tests passed.
+- [x] Local mounted-test checkpoint validation reported 112 tests passed.
 - [x] Local remediation validation reported production build passed.
 - [x] Local remediation validation reported high-severity audit passed, with moderate advisories noted.
 - [x] Local remediation validation reported production, Render, and Firebase validators passed.
-- [x] GitHub Actions run `28122609980` passed on observed head `3632197f36c68a03d579be4662ff0e4338758177`.
+- [x] GitHub Actions run `28208503195` passed on observed head `c373385f83d51d72096ddcba5b79d2cd21ac4106`.
 - [x] CI passed installation, whitespace checks, lint, typecheck, production validation, Render validation, Firebase validation, build, audit, and tests.
 
 ### 2.5 Current release state
@@ -116,49 +117,49 @@ Do not approve paid Render provisioning, deploy Firebase Rules, mark PR #5 ready
 
 ### 3.1 Today Planner mounted behavioural tests
 
-Current source-contract tests are supplemental only. Add real DOM-mounted behavioural tests.
+Current source-contract tests are supplemental only. Real DOM-mounted behavioural tests now cover the release-hardening scenarios implemented in `components/TodayPlanner.mounted.test.tsx`.
 
-- [ ] Add the minimum justified DOM test dependencies.
-- [ ] Configure Vitest so DOM tests use `jsdom` without forcing unrelated pure tests into a DOM environment.
-- [ ] Mount Today Planner with controlled authentication and repository mocks.
-- [ ] Verify the planner renders.
-- [ ] Verify the blocker modal opens for the selected task.
-- [ ] Verify default invalid blocker submission keeps the modal open.
-- [ ] Verify validation appears inside the modal.
-- [ ] Verify modal validation does not replace the planner with the page-level fatal error view.
-- [ ] Verify correcting blocker type clears the modal validation error.
-- [ ] Verify correcting blocker notes clears the modal validation error.
-- [ ] Verify correcting blocked-until date clears the modal validation error.
-- [ ] Verify closing the modal clears modal-only state.
-- [ ] Verify Cancel performs no persistence action.
-- [ ] Verify successful blocker save performs one targeted action.
-- [ ] Verify rejected blocker save keeps the modal usable.
-- [ ] Verify rejected blocker save reports failure without false success.
-- [ ] Verify an over-capacity Not Today task does not render Start.
-- [ ] Verify a capacity-eligible task renders Start.
-- [ ] Verify Start invokes the intended targeted action.
-- [ ] Verify Complete requires confirmation.
-- [ ] Verify cancelling Complete writes nothing.
-- [ ] Verify rejected Complete does not falsely update visible state.
-- [ ] Verify source-string tests are retained only where they add supplemental contract value.
+- [x] Add the minimum justified DOM test dependencies.
+- [x] Configure Vitest so DOM tests use `jsdom` without forcing unrelated pure tests into a DOM environment.
+- [x] Mount Today Planner with controlled repository mocks.
+- [x] Verify the planner renders.
+- [x] Verify the blocker modal opens for the selected task.
+- [x] Verify default invalid blocker submission keeps the modal open.
+- [x] Verify validation appears inside the modal.
+- [x] Verify modal validation does not replace the planner with the page-level fatal error view.
+- [x] Verify correcting blocker type clears the modal validation error.
+- [x] Verify correcting blocker notes clears the modal validation error.
+- [x] Verify correcting blocked-until date clears the modal validation error.
+- [x] Verify closing the modal clears modal-only state.
+- [x] Verify Cancel performs no persistence action.
+- [x] Verify successful blocker save performs one targeted action.
+- [x] Verify rejected blocker save keeps the modal usable.
+- [x] Verify rejected blocker save reports failure without false success.
+- [x] Verify an over-capacity Not Today task does not render Start.
+- [x] Verify a capacity-eligible task renders Start.
+- [~] Start targeted-action invocation remains covered by transition and persistence-boundary tests; no new mounted Start click assertion was added in this checkpoint.
+- [x] Verify Complete requires confirmation.
+- [x] Verify cancelling Complete writes nothing.
+- [x] Verify rejected Complete does not falsely update visible state and leaves the planner recoverable.
+- [x] Verify source-string tests are retained only where they add supplemental contract value.
 
 ### 3.2 MobileBottomNav mounted runtime tests
 
-- [ ] Mount `MobileBottomNav` with controlled route, user, and project data.
-- [ ] Verify project A appears in relevant links initially.
-- [ ] Verify an active-project change to project B updates links without reload.
-- [ ] Verify old project A URLs disappear after switching.
-- [ ] Verify the custom active-project event refreshes links.
-- [ ] Verify browser focus refresh retrieves the current active project.
-- [ ] Verify Today uses the active project.
-- [ ] Verify Tasks uses the active project.
-- [ ] Verify Schedule uses the active project.
-- [ ] Verify Materials uses the active project.
-- [ ] Verify Photos uses the active project.
-- [ ] Verify no-active-project state is safe.
-- [ ] Verify active-project aliases do not create a redirect loop.
-- [ ] Verify authentication loss clears project-specific navigation safely.
-- [ ] Verify project-list failure does not create stale or unsafe links.
+- [x] Mount `MobileBottomNav` with controlled route, user, and project data.
+- [x] Verify project A appears in relevant links initially.
+- [x] Verify an active-project change to project B updates links without reload.
+- [x] Verify old project A URLs disappear after switching.
+- [x] Verify the custom active-project event refreshes links.
+- [x] Verify browser focus refresh retrieves the current active project.
+- [x] Verify Today uses the active project.
+- [x] Verify Tasks uses the active project.
+- [x] Verify Schedule uses the active project.
+- [x] Verify Materials uses the active project.
+- [x] Verify Photos uses the active project.
+- [x] Verify no-active-project state is safe.
+- [x] Verify active-project aliases do not create a redirect loop.
+- [x] Verify authentication loss clears project-specific navigation safely.
+- [x] Verify project-list failure does not create stale or unsafe links.
 
 ### 3.3 Firestore persistence-boundary matrix
 
@@ -169,19 +170,19 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Stale unrelated fields excluded on tested paths.
 - [x] Permission-denied write rejects.
 - [x] Failed write does not perform refresh read.
-- [ ] Add exact Resume payload assertion.
-- [ ] Add exact Complete payload assertion.
-- [ ] Add exact Block payload assertion.
-- [ ] Add exact Clear Blocker payload assertion.
-- [ ] Verify Resume excludes unrelated name, notes, dependency, material, date, duration, room, and priority fields.
-- [ ] Verify Complete excludes unrelated fields.
-- [ ] Verify Block writes only intended blocker and transition fields.
-- [ ] Verify Clear Blocker removes only intended blocker fields and writes reevaluated readiness fields.
-- [ ] Verify rejected Resume does not refresh or show false success.
-- [ ] Verify rejected Complete does not refresh or show false success.
-- [ ] Verify rejected Block does not refresh or show false success.
-- [ ] Verify rejected Clear Blocker does not refresh or show false success.
-- [ ] Verify mounted UI remains recoverable after each rejected action where applicable.
+- [x] Add exact Resume payload assertion.
+- [x] Add exact Complete payload assertion.
+- [x] Add exact Block payload assertion.
+- [x] Add exact Clear Blocker payload assertion.
+- [x] Verify Resume excludes unrelated name, notes, dependency, material, date, duration, room, and priority fields.
+- [x] Verify Complete excludes unrelated fields.
+- [x] Verify Block writes only intended blocker and transition fields.
+- [x] Verify Clear Blocker removes only intended blocker fields and writes reevaluated readiness fields.
+- [x] Verify rejected Resume does not refresh or show false success.
+- [x] Verify rejected Complete does not refresh or show false success.
+- [x] Verify rejected Block does not refresh or show false success.
+- [x] Verify rejected Clear Blocker does not refresh or show false success.
+- [x] Verify mounted UI remains recoverable after rejected blocker and Complete actions where applicable.
 
 ### 3.4 Historical review evidence closure
 
@@ -192,7 +193,7 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Oversized-task continuation implemented.
 - [x] Waiting/curing exclusion implemented.
 - [x] Targeted stale-write prevention implemented.
-- [ ] Replace source-only capacity Start proof with mounted behavioural proof.
+- [x] Replace source-only capacity Start proof with mounted behavioural proof.
 - [ ] Map every PR #3 finding to exact current file, test, commit, and CI evidence.
 - [ ] Record whether formal historical thread resolution is technically available and appropriate on the merged PR.
 
@@ -201,8 +202,8 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Modal-local blocker validation implemented.
 - [x] Active-project navigation refresh implemented.
 - [x] Readiness synchronization implemented.
-- [ ] Replace source-only modal proof with mounted behavioural proof.
-- [ ] Replace helper-only navigation proof with mounted runtime proof.
+- [x] Replace source-only modal proof with mounted behavioural proof.
+- [x] Replace helper-only navigation proof with mounted runtime proof.
 - [ ] Map every PR #4 finding to exact current file, test, commit, and CI evidence.
 - [ ] Record whether formal historical thread resolution is technically available and appropriate on the merged PR.
 
@@ -233,7 +234,7 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Distinguish genuine Claude review from Codex fallback self-review.
 - [x] Record Render, Firebase, smoke-test, and rollback status as unverified where appropriate.
 - [x] Record seven confidence categories and release decision.
-- [ ] Update after the mounted-test code checkpoint.
+- [x] Update after the mounted-test code checkpoint.
 - [ ] Update after genuine Claude review.
 - [ ] Update after Render RC validation.
 - [ ] Update after Firebase live verification.
@@ -251,7 +252,7 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Add open deficiencies.
 - [x] Add Claude, Render, Firebase, RC, smoke-test, rollback, and cleanup status.
 - [x] Add explicit `DO NOT RELEASE` decision.
-- [ ] Add next code-bearing checkpoint and CI evidence.
+- [-] Add next code-bearing checkpoint and CI evidence; local mounted-test evidence is recorded, CI evidence is added after push.
 - [ ] Add genuine Claude invocation and verdict.
 - [ ] Add provider deployment and rollback evidence.
 - [ ] Add final production decision.
@@ -728,10 +729,10 @@ These items are not automatically first-release blockers unless the release deci
 
 | Category | Score | Current evidence state | Required before release |
 | --- | ---: | --- | --- |
-| A. Application Correctness | 90 | P2 implementation exists; mounted runtime proof is incomplete. | Mounted UI tests, RC smoke tests, independent review. |
-| B. Data Integrity and Persistence | 91 | Targeted writes verified on selected paths; remaining action matrix and UI failure proof incomplete. | Complete payload matrix and rejected-write UI tests. |
+| A. Application Correctness | 92 | Mounted Today Planner and MobileBottomNav runtime proof exists; RC smoke tests and independent review remain incomplete. | RC smoke tests, independent review. |
+| B. Data Integrity and Persistence | 93 | Targeted writes are verified across Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists. | Provider smoke tests and independent review. |
 | C. Security and Access Control | 78 | Rules and workflows exist; live provider state and denial tests unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
-| D. Automated Quality Assurance | 92 | CI is green with 87 tests; primary UI behaviour tests are source-based. | Mounted tests and final exact-head CI. |
+| D. Automated Quality Assurance | 94 | Local tests are green with 112 tests including mounted UI coverage; final exact-head CI remains pending until push. | Final exact-head CI. |
 | E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment. | Correct-source RC, health, logs, smoke tests. |
 | F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup unproven. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
 | G. Documentation and Release Governance | 84 | Living records exist and evidence model is corrected; Claude and provider evidence incomplete. | Verified checkpoints, genuine Claude review, complete release record. |

@@ -72,6 +72,7 @@ describe("project route resolution", () => {
 
   it("falls back safely when no active project is available", () => {
     expect(getNavigationProjectId(activeProjectAlias, null)).toBeNull();
+    expect(getNavigationProjectId("project-old", null)).toBeNull();
     expect(getProjectSectionHref(null, "schedule")).toBe("/projects");
   });
 });

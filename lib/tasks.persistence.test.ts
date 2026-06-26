@@ -62,6 +62,36 @@ function mockRefreshedTask(task: RenovationTask) {
   });
 }
 
+function latestPayload() {
+  return firestoreMocks.updateDoc.mock.calls.at(-1)?.[1] as Record<
+    string,
+    unknown
+  >;
+}
+
+function expectUnrelatedFieldsAbsent(payload: Record<string, unknown>) {
+  for (const field of [
+    "name",
+    "notes",
+    "dependencyTaskIds",
+    "materialStatus",
+    "materialItems",
+    "materialNotes",
+    "materialNeededByDate",
+    "materialBlockerNotes",
+    "earliestStartDate",
+    "dueDate",
+    "scheduledStart",
+    "scheduledEnd",
+    "estimatedDurationMinutes",
+    "actualDurationMinutes",
+    "roomId",
+    "priority"
+  ]) {
+    expect(payload).not.toHaveProperty(field);
+  }
+}
+
 describe("task action persistence boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -101,6 +131,129 @@ describe("task action persistence boundary", () => {
         updatedAt: "__server_timestamp__"
       }
     );
+    expectUnrelatedFieldsAbsent(latestPayload());
+  });
+
+  it("persists only targeted transition fields for resume", async () => {
+    const task = createTask({
+      id: "task-1",
+      status: "waiting_curing",
+      name: "Stale task name",
+      notes: "Do not overwrite",
+      scheduledStart: "2026-06-24T09:00:00.000Z",
+      scheduledEnd: "2026-06-24T10:00:00.000Z"
+    });
+    mockRefreshedTask({ ...task, status: "in_progress" });
+
+    await executeProjectTaskAction("project-1", task, "resume", {
+      tasks: [task],
+      today: "2026-06-24"
+    });
+
+    const payload = latestPayload();
+    expect(payload).toEqual({
+      status: "in_progress",
+      readinessState: "ready",
+      readinessReasons: [],
+      updatedAt: "__server_timestamp__"
+    });
+    expectUnrelatedFieldsAbsent(payload);
+  });
+
+  it("persists only targeted transition fields for complete", async () => {
+    const task = createTask({
+      id: "task-1",
+      status: "in_progress",
+      name: "Stale task name",
+      priority: "urgent",
+      estimatedDurationMinutes: 240,
+      dueDate: "2026-06-30"
+    });
+    mockRefreshedTask({ ...task, status: "complete" });
+
+    await executeProjectTaskAction("project-1", task, "complete", {
+      tasks: [task],
+      today: "2026-06-24"
+    });
+
+    const payload = latestPayload();
+    expect(payload).toEqual({
+      status: "complete",
+      readinessState: "ready",
+      readinessReasons: [],
+      updatedAt: "__server_timestamp__"
+    });
+    expectUnrelatedFieldsAbsent(payload);
+  });
+
+  it("persists only targeted transition fields for block", async () => {
+    const task = createTask({
+      id: "task-1",
+      notes: "Original note",
+      materialStatus: "ordered",
+      materialItems: ["vanity"],
+      roomId: "room-1"
+    });
+    mockRefreshedTask({ ...task, status: "blocked" });
+
+    await executeProjectTaskAction("project-1", task, "block", {
+      tasks: [task],
+      today: "2026-06-24",
+      blocker: {
+        blockerType: "material",
+        blockerNotes: "Vanity has not arrived.",
+        blockedUntilDate: "2026-06-30"
+      }
+    });
+
+    const payload = latestPayload();
+    expect(payload).toEqual({
+      status: "blocked",
+      readinessState: "blocked",
+      blockerType: "material",
+      blockerNotes: "Vanity has not arrived.",
+      blockedUntilDate: "2026-06-30",
+      updatedAt: "__server_timestamp__"
+    });
+    expectUnrelatedFieldsAbsent(payload);
+  });
+
+  it("persists only targeted transition fields for clear blocker", async () => {
+    const task = createTask({
+      id: "task-1",
+      status: "blocked",
+      readinessState: "blocked",
+      blockerType: "material",
+      blockerNotes: "Vanity has not arrived.",
+      blockedUntilDate: "2026-06-30",
+      notes: "Do not overwrite",
+      dependencyTaskIds: []
+    });
+    mockRefreshedTask({
+      ...task,
+      status: "ready",
+      readinessState: "ready",
+      blockerType: "none",
+      blockerNotes: "",
+      blockedUntilDate: null
+    });
+
+    await executeProjectTaskAction("project-1", task, "clear_blocker", {
+      tasks: [task],
+      today: "2026-06-24"
+    });
+
+    const payload = latestPayload();
+    expect(payload).toEqual({
+      status: "ready",
+      readinessState: "ready",
+      readinessReasons: [],
+      blockerType: "none",
+      blockerNotes: "",
+      blockedUntilDate: null,
+      updatedAt: "__server_timestamp__"
+    });
+    expectUnrelatedFieldsAbsent(payload);
   });
 
   it("does not overwrite independently changed fields from a stale snapshot", async () => {
@@ -140,10 +293,37 @@ describe("task action persistence boundary", () => {
     expect(payload).not.toHaveProperty("materialStatus");
     expect(payload).not.toHaveProperty("notes");
     expect(payload).not.toHaveProperty("dueDate");
+    expectUnrelatedFieldsAbsent(payload);
   });
 
-  it("surfaces permission-denied writes and does not refresh after failure", async () => {
-    const task = createTask();
+  it.each([
+    ["start", createTask({ status: "ready" }), {}],
+    ["resume", createTask({ status: "waiting_curing" }), {}],
+    ["complete", createTask({ status: "in_progress" }), {}],
+    [
+      "block",
+      createTask({ status: "ready" }),
+      {
+        blocker: {
+          blockerType: "material",
+          blockerNotes: "Vanity has not arrived.",
+          blockedUntilDate: null
+        }
+      }
+    ],
+    [
+      "clear_blocker",
+      createTask({
+        status: "blocked",
+        readinessState: "blocked",
+        blockerType: "material",
+        blockerNotes: "Vanity has not arrived."
+      }),
+      {}
+    ]
+  ] as const)(
+    "surfaces permission-denied %s writes and does not refresh after failure",
+    async (action, task, extraContext) => {
     firestoreMocks.updateDoc.mockRejectedValue(
       Object.assign(new Error("Missing or insufficient permissions."), {
         code: "permission-denied"
@@ -151,12 +331,38 @@ describe("task action persistence boundary", () => {
     );
 
     await expect(
-      executeProjectTaskAction("project-1", task, "start", {
+      executeProjectTaskAction("project-1", task, action, {
         tasks: [task],
-        today: "2026-06-24"
+        today: "2026-06-24",
+        ...extraContext
       })
     ).rejects.toThrow("Missing or insufficient permissions.");
 
     expect(firestoreMocks.getDoc).not.toHaveBeenCalled();
+    }
+  );
+
+  it("remains callable after a rejected write", async () => {
+    const task = createTask();
+    firestoreMocks.updateDoc
+      .mockRejectedValueOnce(new Error("Transient write failure."))
+      .mockResolvedValueOnce(undefined);
+    mockRefreshedTask({ ...task, status: "in_progress" });
+
+    await expect(
+      executeProjectTaskAction("project-1", task, "start", {
+        tasks: [task],
+        today: "2026-06-24"
+      })
+    ).rejects.toThrow("Transient write failure.");
+
+    await expect(
+      executeProjectTaskAction("project-1", task, "start", {
+        tasks: [task],
+        today: "2026-06-24"
+      })
+    ).resolves.toMatchObject({
+      task: expect.objectContaining({ status: "in_progress" })
+    });
   });
 });

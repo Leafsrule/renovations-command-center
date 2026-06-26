@@ -7,12 +7,13 @@
 - **Working branch:** `infra/remote-first-production`
 - **Production branch:** `main`
 - **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
-- **Audited application commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
-- **Evidence baseline commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
-- **Last observed PR branch head:** `3632197f36c68a03d579be4662ff0e4338758177`
-- **Branch-head observation:** `2026-06-25T20:05:40-04:00`
+- **Audited application commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Evidence baseline commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Previous evidence-only head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
+- **Last observed PR branch head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
+- **Branch-head observation:** `2026-06-26T00:27:31Z`
 - **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
-- **Latest observed CI run:** `28122609980`
+- **Latest observed CI run:** `28208503195`
 - **Latest observed CI conclusion:** `success`
 - **Release decision:** `DO NOT RELEASE`
 
@@ -22,11 +23,11 @@ The stored branch-head SHA is a timestamped observation. It is not self-currenti
 
 ### Audited application commit
 
-`e2208f78f8e191a9a2368c8c32d1b45e02686786` is the latest code-bearing remediation checkpoint currently used as the application evidence baseline. It contains application, test, and release-hardening changes addressing the historical P2 findings.
+The current mounted-test checkpoint is the latest code-bearing remediation checkpoint used as the application evidence baseline. Its exact SHA is verified after push because a commit cannot contain its own SHA without a follow-up documentation-only commit.
 
 ### Evidence-maintenance head
 
-`3632197f36c68a03d579be4662ff0e4338758177` added the living completion tracker and did not change executable application behaviour. CI run `28122609980` passed on that exact observed head.
+`c373385f83d51d72096ddcba5b79d2cd21ac4106` is the previous evidence-only head and did not change executable application behaviour. CI run `28208503195` passed on that exact observed head.
 
 A documentation-only commit does not replace the audited application commit unless it also changes application code, tests, workflows, dependencies, lockfiles, infrastructure, configuration, build or deployment scripts, or Firebase Rules.
 
@@ -52,10 +53,10 @@ The audited application checkpoint contains fixes for:
 | PR #3 | Completed dependencies outside the candidate subset were not recognized. | Implemented and regression-tested. | Completed external dependency scenarios in Today/scheduling tests. |
 | PR #3 | Oversized tasks stopped later fitting work. | Implemented and regression-tested. | Scheduler continues past oversized candidates. |
 | PR #3 | Waiting/curing tasks could re-enter primary planning. | Implemented and regression-tested. | Primary candidate filtering excludes `waiting_curing`. |
-| PR #3 | Over-capacity Not Today tasks still displayed Start. | Implementation present; mounted behavioural proof still required. | Current source guard plus source-contract test. |
-| PR #3 | Quick actions could overwrite stale unrelated fields. | Implemented with partial writes; persistence-boundary evidence exists but is incomplete across every action. | `updateDoc` tests cover Start, Mark Waiting, stale-field exclusion, and permission-denied refresh prevention. |
-| PR #4 | Blocker validation escaped into the page-level fatal error state. | Implementation present; mounted behavioural proof still required. | Modal-local `blockerError` plus source-contract test. |
-| PR #4 | Mobile navigation retained a stale active-project id. | Implementation present; mounted runtime proof still required. | Active-project change event and route-helper tests. |
+| PR #3 | Over-capacity Not Today tasks still displayed Start. | Implemented and mounted-tested. | Mounted Today Planner test verifies over-capacity Not Today work does not render Start while eligible work does. |
+| PR #3 | Quick actions could overwrite stale unrelated fields. | Implemented and persistence-boundary tested across task actions. | `updateDoc` tests cover Start, Resume, Mark Waiting, Complete, Block, Clear Blocker, stale-field exclusion, and permission-denied refresh prevention. |
+| PR #4 | Blocker validation escaped into the page-level fatal error state. | Implemented and mounted-tested. | Mounted Today Planner test verifies modal-local validation and recoverable rejected saves. |
+| PR #4 | Mobile navigation retained a stale active-project id. | Implemented and mounted-tested. | Mounted MobileBottomNav tests verify active-project event refresh, focus refresh, alias safety, auth-loss safety, and project-list failure safety. |
 | PR #4 | Start and Resume did not synchronize readiness fields. | Implemented and unit-tested. | Transition and persistence tests. |
 
 No historical P1 finding is currently known in this remediation scope. Historical review comments remain evidence sources; no claim is made here that every historical thread has been formally resolved in GitHub.
@@ -75,29 +76,27 @@ TodayPlanner action
 Verified persistence tests currently prove:
 
 - exact Start payload fields;
+- exact Resume payload fields;
 - exact Mark Waiting payload fields;
+- exact Complete payload fields;
+- exact Block payload fields;
+- exact Clear Blocker payload fields;
 - stale unrelated task fields are excluded;
 - permission-denied writes reject;
 - failed writes do not perform the refresh read.
 
-Still required:
-
-- explicit exact-payload assertions for Resume;
-- explicit exact-payload assertions for Complete;
-- explicit exact-payload assertions for Block;
-- explicit exact-payload assertions for Clear Blocker;
-- mounted UI proof that rejected writes do not display false success and remain recoverable.
+Mounted UI tests also prove rejected blocker and Complete writes do not display false success and remain recoverable.
 
 ## Automated validation evidence
 
 ### Audited application checkpoint
 
-The live-Codespace validation reported for `e2208f78f8e191a9a2368c8c32d1b45e02686786` was:
+The live-Codespace validation reported for the current mounted-test checkpoint was:
 
 - `npm ci`: passed;
 - `npm run lint`: passed;
 - `npm run typecheck`: passed;
-- `npm test`: passed, 87 tests;
+- `npm test`: passed, 112 tests;
 - `npm run build`: passed;
 - `npm audit --audit-level=high`: passed, with moderate advisories reported;
 - `npm run validate:production`: passed;
@@ -107,22 +106,13 @@ The live-Codespace validation reported for `e2208f78f8e191a9a2368c8c32d1b45e0268
 
 ### Latest observed branch head
 
-GitHub Actions run `28122609980` completed successfully on observed head `3632197f36c68a03d579be4662ff0e4338758177`. The `validate` job passed installation, whitespace validation, lint, type checking, production-infrastructure validation, Render Blueprint validation, Firebase configuration validation, production build, high-severity audit, and tests.
+GitHub Actions run `28208503195` completed successfully on observed evidence-only head `c373385f83d51d72096ddcba5b79d2cd21ac4106`. Exact-head CI for the current mounted-test checkpoint is recorded after push.
 
 ## Test-quality gap
 
-`components/TodayPlanner.behavior.test.ts` currently reads source text and checks for implementation strings. These checks may remain as supplemental static contracts, but they are not sufficient proof of user-visible runtime behaviour.
+`components/TodayPlanner.behavior.test.ts` still reads source text and remains supplemental only. User-visible runtime behaviour is now covered by mounted tests.
 
-Required mounted behavioural coverage remains:
-
-- blocker modal open, correction, cancel, and save behaviour;
-- in-modal validation without page-level failure replacement;
-- failed blocker-write recovery and no false success;
-- capacity-based Start visibility;
-- Complete confirmation and failed-Complete handling;
-- active-project changes reflected in mobile links without reload;
-- focus refresh and safe no-project behaviour;
-- active-route alias behaviour without redirect loops.
+Mounted behavioural coverage now includes blocker modal open, correction, cancel, save and rejected-save behaviour; modal-local validation without page-level replacement; capacity-based Start visibility; Complete confirmation and rejected-Complete handling; active-project link refresh without reload; focus refresh; safe no-project behaviour; auth-loss safety; project-list failure safety; and active-route alias loop prevention.
 
 ## Independent review
 
@@ -200,10 +190,10 @@ Scores are constrained by direct evidence and are not release authorization.
 
 | Category | Score | Evidence summary | Required before release |
 | --- | ---: | --- | --- |
-| A. Application Correctness | 90 | P2 implementation exists and unit coverage passes; mounted runtime proof is incomplete. | Mounted planner and navigation tests, RC smoke tests, independent review. |
-| B. Data Integrity and Persistence | 91 | Partial-write boundary proof exists for Start and Mark Waiting; remaining actions and UI failure paths are incomplete. | Complete payload matrix and rejected-write UI tests. |
+| A. Application Correctness | 92 | Mounted planner and navigation runtime proof exists; RC smoke tests and independent review remain incomplete. | RC smoke tests, independent review. |
+| B. Data Integrity and Persistence | 93 | Payload boundaries are covered for Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists. | Provider smoke tests and independent review. |
 | C. Security and Access Control | 78 | Rules and workflow configuration exist; live provider state and denial tests are unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
-| D. Automated Quality Assurance | 92 | CI is green with 87 tests; primary behavioural UI tests are source-based. | Mounted behavioural coverage and final exact-head CI. |
+| D. Automated Quality Assurance | 94 | Local tests are green with 112 tests including mounted UI coverage; exact-head CI remains pending until push. | Final exact-head CI. |
 | E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment exists. | Correct-source RC, health, logs, authenticated smoke tests. |
 | F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup have not been demonstrated. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
 | G. Documentation and Release Governance | 84 | Living records exist; evidence model is being corrected; Claude and provider evidence are incomplete. | Verified current records, genuine Claude review, complete release evidence. |
@@ -216,14 +206,10 @@ Overall confidence equals the lowest release-critical category. Scores must be u
 
 ## Immediate next controlled work
 
-1. Correct and verify the living evidence checkpoint.
-2. Add mounted Today Planner behavioural tests.
-3. Add mounted MobileBottomNav runtime tests.
-4. Complete Firestore payload coverage for Resume, Complete, Block, and Clear Blocker.
-5. Push and verify CI on the new code-bearing checkpoint.
-6. Create a factual Claude review packet for that exact code-bearing commit.
-7. Obtain genuine independent Claude review.
-8. Proceed to Render RC and Firebase live verification only after code and review gates pass.
+1. Push and verify CI on the new code-bearing checkpoint.
+2. Create a factual Claude review packet for that exact code-bearing commit.
+3. Obtain genuine independent Claude review.
+4. Proceed to Render RC and Firebase live verification only after code and review gates pass.
 
 ## Final decision
 

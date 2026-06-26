@@ -1,15 +1,16 @@
 {
   "schemaVersion": "1.2",
-  "timestamp": "2026-06-25T20:05:40-04:00",
+  "timestamp": "2026-06-26T00:27:31Z",
   "repository": "Leafsrule/renovations-command-center",
   "pullRequest": 5,
   "branch": "infra/remote-first-production",
   "productionBranch": "main",
   "baseSha": "f053f7f4b1ebd32e61465e60d8a5eddc98323ec2",
-  "auditedApplicationCommit": "e2208f78f8e191a9a2368c8c32d1b45e02686786",
-  "evidenceBaselineCommit": "e2208f78f8e191a9a2368c8c32d1b45e02686786",
-  "lastObservedBranchHead": "3632197f36c68a03d579be4662ff0e4338758177",
-  "branchHeadObservedAt": "2026-06-25T20:05:40-04:00",
+  "auditedApplicationCommit": "current code-bearing mounted-test checkpoint; exact SHA verified after push",
+  "evidenceBaselineCommit": "current code-bearing mounted-test checkpoint; exact SHA verified after push",
+  "previousEvidenceOnlyHead": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
+  "lastObservedBranchHead": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
+  "branchHeadObservedAt": "2026-06-26T00:27:31Z",
   "authoritativeCurrentHeadSource": "GitHub PR metadata or git rev-parse HEAD",
   "commitModel": {
     "auditedApplicationCommitDefinition": "Latest code-bearing application checkpoint that completed the applicable validation.",
@@ -18,8 +19,8 @@
     "evidenceMaintenanceCommitDefinition": "Documentation-only commit that does not replace the audited application commit unless executable, test, workflow, dependency, lockfile, infrastructure, configuration, build, deployment, or security-rule files also change."
   },
   "latestObservedCi": {
-    "runId": 28122609980,
-    "headSha": "3632197f36c68a03d579be4662ff0e4338758177",
+    "runId": 28208503195,
+    "headSha": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
     "workflow": "CI",
     "job": "validate",
     "status": "completed",
@@ -42,7 +43,7 @@
       "npmCi": "passed",
       "lint": "passed",
       "typecheck": "passed",
-      "tests": "passed: 87 tests",
+      "tests": "passed: 112 tests",
       "build": "passed",
       "npmAuditHigh": "passed; moderate advisories reported",
       "validateProduction": "passed",
@@ -50,18 +51,18 @@
       "validateFirebase": "passed",
       "diffCheck": "passed"
     },
-    "mountedTodayPlannerTests": "missing",
-    "mountedMobileNavigationTests": "missing",
+    "mountedTodayPlannerTests": "passed",
+    "mountedMobileNavigationTests": "passed",
     "firestorePayloadCoverage": {
       "start": "verified",
       "markWaiting": "verified",
-      "resume": "missing explicit boundary assertion",
-      "complete": "missing explicit boundary assertion",
-      "block": "missing explicit boundary assertion",
-      "clearBlocker": "missing explicit boundary assertion",
-      "staleFieldExclusion": "verified for tested paths",
+      "resume": "verified",
+      "complete": "verified",
+      "block": "verified",
+      "clearBlocker": "verified",
+      "staleFieldExclusion": "verified across tested action payloads",
       "permissionDeniedNoRefresh": "verified",
-      "mountedUiFailureRecovery": "missing"
+      "mountedUiFailureRecovery": "verified for blocker and Complete actions"
     }
   },
   "historicalReviewDisposition": [
@@ -88,22 +89,22 @@
     {
       "source": "PR #3",
       "finding": "Over-capacity Not Today tasks could still show Start.",
-      "status": "implementation present; mounted behavioural proof pending"
+      "status": "implemented and mounted-tested"
     },
     {
       "source": "PR #3",
       "finding": "Quick actions risked stale-field overwrites.",
-      "status": "targeted persistence implemented; remaining action payload matrix pending"
+      "status": "targeted persistence implemented and action payload matrix tested"
     },
     {
       "source": "PR #4",
       "finding": "Blocker validation errors escaped the modal.",
-      "status": "implementation present; mounted behavioural proof pending"
+      "status": "implemented and mounted-tested"
     },
     {
       "source": "PR #4",
       "finding": "Mobile navigation could retain a stale active-project id.",
-      "status": "implementation present; mounted runtime proof pending"
+      "status": "implemented and mounted-tested"
     },
     {
       "source": "PR #4",
@@ -170,20 +171,20 @@
   },
   "confidenceCategories": {
     "applicationCorrectness": {
-      "score": 90,
-      "status": "P2 implementation present; mounted runtime proof incomplete"
+      "score": 92,
+      "status": "Mounted Today Planner and MobileBottomNav runtime proof exists; RC smoke tests and independent review remain incomplete"
     },
     "dataIntegrityAndPersistence": {
-      "score": 91,
-      "status": "Targeted write evidence exists for selected paths; full action matrix and UI failure proof incomplete"
+      "score": 93,
+      "status": "Payload boundaries are covered for Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists"
     },
     "securityAndAccessControl": {
       "score": 78,
       "status": "Repository rules exist; live provider state and denial testing unverified"
     },
     "automatedQualityAssurance": {
-      "score": 92,
-      "status": "CI green with 87 tests; primary UI behaviour tests remain source-based"
+      "score": 94,
+      "status": "Local tests are green with 112 tests including mounted UI coverage; exact-head CI remains pending until push"
     },
     "infrastructureAndDeployment": {
       "score": 70,
@@ -204,10 +205,6 @@
   },
   "overallConfidence": 65,
   "openDeficiencies": [
-    "Mounted Today Planner behavioural tests are missing.",
-    "Mounted MobileBottomNav runtime tests are missing.",
-    "Explicit Firestore payload assertions for Resume, Complete, Block, and Clear Blocker are missing.",
-    "Mounted UI proof for rejected-write recovery and no false success is missing.",
     "A genuine Claude review packet has not been created.",
     "A genuine Claude review has not been completed.",
     "Live Render provider state and RC deployment are unverified.",
@@ -217,10 +214,7 @@
     "Temporary-resource cleanup and final billing verification have not been completed."
   ],
   "nextControlledWork": [
-    "Verify the corrected evidence checkpoint on the resulting PR head and CI run.",
-    "Add mounted Today Planner behavioural tests.",
-    "Add mounted MobileBottomNav runtime tests.",
-    "Complete Firestore payload-boundary coverage for Resume, Complete, Block, and Clear Blocker.",
+    "Verify CI on the resulting mounted-test code-bearing checkpoint.",
     "Create a factual Claude review packet for the next green code-bearing commit."
   ],
   "releaseDecision": "DO NOT RELEASE"

@@ -76,6 +76,7 @@ export function TodayPlanner() {
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [blockingTaskId, setBlockingTaskId] = useState<string | null>(null);
   const [blockerError, setBlockerError] = useState("");
@@ -93,6 +94,7 @@ export function TodayPlanner() {
     async function load() {
       setLoading(true);
       setError("");
+      setActionError("");
 
       try {
         const [projectTasks, projectRooms] = await Promise.all([
@@ -212,7 +214,7 @@ export function TodayPlanner() {
       const nextTasks = await listProjectTasks(projectId);
       setTasks(nextTasks);
     } catch (loadError) {
-      setError(
+      setActionError(
         loadError instanceof Error
           ? loadError.message
           : "Tasks could not be refreshed. Please try again."
@@ -230,7 +232,7 @@ export function TodayPlanner() {
       blockerNotes: string;
       blockedUntilDate: string | null;
     },
-    reportError: (message: string) => void = setError
+    reportError: (message: string) => void = setActionError
   ) {
     if (
       action === "complete" &&
@@ -240,7 +242,7 @@ export function TodayPlanner() {
     }
 
     setSavingTaskId(task.id);
-    setError("");
+    setActionError("");
 
     try {
       await executeProjectTaskAction(projectId, task, action, {
@@ -475,6 +477,12 @@ export function TodayPlanner() {
 
   return (
     <div className="space-y-6">
+      {actionError ? (
+        <div className="rounded-md border border-danger bg-panel p-4 text-sm leading-6 text-danger">
+          {actionError}
+        </div>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-line bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Available today</p>
