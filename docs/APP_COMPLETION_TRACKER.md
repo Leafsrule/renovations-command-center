@@ -1,6 +1,6 @@
 # Renovations Command Center — Living App Completion Tracker
 
-> **Purpose:** This file is the authoritative, continuously maintained record of everything that remains to be completed before the app can be considered production-ready, safely deployed, and operationally complete.
+> **Purpose:** This file is the authoritative, continuously maintained record of everything remaining before the application can be considered production-ready, safely deployed, recoverable, and operationally complete.
 >
 > **Maintenance rule:** Every material code change, test addition, provider configuration change, deployment event, review finding, rollback rehearsal, accepted limitation, or scope decision must update this file in the same commit or pull request.
 
@@ -9,556 +9,604 @@
 ## 1. Document Control
 
 - **Repository:** `Leafsrule/renovations-command-center`
-- **Current working branch:** `infra/remote-first-production`
-- **Current pull request:** PR #5 — `infra: add remote-first Render production foundation`
-- **Current verified PR head at tracker creation:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
+- **Pull request:** PR #5 — `infra: add remote-first Render production foundation`
+- **Working branch:** `infra/remote-first-production`
 - **Production branch:** `main`
-- **Primary Codespace:** `musical fishstick`
-- **Expected workspace:** `/workspaces/renovations-command-center`
-- **Last updated:** 2026-06-24
-- **Document owner:** Autonomous Release-Hardening Supervisor
-- **Update requirement:** Mandatory with every material change
+- **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
+- **Last audited application commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
+- **Evidence baseline commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
+- **Last observed PR branch head:** `3632197f36c68a03d579be4662ff0e4338758177`
+- **Branch-head observation:** `2026-06-25T20:05:40-04:00`
+- **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
+- **Latest observed CI run:** `28122609980`
+- **Latest observed CI conclusion:** `success`
+- **Last observed automated test count:** 87
+- **Last substantive update:** 2026-06-25
+- **Document owner:** Release-Hardening Supervisor
+- **Release decision:** `DO NOT RELEASE`
+
+> The authoritative current branch head must be resolved dynamically from GitHub PR metadata or `git rev-parse HEAD`. Any stored branch-head SHA is a timestamped observation and is not self-currenting.
+
+### Commit classification
+
+- **Audited application commit:** most recent code-bearing checkpoint whose application changes completed applicable validation.
+- **Evidence baseline commit:** application commit against which the current confidence conclusions were produced.
+- **Evidence-maintenance commit:** documentation-only commit that does not replace the audited application commit unless application code, tests, workflows, dependencies, lockfiles, infrastructure, configuration, build or deployment scripts, or security rules also change.
 
 ### Status legend
 
 - `[ ]` Not started
 - `[-]` In progress
 - `[x]` Completed and verified
-- `[!]` Blocked by a human-only action or external provider
+- `[!]` Blocked by a human-only action or unavailable external capability
 - `[~]` Accepted limitation or deferred item
 - `[?]` Requires revalidation
 
 ### Release-critical rule
 
-The app must not proceed to paid Render provisioning, Firebase rules deployment, PR-ready status, merge, or final production deployment until every release-critical item in Sections 3 through 12 is complete and independently verified.
+Do not approve paid Render provisioning, deploy Firebase Rules, mark PR #5 ready, merge, or deploy production until all release-critical items in Sections 3 through 12 are complete and independently verified.
 
 ---
 
-## 2. Current Verified Baseline
+## 2. Verified Baseline
 
-### Completed foundation
+### 2.1 Repository and architecture
 
-- [x] GitHub is the authoritative source of truth for code, infrastructure, tests, documentation, CI, and recovery history.
-- [x] Render is defined as the sole production web host.
-- [x] Firebase is defined as backend-only for Authentication, Firestore, Storage, and security rules.
-- [x] GitHub Codespaces is treated as replaceable development infrastructure.
+- [x] GitHub is the system of record for code, infrastructure, validation, documentation, and recovery history.
+- [x] Render is the sole approved production web host.
+- [x] Firebase remains backend-only for Authentication, Firestore, Storage, and security rules.
+- [x] Codespaces is replaceable development infrastructure.
+- [x] Permanent `render.yaml` correctly targets `main`.
+- [x] Temporary RC service, if used, will separately target `infra/remote-first-production` without changing the permanent Blueprint.
+- [x] Node 22 is declared for application and CI use.
+- [x] `/api/health` exists and returns minimal health data.
+
+### 2.2 Application foundation
+
 - [x] Core scheduling engine exists.
 - [x] Today Planner exists.
-- [x] Task execution and blocker workflow exist.
+- [x] Task execution transition engine exists.
+- [x] Blocker workflow exists.
 - [x] Active-project routing exists.
 - [x] Mobile navigation exists.
-- [x] CI workflow exists and passes on the current verified head.
+- [x] Firebase Firestore and Storage Rules files exist.
+- [x] Firebase emulator configuration exists.
+- [x] Manually gated Firebase Rules workflow exists.
 - [x] Render Blueprint exists.
-- [x] Firebase rule files and deployment workflow exist.
-- [x] `/api/health` endpoint exists.
-- [x] Production validation scripts exist.
-- [x] P2 remediation checkpoint was committed and pushed.
-- [x] 87 automated tests passed at the current verified checkpoint.
-- [x] `npm ci`, lint, typecheck, test, build, audit, production validation, Render validation, Firebase validation, and `git diff --check` passed at the current verified checkpoint.
+- [x] Production, Render, and Firebase validation scripts exist.
 
-### Current release state
+### 2.3 P2 remediation checkpoint
 
-- [x] PR #5 remains open.
-- [x] PR #5 remains draft.
-- [x] PR #5 remains unmerged.
-- [x] PR #5 is currently mergeable.
-- [x] No paid Render resource was created by the latest remediation.
-- [x] No Firebase rule was deployed by the latest remediation.
-- [x] No GitHub secret was created or modified by the latest remediation.
-- [x] Rescue branches remain protected and untouched.
+- [x] Dependency recommendations use the full task universe.
+- [x] Completed dependencies outside the primary subset are recognized.
+- [x] Oversized tasks no longer stop later fitting tasks from filling capacity.
+- [x] `waiting_curing` tasks are excluded from primary Today scheduling.
+- [x] Over-capacity Not Today tasks are guarded from Start in implementation.
+- [x] Quick actions use targeted Firestore updates rather than whole stale snapshots.
+- [x] Blocker validation uses modal-local state in implementation.
+- [x] Active-project changes trigger mobile navigation refresh in implementation.
+- [x] Start, Resume, and Mark Waiting synchronize readiness fields in implementation.
+
+### 2.4 Validation and CI
+
+- [x] Local remediation validation reported `npm ci` passed.
+- [x] Local remediation validation reported lint passed.
+- [x] Local remediation validation reported typecheck passed.
+- [x] Local remediation validation reported 87 tests passed.
+- [x] Local remediation validation reported production build passed.
+- [x] Local remediation validation reported high-severity audit passed, with moderate advisories noted.
+- [x] Local remediation validation reported production, Render, and Firebase validators passed.
+- [x] GitHub Actions run `28122609980` passed on observed head `3632197f36c68a03d579be4662ff0e4338758177`.
+- [x] CI passed installation, whitespace checks, lint, typecheck, production validation, Render validation, Firebase validation, build, audit, and tests.
+
+### 2.5 Current release state
+
+- [x] PR #5 is open.
+- [x] PR #5 is draft.
+- [x] PR #5 is unmerged.
+- [x] PR #5 is mergeable at the last observation.
+- [x] Both rescue branches exist.
+- [x] No paid Render resource has been verified as created for this release candidate.
+- [x] No Firebase Rules deployment has been verified for this release candidate.
+- [x] No genuine Claude application review has been recorded.
 
 ---
 
-## 3. Immediate Pre-Deployment Hardening
+## 3. Immediate Code and Test Hardening
 
-### 3.1 Behavioural component testing
+### 3.1 Today Planner mounted behavioural tests
 
-- [ ] Replace or supplement source-text assertions in `components/TodayPlanner.behavior.test.ts` with mounted runtime behavioural tests.
-- [ ] Add a DOM-based test environment using an appropriate React testing library.
-- [ ] Verify Today Planner renders successfully.
-- [ ] Verify blocker modal opens for the selected task.
-- [ ] Verify invalid blocker submission keeps the modal open.
-- [ ] Verify blocker validation appears inside the modal.
-- [ ] Verify blocker validation does not trigger the page-level fatal error screen.
+Current source-contract tests are supplemental only. Add real DOM-mounted behavioural tests.
+
+- [ ] Add the minimum justified DOM test dependencies.
+- [ ] Configure Vitest so DOM tests use `jsdom` without forcing unrelated pure tests into a DOM environment.
+- [ ] Mount Today Planner with controlled authentication and repository mocks.
+- [ ] Verify the planner renders.
+- [ ] Verify the blocker modal opens for the selected task.
+- [ ] Verify default invalid blocker submission keeps the modal open.
+- [ ] Verify validation appears inside the modal.
+- [ ] Verify modal validation does not replace the planner with the page-level fatal error view.
 - [ ] Verify correcting blocker type clears the modal validation error.
 - [ ] Verify correcting blocker notes clears the modal validation error.
 - [ ] Verify correcting blocked-until date clears the modal validation error.
-- [ ] Verify closing the modal clears modal-only validation state.
-- [ ] Verify Cancel performs no persistence write.
-- [ ] Verify successful blocker save performs exactly one targeted write.
-- [ ] Verify rejected blocker persistence keeps the modal usable.
-- [ ] Verify rejected blocker persistence does not display false success.
-- [ ] Verify over-capacity Not Today tasks do not render Start.
-- [ ] Verify capacity-eligible tasks render Start.
-- [ ] Verify Start performs the intended targeted persistence update.
-- [ ] Verify Complete requires explicit confirmation.
-- [ ] Verify failed Complete does not falsely update visible state.
+- [ ] Verify closing the modal clears modal-only state.
+- [ ] Verify Cancel performs no persistence action.
+- [ ] Verify successful blocker save performs one targeted action.
+- [ ] Verify rejected blocker save keeps the modal usable.
+- [ ] Verify rejected blocker save reports failure without false success.
+- [ ] Verify an over-capacity Not Today task does not render Start.
+- [ ] Verify a capacity-eligible task renders Start.
+- [ ] Verify Start invokes the intended targeted action.
+- [ ] Verify Complete requires confirmation.
+- [ ] Verify cancelling Complete writes nothing.
+- [ ] Verify rejected Complete does not falsely update visible state.
+- [ ] Verify source-string tests are retained only where they add supplemental contract value.
 
-### 3.2 Mobile navigation runtime testing
+### 3.2 MobileBottomNav mounted runtime tests
 
-- [ ] Add mounted or integration-level tests for `MobileBottomNav`.
-- [ ] Verify project A is reflected in navigation links initially.
-- [ ] Verify switching to project B updates all relevant navigation links without reloading.
-- [ ] Verify old project IDs disappear after switching.
-- [ ] Verify focus refresh reloads the active project.
-- [ ] Verify `/projects/active/...` aliases resolve safely.
-- [ ] Verify no redirect loop occurs.
-- [ ] Verify no-active-project behaviour is safe.
-- [ ] Verify Today link uses the active project.
-- [ ] Verify Tasks link uses the active project.
-- [ ] Verify Schedule link uses the active project.
-- [ ] Verify Materials link uses the active project.
-- [ ] Verify Photos link uses the active project.
+- [ ] Mount `MobileBottomNav` with controlled route, user, and project data.
+- [ ] Verify project A appears in relevant links initially.
+- [ ] Verify an active-project change to project B updates links without reload.
+- [ ] Verify old project A URLs disappear after switching.
+- [ ] Verify the custom active-project event refreshes links.
+- [ ] Verify browser focus refresh retrieves the current active project.
+- [ ] Verify Today uses the active project.
+- [ ] Verify Tasks uses the active project.
+- [ ] Verify Schedule uses the active project.
+- [ ] Verify Materials uses the active project.
+- [ ] Verify Photos uses the active project.
+- [ ] Verify no-active-project state is safe.
+- [ ] Verify active-project aliases do not create a redirect loop.
+- [ ] Verify authentication loss clears project-specific navigation safely.
+- [ ] Verify project-list failure does not create stale or unsafe links.
 
-### 3.3 Persistence-boundary verification
+### 3.3 Firestore persistence-boundary matrix
 
-- [ ] Verify actual Firestore payloads for Start.
-- [ ] Verify actual Firestore payloads for Resume.
-- [ ] Verify actual Firestore payloads for Mark Waiting.
-- [ ] Verify actual Firestore payloads for Complete.
-- [ ] Verify actual Firestore payloads for Block.
-- [ ] Verify actual Firestore payloads for Clear Blocker.
-- [ ] Verify unrelated `name` fields are excluded from quick-action writes.
-- [ ] Verify unrelated `notes` fields are excluded from quick-action writes.
-- [ ] Verify unrelated dependency fields are excluded from quick-action writes.
-- [ ] Verify unrelated material fields are excluded from quick-action writes.
-- [ ] Verify unrelated date fields are excluded from quick-action writes.
-- [ ] Verify unrelated duration fields are excluded from quick-action writes.
-- [ ] Verify unrelated room-assignment fields are excluded from quick-action writes.
-- [ ] Verify unrelated priority fields are excluded from quick-action writes.
-- [ ] Verify permission-denied writes reject safely.
-- [ ] Verify failed writes do not trigger false refresh.
-- [ ] Verify failed writes do not trigger false success state.
-- [ ] Verify stale snapshots cannot overwrite newer independent edits.
+Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusion, and permission-denied no-refresh behaviour.
 
-### 3.4 Regression closure for historical findings
+- [x] Exact Start payload asserted.
+- [x] Exact Mark Waiting payload asserted.
+- [x] Stale unrelated fields excluded on tested paths.
+- [x] Permission-denied write rejects.
+- [x] Failed write does not perform refresh read.
+- [ ] Add exact Resume payload assertion.
+- [ ] Add exact Complete payload assertion.
+- [ ] Add exact Block payload assertion.
+- [ ] Add exact Clear Blocker payload assertion.
+- [ ] Verify Resume excludes unrelated name, notes, dependency, material, date, duration, room, and priority fields.
+- [ ] Verify Complete excludes unrelated fields.
+- [ ] Verify Block writes only intended blocker and transition fields.
+- [ ] Verify Clear Blocker removes only intended blocker fields and writes reevaluated readiness fields.
+- [ ] Verify rejected Resume does not refresh or show false success.
+- [ ] Verify rejected Complete does not refresh or show false success.
+- [ ] Verify rejected Block does not refresh or show false success.
+- [ ] Verify rejected Clear Blocker does not refresh or show false success.
+- [ ] Verify mounted UI remains recoverable after each rejected action where applicable.
 
-- [x] Dependency recommendations use the complete task universe.
-- [x] Completed dependencies outside the candidate subset are recognized.
-- [x] Oversized tasks no longer prevent smaller later tasks from filling capacity.
-- [x] `waiting_curing` tasks are excluded from primary scheduling.
-- [x] Over-capacity tasks no longer show Start.
-- [x] Quick actions use targeted persistence writes.
-- [x] Blocker validation uses modal-local state.
-- [x] Mobile navigation refreshes when active project changes.
-- [x] Start and Resume synchronize readiness fields.
-- [ ] Resolve or formally close the historical PR #3 review threads with evidence.
-- [ ] Resolve or formally close the historical PR #4 review threads with evidence.
+### 3.4 Historical review evidence closure
 
----
+#### PR #3 findings
 
-## 4. Independent Review Requirements
+- [x] Full task-list dependency evaluation implemented.
+- [x] Completed external dependency recognition implemented.
+- [x] Oversized-task continuation implemented.
+- [x] Waiting/curing exclusion implemented.
+- [x] Targeted stale-write prevention implemented.
+- [ ] Replace source-only capacity Start proof with mounted behavioural proof.
+- [ ] Map every PR #3 finding to exact current file, test, commit, and CI evidence.
+- [ ] Record whether formal historical thread resolution is technically available and appropriate on the merged PR.
 
-### 4.1 Genuine Claude review
+#### PR #4 findings
 
-- [!] Establish a genuine Claude invocation path.
-- [ ] Verify whether an approved Claude connector is available.
-- [ ] Verify whether Claude Code is available and authenticated.
-- [ ] Verify whether Claude CLI is available and authenticated.
-- [ ] Verify whether a securely stored Claude API credential is available without exposing it.
-- [ ] Create or update `docs/CLAUDE_REVIEW_PACKET.md`.
-- [ ] Ensure the review packet references the exact current commit.
-- [ ] Include the exact PR diff in the review packet or invocation context.
-- [ ] Exclude Codex confidence conclusions from the Claude input.
-- [ ] Obtain a preserved Claude verdict: `PASS`, `CONDITIONAL PASS`, or `FAIL`.
-- [ ] Record Claude invocation method.
-- [ ] Record exact commit reviewed by Claude.
-- [ ] Record every Claude P1 finding.
-- [ ] Record every Claude P2 finding.
-- [ ] Route all Claude P1/P2 findings to Codex.
-- [ ] Add regression tests for every confirmed finding.
-- [ ] Push corrections.
-- [ ] Re-run CI.
-- [ ] Re-run Claude review after every material correction.
-- [ ] Complete the gate with no unresolved P1/P2 findings.
-
-### 4.2 Supervisor verification
-
-- [ ] Independently verify Codex’s final implementation claims.
-- [ ] Independently verify exact PR head.
-- [ ] Independently verify CI on exact PR head.
-- [ ] Independently verify review-thread status.
-- [ ] Independently verify release evidence files.
-- [ ] Independently verify no secret-bearing files are tracked.
-- [ ] Independently verify no TDSB repository reference is introduced.
+- [x] Modal-local blocker validation implemented.
+- [x] Active-project navigation refresh implemented.
+- [x] Readiness synchronization implemented.
+- [ ] Replace source-only modal proof with mounted behavioural proof.
+- [ ] Replace helper-only navigation proof with mounted runtime proof.
+- [ ] Map every PR #4 finding to exact current file, test, commit, and CI evidence.
+- [ ] Record whether formal historical thread resolution is technically available and appropriate on the merged PR.
 
 ---
 
-## 5. Release Evidence and Governance
+## 4. Evidence and Governance
 
-### 5.1 `docs/RELEASE_CONFIDENCE_REPORT.md`
+### 4.1 Living tracker
 
-- [ ] Update exact commit SHA.
-- [ ] Update exact base SHA.
-- [ ] Update CI run ID.
-- [ ] Update CI conclusion.
-- [ ] Remove any stale statement that CI is still pending.
-- [ ] Add behavioural component-test evidence.
-- [ ] Add mobile-navigation runtime-test evidence.
-- [ ] Add persistence failure-path evidence.
-- [ ] Add Claude invocation method and verdict.
-- [ ] Add Render state.
-- [ ] Add Firebase state.
-- [ ] Add release-candidate state.
-- [ ] Add rollback state.
-- [ ] Add seven-category confidence scores.
-- [ ] Add the lowest category score.
-- [ ] Add explicit release decision.
-- [ ] Add all accepted limitations.
-- [ ] Add remaining non-blocking work.
+- [x] Create the living completion tracker.
+- [x] Distinguish audited application commits from evidence-maintenance commits.
+- [x] Use timestamped branch-head observations rather than self-referential commit claims.
+- [x] Require dynamic current-head resolution.
+- [ ] Update this tracker in the same commit as every future material change.
+- [ ] Add this tracker to contributor or PR guidance.
+- [ ] Require Codex work packages to update this tracker.
+- [ ] Require independent review to flag stale tracker content.
 
-### 5.2 `docs/release-confidence.json`
+### 4.2 Release confidence report
 
-- [ ] Add schema version.
-- [ ] Add ISO 8601 timestamp.
-- [ ] Add repository identifier.
-- [ ] Add PR number.
-- [ ] Add branch.
-- [ ] Add exact commit SHA.
-- [ ] Add exact base SHA.
-- [ ] Add CI run ID.
-- [ ] Add CI conclusion.
-- [ ] Add seven category scores.
-- [ ] Add lowest category score.
-- [ ] Add overall confidence.
-- [ ] Add open deficiency list.
-- [ ] Add test commands and outcomes.
-- [ ] Add Claude invocation method.
-- [ ] Add Claude verdict.
-- [ ] Add Render verification status.
-- [ ] Add Firebase verification status.
-- [ ] Add rules deployment status.
-- [ ] Add release-candidate status.
-- [ ] Add rollback status.
-- [ ] Add production status.
-- [ ] Add temporary-resource status.
-- [ ] Add explicit release decision.
+- [x] Record base SHA.
+- [x] Record audited application commit.
+- [x] Record evidence baseline commit.
+- [x] Record timestamped observed branch head.
+- [x] Record current-head authority.
+- [x] Record observed CI run and conclusion.
+- [x] Remove stale wording that successful CI remains pending.
+- [x] Distinguish genuine Claude review from Codex fallback self-review.
+- [x] Record Render, Firebase, smoke-test, and rollback status as unverified where appropriate.
+- [x] Record seven confidence categories and release decision.
+- [ ] Update after the mounted-test code checkpoint.
+- [ ] Update after genuine Claude review.
+- [ ] Update after Render RC validation.
+- [ ] Update after Firebase live verification.
+- [ ] Update after smoke and rollback testing.
+- [ ] Finalize after production deployment and RC cleanup.
 
-### 5.3 Living-document maintenance
+### 4.3 Machine-readable release evidence
 
-- [x] Create this file as the living completion tracker.
-- [ ] Add a repository rule or documented policy requiring this file to be updated with every material change.
-- [ ] Require Codex to update this tracker in every implementation prompt.
-- [ ] Require GPT Agent Mode to verify this tracker before closing any task.
-- [ ] Require Claude to flag stale tracker content during independent review.
-- [ ] Add this tracker to the PR checklist or contribution workflow.
+- [x] Add schema version.
+- [x] Add repository, PR, branch, and base SHA.
+- [x] Add audited application and evidence baseline commits.
+- [x] Add timestamped observed head and dynamic authority rule.
+- [x] Add CI run and conclusion.
+- [x] Add seven category scores, lowest category, and overall confidence.
+- [x] Add open deficiencies.
+- [x] Add Claude, Render, Firebase, RC, smoke-test, rollback, and cleanup status.
+- [x] Add explicit `DO NOT RELEASE` decision.
+- [ ] Add next code-bearing checkpoint and CI evidence.
+- [ ] Add genuine Claude invocation and verdict.
+- [ ] Add provider deployment and rollback evidence.
+- [ ] Add final production decision.
+
+### 4.4 PR #5 body
+
+- [ ] Replace stale wording that calls `e2208f78...` the current head.
+- [ ] Identify `e2208f78...` as the audited P2 remediation commit.
+- [ ] State that authoritative head comes from current PR metadata.
+- [ ] Record current observed CI evidence.
+- [ ] State `Genuine Claude review: pending`.
+- [ ] Remove wording that represents the fallback Codex review as independent.
+- [ ] Keep PR #5 draft.
+- [ ] Do not merge until all release gates pass.
 
 ---
 
-## 6. Render Repository and Authorization Repair
+## 5. Independent Claude Review
 
-### 6.1 GitHub-to-Render integration
+### 5.1 Review packet
 
-- [!] Verify Render is authenticated in the current Codespace.
-- [!] Verify Render is connected to the correct GitHub account.
-- [!] Verify Render GitHub App access includes `Leafsrule/renovations-command-center`.
-- [!] Remove or avoid use of `Leafsrule/tdsb-fight-back-lap` as an app source.
-- [!] Verify repository-scoped access is used where possible.
-- [!] Verify `infra/remote-first-production` is visible to Render.
-- [!] Verify Render can select the exact infrastructure branch.
-- [!] Verify Render no longer silently reverts the RC branch to `main`.
-- [!] Verify the two unrelated existing Render services remain untouched.
+- [ ] Create `docs/CLAUDE_REVIEW_PACKET.md` only after the mounted-test code checkpoint is green.
+- [ ] Reference the exact audited code-bearing commit.
+- [ ] Include base SHA.
+- [ ] Include changed files.
+- [ ] Include material implementation changes.
+- [ ] Include mounted behavioural test scenarios.
+- [ ] Include Firestore boundary matrix.
+- [ ] Include test totals and validation commands.
+- [ ] Include exact CI run and conclusion.
+- [ ] Include neutral historical PR #3 and PR #4 verification targets.
+- [ ] Include Render, Firebase, RC, smoke-test, and rollback status.
+- [ ] Include remaining evidence gaps.
+- [ ] Exclude desired verdicts, previous model verdicts, confidence recommendations, and approval language.
+- [ ] Verify no secrets or private data are included.
 
-### 6.2 Release-candidate source integrity
+### 5.2 Genuine independent invocation
 
-The release-candidate service must use exactly:
+- [!] Establish a genuine Claude connector, Claude Code, authenticated Claude CLI, or approved API path.
+- [ ] Send the exact review packet and relevant diff.
+- [ ] Record invocation method.
+- [ ] Record exact commit reviewed.
+- [ ] Preserve the complete returned verdict.
+- [ ] Record `PASS`, `CONDITIONAL PASS`, or `FAIL`.
+- [ ] Record every P0/P1/P2 finding with file and line references.
+- [ ] Route every confirmed P1/P2 to Codex.
+- [ ] Require failing regression tests before fixes.
+- [ ] Push fixes and verify CI.
+- [ ] Repeat Claude review after material changes.
+- [ ] Complete with no unresolved P0/P1/P2.
+
+A Codex or GPT self-review is not a substitute for genuine Claude review.
+
+---
+
+## 6. Render Authorization and Source Integrity
+
+### 6.1 Provider access
+
+- [!] Verify Render authentication.
+- [!] Verify the personal workspace `My Workspace`.
+- [!] Verify GitHub integration is connected to the correct account.
+- [!] Verify repository authorization includes `Leafsrule/renovations-command-center`.
+- [!] Verify the TDSB repository is not selected as an application source.
+- [!] Verify unrelated existing Render services remain untouched.
+
+### 6.2 Permanent Blueprint
+
+- [x] Permanent service name in repository configuration is `renovations-command-center`.
+- [x] Permanent branch is `main`.
+- [x] Runtime is Node.
+- [x] Plan is Starter.
+- [x] Node version is 22.
+- [x] Build command is `npm ci && npm run build`.
+- [x] Start command is `npm run start -- -H 0.0.0.0 -p $PORT`.
+- [x] Health path is `/api/health`.
+- [x] Six Firebase browser-variable names are declared with provider-side values required.
+- [ ] Verify Blueprint against live Render account behaviour.
+
+### 6.3 Temporary release-candidate service
+
+Required metadata:
 
 - Workspace: `My Workspace`
 - Repository: `Leafsrule/renovations-command-center`
 - Branch: `infra/remote-first-production`
-- Service name: `renovations-command-center-rc`
+- Service: `renovations-command-center-rc`
 - Runtime: Node
 - Node version: 22
 - Plan: Starter
-- Build command: `npm ci && npm run build`
-- Start command: `npm run start -- -H 0.0.0.0 -p $PORT`
-- Health check: `/api/health`
+- Build: `npm ci && npm run build`
+- Start: `npm run start -- -H 0.0.0.0 -p $PORT`
+- Health: `/api/health`
 
 Remaining work:
 
-- [!] Verify all source metadata through Render CLI, API, or dashboard.
-- [!] Verify the recurring Starter cost before approval.
-- [!] Obtain explicit human payment approval only after metadata is correct.
-- [!] Enter payment information only in Render.
+- [ ] Verify correct repository selection.
+- [ ] Verify exact RC branch selection.
+- [ ] Verify branch does not silently revert to `main`.
+- [ ] Verify expected recurring Starter cost.
+- [!] Obtain explicit payment approval before creating a paid RC service.
+- [!] Enter payment details only in Render if required.
 - [ ] Create no more than one RC service.
-- [ ] Record RC service ID.
-- [ ] Record RC service URL.
-- [ ] Record exact deployed commit SHA.
-- [ ] Verify unrelated Render services are unchanged.
+- [ ] Record service ID.
+- [ ] Record service URL.
+- [ ] Record deployment ID.
+- [ ] Record exact deployed commit.
+- [ ] Verify unrelated services are unchanged.
 
 ---
 
-## 7. Render Release-Candidate Deployment
+## 7. Render Environment and Deployment
 
-- [ ] Trigger RC build from `infra/remote-first-production`.
-- [ ] Verify build uses Node 22.
-- [ ] Verify `npm ci` succeeds in Render.
-- [ ] Verify `npm run build` succeeds in Render.
+### 7.1 Environment variables
+
+- [!] Enter `NEXT_PUBLIC_FIREBASE_API_KEY` securely in Render.
+- [!] Enter `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` securely in Render.
+- [!] Enter `NEXT_PUBLIC_FIREBASE_PROJECT_ID` securely in Render.
+- [!] Enter `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` securely in Render.
+- [!] Enter `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` securely in Render.
+- [!] Enter `NEXT_PUBLIC_FIREBASE_APP_ID` securely in Render.
+- [ ] Verify all six variables exist.
+- [ ] Verify no values are committed to GitHub.
+- [ ] Verify no values appear in logs.
+- [ ] Verify build and runtime receive the values.
+
+### 7.2 RC deployment
+
+- [ ] Trigger build from `infra/remote-first-production`.
+- [ ] Verify Node 22.
+- [ ] Verify `npm ci` succeeds.
+- [ ] Verify production build succeeds.
 - [ ] Verify start command succeeds.
 - [ ] Verify service reaches healthy state.
 - [ ] Verify `/api/health` returns HTTP 200.
-- [ ] Verify `/api/health` returns only minimal health data.
-- [ ] Verify application homepage loads.
-- [ ] Verify no secret values appear in Render logs.
-- [ ] Verify deploy logs are accessible.
-- [ ] Verify service restart is accessible.
-- [ ] Verify rollback controls are accessible.
-- [ ] Record deployment ID.
-- [ ] Record exact deployed commit SHA.
+- [ ] Verify health response contains no secrets or environment details.
+- [ ] Verify homepage loads.
+- [ ] Verify deploy logs contain no secrets.
+- [ ] Verify restart controls.
+- [ ] Verify rollback controls.
 - [ ] Record deployment timestamp.
 
 ---
 
-## 8. Render Environment Variables
+## 8. Firebase Live Verification
 
-Securely configure in Render:
-
-- [!] `NEXT_PUBLIC_FIREBASE_API_KEY`
-- [!] `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- [!] `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-- [!] `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- [!] `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- [!] `NEXT_PUBLIC_FIREBASE_APP_ID`
-
-Verification requirements:
-
-- [ ] Confirm all six variables exist in the RC service.
-- [ ] Confirm values are entered only through approved provider surfaces.
-- [ ] Confirm no values are committed to GitHub.
-- [ ] Confirm no values are printed in logs.
-- [ ] Confirm build and runtime can access required values.
-- [ ] Confirm environment variables are copied safely to final production service later.
-
----
-
-## 9. Firebase Production Verification
-
-### 9.1 Firebase project and products
+### 8.1 Project and products
 
 - [!] Verify the exact Renovations Command Center Firebase project.
 - [!] Verify Firebase Authentication is enabled.
-- [!] Verify required sign-in providers are configured.
+- [!] Verify required sign-in providers.
 - [!] Verify Firestore is enabled.
-- [!] Verify Firebase Storage is enabled.
-- [!] Verify the Render RC domain is authorized for Authentication.
-- [ ] Verify the final production Render domain is authorized after production deployment.
+- [!] Verify Storage is enabled.
+- [!] Verify RC domain is authorized for Authentication.
+- [ ] Verify final production domain after production deployment.
 
-### 9.2 Firestore rules
+### 8.2 Deployed Rules comparison
 
-- [!] Retrieve currently deployed Firestore rules.
-- [!] Compare deployed rules with repository `firestore.rules`.
-- [ ] Document all differences.
-- [ ] Correct differences only after review.
-- [ ] Verify owner-scoped access.
-- [ ] Verify unauthorized users are denied.
-- [ ] Verify authenticated users cannot access another owner’s data.
-- [ ] Verify project, room, person, task, and related document rules behave correctly.
+- [!] Retrieve deployed Firestore Rules.
+- [!] Compare deployed Firestore Rules with repository `firestore.rules`.
+- [ ] Document differences.
+- [!] Retrieve deployed Storage Rules.
+- [!] Compare deployed Storage Rules with repository `storage.rules`.
+- [ ] Document differences.
+- [ ] Correct only reviewed differences.
 
-### 9.3 Storage rules
+### 8.3 Rules behaviour
 
-- [!] Retrieve currently deployed Storage rules.
-- [!] Compare deployed rules with repository `storage.rules`.
-- [ ] Document all differences.
-- [ ] Correct differences only after review.
-- [ ] Verify owner-scoped file access.
-- [ ] Verify unauthorized reads are denied.
-- [ ] Verify unauthorized writes are denied.
-- [ ] Verify cross-owner access is denied.
-- [ ] Verify valid photo and file uploads succeed.
+- [ ] Verify owner-scoped Firestore access.
+- [ ] Verify unauthenticated Firestore denial.
+- [ ] Verify cross-owner Firestore denial.
+- [ ] Verify project, room, person, task, and related document rules.
+- [ ] Verify owner-scoped Storage access.
+- [ ] Verify unauthenticated Storage denial.
+- [ ] Verify cross-owner Storage denial.
+- [ ] Verify valid photo and file uploads.
 
-### 9.4 Deployment identity and GitHub secrets
+### 8.4 Secrets and deploy identity
 
-- [!] Verify `FIREBASE_PROJECT_ID` GitHub Actions secret.
-- [!] Verify `FIREBASE_SERVICE_ACCOUNT` GitHub Actions secret.
-- [!] Verify all six Firebase browser-variable GitHub Actions secrets where required.
-- [!] Verify the Firebase deploy identity exists.
-- [!] Verify deploy identity permissions are least-privilege.
-- [!] Verify credentials are not stored in the repository.
-- [ ] Run production environment validation with secrets available.
-- [ ] Record secret presence without recording values.
+- [!] Verify `FIREBASE_PROJECT_ID` GitHub Actions secret presence without revealing value.
+- [!] Verify `FIREBASE_SERVICE_ACCOUNT` secret presence without revealing value.
+- [!] Verify required browser-variable secret presence where used by the workflow.
+- [!] Verify deploy identity exists.
+- [!] Verify least-privilege permissions.
+- [ ] Prefer a custom role containing only demonstrated Firebase Security Rules permissions.
+- [ ] Use `roles/firebaserules.admin` only as a justified predefined fallback.
+- [ ] Do not grant Owner, Editor, Firebase Admin, or service-agent roles to the CI identity.
 
-### 9.5 Manual Firebase rules deployment
+### 8.5 Controlled deployment
 
-- [ ] Confirm workflow remains `workflow_dispatch` only.
-- [ ] Confirm exact confirmation input remains `DEPLOY`.
-- [ ] Trigger one controlled manual deployment.
-- [ ] Verify Firestore rules deployment succeeds.
-- [ ] Verify Storage rules deployment succeeds.
-- [ ] Verify application access still works after deployment.
+- [x] Workflow remains manually triggered.
+- [x] Confirmation input requires `DEPLOY`.
+- [ ] Run production-environment validation with required secrets available.
+- [ ] Trigger one controlled Rules deployment.
+- [ ] Verify Firestore Rules deployment.
+- [ ] Verify Storage Rules deployment.
+- [ ] Verify authorized application access afterward.
 - [ ] Verify unauthorized access remains denied.
-- [ ] Keep automatic deployment disabled.
+- [ ] Keep automatic Rules deployment disabled.
 
 ---
 
-## 10. Production-Equivalent Smoke Testing
+## 9. Production-Equivalent RC Smoke Testing
 
-Run on the RC service.
+### 9.1 Authentication
 
-### Authentication
-
-- [ ] Sign in successfully.
-- [ ] Sign out successfully.
-- [ ] Verify unauthenticated access is denied where required.
+- [ ] Sign in.
+- [ ] Sign out.
+- [ ] Verify protected unauthenticated denial.
 - [ ] Verify session persistence after refresh.
 - [ ] Verify session behaviour after browser restart.
 
-### Project management
+### 9.2 Projects and navigation
 
 - [ ] Create a project.
 - [ ] Edit a project.
 - [ ] Switch active project.
-- [ ] Refresh and verify active project persists.
-- [ ] Verify mobile navigation follows the new active project.
+- [ ] Refresh and verify active project persistence.
+- [ ] Verify mobile links follow the active project.
+- [ ] Verify Today, Tasks, Schedule, Materials, and Photos routes.
+- [ ] Verify no stale project URLs.
 
-### Room and area management
+### 9.3 Rooms and people
 
-- [ ] Create room/area.
-- [ ] Edit room/area.
-- [ ] Delete or archive room/area safely.
-- [ ] Verify cross-project isolation.
+- [ ] Create, edit, and safely remove or archive a room/area.
+- [ ] Verify room isolation between projects.
+- [ ] Create and edit a person/team member.
+- [ ] Verify helper assignments.
+- [ ] Verify person isolation between projects.
 
-### People and team management
+### 9.4 Task management
 
-- [ ] Create person/team member.
-- [ ] Edit person/team member.
-- [ ] Assign helper requirements.
-- [ ] Verify cross-project isolation.
+- [ ] Create a task.
+- [ ] Edit a task.
+- [ ] Set priority, phase, duration, dependencies, material status, dates, helpers, and concurrency.
+- [ ] Verify saved values persist after refresh.
+- [ ] Verify realistic concurrent-edit stale-write protection.
 
-### Task management
-
-- [ ] Create task.
-- [ ] Edit task.
-- [ ] Set priority.
-- [ ] Set phase.
-- [ ] Set duration.
-- [ ] Set dependencies.
-- [ ] Set material status.
-- [ ] Set earliest start date.
-- [ ] Set due date.
-- [ ] Set helper requirement.
-- [ ] Set concurrent-work flag.
-- [ ] Verify stale-write protection in a realistic multi-edit scenario.
-
-### Today Planner and execution
+### 9.5 Today and execution
 
 - [ ] Verify dependency-aware recommendations.
 - [ ] Verify completed dependencies are recognized.
 - [ ] Verify missing dependencies block work.
-- [ ] Verify oversized tasks are skipped while smaller tasks fit.
-- [ ] Verify waiting/curing tasks remain excluded from primary planning.
-- [ ] Verify capacity and buffer calculations.
-- [ ] Verify current in-progress work reserves capacity.
-- [ ] Verify over-capacity tasks do not show Start.
+- [ ] Verify oversized tasks are skipped while smaller work fits.
+- [ ] Verify waiting/curing tasks remain excluded.
+- [ ] Verify capacity and protected buffer.
+- [ ] Verify in-progress work reserves capacity.
+- [ ] Verify over-capacity tasks do not expose Start.
 - [ ] Verify Start.
 - [ ] Verify Mark Waiting.
 - [ ] Verify Resume.
-- [ ] Verify Block.
-- [ ] Verify blocker validation.
-- [ ] Verify blocker Cancel.
-- [ ] Verify blocker Save.
+- [ ] Verify Block validation, Cancel, Save, and failure recovery.
 - [ ] Verify Clear Blocker.
-- [ ] Verify Complete confirmation.
-- [ ] Verify failed actions do not report false success.
+- [ ] Verify Complete confirmation and failure recovery.
+- [ ] Verify no action displays false success.
 
-### Navigation and mobile
+### 9.6 Photos and files
 
-- [ ] Verify Today navigation.
-- [ ] Verify Tasks navigation.
-- [ ] Verify Schedule navigation.
-- [ ] Verify Materials navigation.
-- [ ] Verify Photos navigation.
-- [ ] Verify mobile viewport usability.
-- [ ] Verify bottom navigation does not overlap critical controls.
-- [ ] Verify no stale project links.
-
-### Photos and files
-
-- [ ] Upload photo.
-- [ ] View photo.
-- [ ] Delete photo safely.
-- [ ] Upload file.
-- [ ] Download file.
-- [ ] Verify unauthorized access denial.
+- [ ] Upload, view, and delete a photo safely.
+- [ ] Upload and download a file.
+- [ ] Verify unauthorized denial.
 - [ ] Verify cross-owner denial.
 
-### Runtime quality
+### 9.7 Runtime quality
 
-- [ ] Verify no critical browser-console errors.
+- [ ] Verify mobile viewport usability.
+- [ ] Verify bottom navigation does not obscure controls.
+- [ ] Verify no critical console errors.
 - [ ] Verify no repeated network failures.
 - [ ] Verify no hydration errors.
 - [ ] Verify no uncaught promise rejections.
-- [ ] Verify health endpoint remains healthy during testing.
-- [ ] Verify Render logs show no critical runtime error.
+- [ ] Verify health remains green.
+- [ ] Verify Render logs contain no critical runtime errors.
 
 ---
 
-## 11. Rollback and Recovery
+## 10. Rollback and Recovery
 
-### Git and branch recovery
+### 10.1 Git and Codespaces
 
-- [ ] Verify previous known-good commit.
-- [ ] Verify rollback procedure without rewriting shared history.
-- [ ] Verify rescue branch integrity.
-- [ ] Verify recovery from an accidental bad commit.
-
-### Render rollback
-
-- [ ] Perform a non-destructive rollback rehearsal on the RC service.
-- [ ] Verify rollback selects the expected prior deployment.
-- [ ] Verify service returns healthy after rollback.
-- [ ] Verify re-deployment of the latest good commit.
-- [ ] Document rollback timing and steps.
-
-### Firebase rules rollback
-
-- [ ] Preserve the previously deployed Firestore rules.
-- [ ] Preserve the previously deployed Storage rules.
-- [ ] Perform a controlled Firestore rules rollback rehearsal.
-- [ ] Perform a controlled Storage rules rollback rehearsal.
-- [ ] Verify app access after rollback.
-- [ ] Verify unauthorized denial after rollback.
-
-### Codespace replacement
-
-- [ ] Verify the project can be rebuilt from GitHub in a fresh Codespace.
-- [ ] Verify no critical state exists only in the current Codespace.
+- [ ] Identify previous known-good commit.
+- [ ] Rehearse non-destructive Git rollback without rewriting shared history.
+- [x] Verify rescue branches exist.
+- [ ] Verify recovery from a bad commit.
+- [ ] Create a fresh Codespace from GitHub.
 - [ ] Verify dependency installation from lockfile.
-- [ ] Verify tests and build in the replacement environment.
+- [ ] Verify tests and build in the replacement Codespace.
+- [ ] Confirm no critical state exists only in the original Codespace.
 
-### Secret recovery
+### 10.2 Render rollback
 
-- [ ] Document how Render secrets are restored.
-- [ ] Document how GitHub Actions secrets are restored.
-- [ ] Document how Firebase deploy credentials are rotated.
-- [ ] Confirm no secret values are stored in documentation.
+- [ ] Select a known successful earlier RC deployment.
+- [ ] Verify Render creates the rollback deployment from the intended build artifact.
+- [ ] Verify provider event metadata.
+- [ ] Verify `/api/health` returns 200 after rollback.
+- [ ] Run critical smoke tests after rollback.
+- [ ] Verify no new critical log errors.
+- [ ] Inspect automatic deploy state.
+- [ ] Deliberately restore automatic deploy when appropriate.
+- [ ] Redeploy the latest good build and retest.
+
+### 10.3 Firebase Rules rollback
+
+- [ ] Preserve current deployed Firestore Rules before change.
+- [ ] Preserve current deployed Storage Rules before change.
+- [ ] Record Rules release identifiers where available.
+- [ ] Deploy approved current Rules.
+- [ ] Verify authorized and denied behaviour.
+- [ ] Restore previous Firestore Rules.
+- [ ] Restore previous Storage Rules.
+- [ ] Repeat authorized and denied tests.
+- [ ] Redeploy approved current Rules.
+- [ ] Repeat critical tests.
+
+### 10.4 Secret and incident recovery
+
+- [ ] Document Render environment-variable restoration.
+- [ ] Document GitHub Actions secret restoration.
+- [ ] Document Firebase deploy-credential rotation.
+- [ ] Verify documentation contains no secret values.
+- [ ] Document failed-deploy recovery.
+- [ ] Document incident-response ownership and communication.
 
 ---
 
-## 12. Final PR #5 Completion
+## 11. Final PR #5 Gate
 
-- [ ] Complete all behavioural test hardening.
-- [ ] Complete genuine Claude review.
-- [ ] Complete release evidence updates.
+- [ ] Complete mounted Today Planner tests.
+- [ ] Complete mounted MobileBottomNav tests.
+- [ ] Complete Firestore action payload matrix.
+- [ ] Pass full local validation.
+- [ ] Push exact code-bearing checkpoint.
+- [ ] Verify CI on exact code-bearing checkpoint.
+- [ ] Prepare factual Claude packet.
+- [ ] Complete genuine Claude review with no unresolved P0/P1/P2.
 - [ ] Complete Render RC deployment.
-- [ ] Complete Firebase verification.
-- [ ] Complete smoke testing.
-- [ ] Complete rollback rehearsals.
-- [ ] Confirm all seven confidence categories exceed 95%.
-- [ ] Confirm no open P1 finding.
-- [ ] Confirm no open P2 finding.
-- [ ] Confirm CI green on exact final head.
+- [ ] Complete Firebase live verification and controlled deployment.
+- [ ] Complete authenticated RC smoke testing.
+- [ ] Complete Render rollback.
+- [ ] Complete Firebase Rules rollback.
+- [ ] Update all evidence records.
+- [ ] Confirm all seven categories exceed 95%.
+- [ ] Confirm no P0/P1/P2 remains.
 - [ ] Confirm PR body is current.
 - [ ] Confirm this tracker is current.
 - [ ] Mark PR #5 ready for review.
-- [ ] Obtain final review approval.
-- [ ] Merge PR #5 using the approved merge method.
+- [ ] Obtain final approval.
+- [ ] Merge using the approved method.
 - [ ] Verify merge commit.
 
 ---
 
-## 13. Final Production Deployment
+## 12. Final Production Deployment
 
-The final production service must use:
+Required production source:
 
 - Repository: `Leafsrule/renovations-command-center`
 - Branch: `main`
@@ -569,54 +617,48 @@ The final production service must use:
 
 Remaining work:
 
-- [ ] Create or promote the final production service.
-- [ ] Verify repository is correct.
+- [ ] Create or promote final production service.
+- [ ] Verify correct repository.
 - [ ] Verify branch is `main`.
 - [ ] Verify exact merge commit is deployed.
-- [ ] Verify build succeeds.
-- [ ] Verify service starts.
-- [ ] Verify health endpoint.
+- [ ] Verify build and start.
+- [ ] Verify health.
 - [ ] Verify Firebase environment variables.
 - [ ] Verify Firebase Authentication.
 - [ ] Verify Firestore.
 - [ ] Verify Storage.
-- [ ] Verify logs.
-- [ ] Verify restart.
+- [ ] Verify logs and restart.
 - [ ] Verify rollback.
 - [ ] Verify auto-deploy from `main`.
-- [ ] Verify operation with the Codespace stopped.
+- [ ] Verify operation with Codespace stopped.
 - [ ] Repeat critical smoke tests.
 - [ ] Record production URL.
-- [ ] Record production service ID.
-- [ ] Record exact deployed commit.
+- [ ] Record service ID, deployment ID, and exact deployed commit.
 
 ---
 
-## 14. Temporary Resource Cleanup and Cost Control
+## 13. Temporary Resource Cleanup and Cost Control
 
-- [ ] Delete the temporary RC service after production verification.
-- [ ] Verify RC service deletion.
+- [ ] Delete temporary RC after production verification.
+- [ ] Verify RC deletion.
 - [ ] Verify no orphaned paid service remains.
-- [ ] Verify no duplicate production service exists.
-- [ ] Verify no paid Team or Organization workspace exists.
-- [ ] Verify no unintended database exists.
-- [ ] Verify no unintended Redis service exists.
-- [ ] Verify no unintended private service exists.
-- [ ] Verify no unintended cron job exists.
+- [ ] Verify no duplicate production service.
+- [ ] Verify no unintended Team or Organization workspace.
+- [ ] Verify no unintended database, Redis, private service, or cron service.
 - [ ] Verify final recurring monthly cost.
-- [ ] Record taxes or account-specific charges separately if shown.
+- [ ] Record taxes or account-specific charges separately when shown.
+- [ ] Confirm unrelated Render services remain unchanged.
 
 ---
 
-## 15. Known Limitations Requiring Release Decision
+## 14. Known Limitations Requiring Explicit Release Decisions
 
 ### Waiting and curing share one status
 
-- [?] Confirm current behaviour.
-- [ ] Assess user impact.
+- [?] Confirm current user-visible behaviour.
 - [ ] Assess scheduling risk.
 - [ ] Decide whether acceptable for first release.
-- [ ] Document future split between waiting and curing if deferred.
+- [ ] Document a future state split if deferred.
 
 ### No detailed execution audit history
 
@@ -630,7 +672,7 @@ Remaining work:
 - [?] Confirm current behaviour.
 - [ ] Assess job-costing impact.
 - [ ] Decide whether acceptable for first release.
-- [ ] Define future time-tracking scope if deferred.
+- [ ] Define future scope if deferred.
 
 ### Helper availability is not a workforce calendar
 
@@ -641,112 +683,113 @@ Remaining work:
 
 ### Browser-local Today settings
 
-- [?] Confirm which settings remain browser-local.
+- [?] Identify every browser-local setting.
+- [ ] Distinguish harmless preferences from operational state.
 - [ ] Assess cross-device inconsistency risk.
-- [ ] Decide which settings must move to Firestore before release.
-- [ ] Document accepted local preferences versus operational settings.
+- [ ] Move operational settings to Firestore when required.
+- [ ] Document accepted local preferences.
 
 ---
 
-## 16. Post-Release Follow-Up Work
+## 15. Post-Release Backlog
 
-These items are not automatically release blockers unless the release decision marks them critical.
+These items are not automatically first-release blockers unless the release decision elevates them.
 
 ### Product maturity
 
-- [ ] Add detailed execution audit history.
-- [ ] Add advanced time tracking.
-- [ ] Add workforce calendar.
+- [ ] Detailed execution audit history.
+- [ ] Advanced time tracking.
+- [ ] Workforce calendar.
 - [ ] Separate waiting and curing states.
-- [ ] Move operational Today settings to cloud persistence.
-- [ ] Add notifications for blockers, due dates, materials, and dependencies.
-- [ ] Add richer project dashboards.
-- [ ] Add reporting and export features.
-- [ ] Add labour and cost tracking.
-- [ ] Add role-based access if multi-user collaboration expands.
+- [ ] Cloud persistence for operational Today settings.
+- [ ] Notifications for blockers, due dates, materials, and dependencies.
+- [ ] Richer dashboards.
+- [ ] Reporting and export.
+- [ ] Labour and cost tracking.
+- [ ] Expanded role-based access for collaboration.
 
 ### Quality and operations
 
-- [ ] Add end-to-end browser automation.
-- [ ] Add scheduled dependency scanning.
-- [ ] Add uptime monitoring.
-- [ ] Add production error tracking.
-- [ ] Add backup and restore drills.
-- [ ] Add accessibility audit.
-- [ ] Add performance audit.
-- [ ] Add mobile-device compatibility matrix.
-- [ ] Add data-retention policy.
-- [ ] Add privacy documentation.
-- [ ] Add incident-response runbook.
+- [ ] End-to-end browser automation.
+- [ ] Scheduled dependency scanning.
+- [ ] Uptime monitoring.
+- [ ] Production error tracking.
+- [ ] Backup and restore drills.
+- [ ] Accessibility audit.
+- [ ] Performance audit.
+- [ ] Mobile-device compatibility matrix.
+- [ ] Data-retention policy.
+- [ ] Privacy documentation.
+- [ ] Incident-response runbook.
 
 ---
 
-## 17. Seven-Category Confidence Ledger
+## 16. Seven-Category Confidence Ledger
 
-Scores must be evidence-based and updated whenever the system changes.
+| Category | Score | Current evidence state | Required before release |
+| --- | ---: | --- | --- |
+| A. Application Correctness | 90 | P2 implementation exists; mounted runtime proof is incomplete. | Mounted UI tests, RC smoke tests, independent review. |
+| B. Data Integrity and Persistence | 91 | Targeted writes verified on selected paths; remaining action matrix and UI failure proof incomplete. | Complete payload matrix and rejected-write UI tests. |
+| C. Security and Access Control | 78 | Rules and workflows exist; live provider state and denial tests unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
+| D. Automated Quality Assurance | 92 | CI is green with 87 tests; primary UI behaviour tests are source-based. | Mounted tests and final exact-head CI. |
+| E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment. | Correct-source RC, health, logs, smoke tests. |
+| F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup unproven. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
+| G. Documentation and Release Governance | 84 | Living records exist and evidence model is corrected; Claude and provider evidence incomplete. | Verified checkpoints, genuine Claude review, complete release record. |
 
-| Category | Current status | Current score | Required before release |
-| --- | --- | ---: | --- |
-| A. Application Correctness | P2 logic remediation complete; behavioural UI evidence incomplete | 90 | Mounted behavioural tests, smoke tests, Claude review |
-| B. Data Integrity and Persistence | Targeted payload tests exist; full runtime failure verification incomplete | 91 | Complete persistence-boundary and rejected-write coverage |
-| C. Security and Access Control | Repository rules exist; deployed provider state unverified | 78 | Firebase project, rules, secrets, least privilege, denial tests |
-| D. Automated Quality Assurance | 87 tests and CI pass; component tests need stronger behavioural proof | 92 | Mounted UI tests, independent review, final CI |
-| E. Infrastructure and Deployment | Config exists; Render source integrity and RC deployment unverified | 70 | Correct repo/branch, RC deploy, health, logs, smoke tests |
-| F. Recovery, Rollback, and Cost Control | Plans exist; rehearsals and cleanup not complete | 65 | Render/Firebase rollback, Codespace rebuild, RC deletion |
-| G. Documentation and Release Governance | Evidence docs exist; Claude and provider evidence incomplete | 84 | Current reports, Claude record, provider evidence, release decision |
-
-- **Current lowest category:** F. Recovery, Rollback, and Cost Control
-- **Current overall release confidence:** 65
+- **Lowest category:** F. Recovery, Rollback, and Cost Control — 65
+- **Overall release confidence:** 65
 - **Release decision:** `DO NOT RELEASE`
 
-> Update these scores only when direct evidence changes. Overall confidence must always equal the lowest release-critical category.
+Overall confidence equals the lowest release-critical category. Scores must change only when direct evidence changes.
 
 ---
 
-## 18. Mandatory Update Procedure
+## 17. Mandatory Update Procedure
 
 Every agent or contributor making a material change must:
 
-1. Read this file before beginning work.
-2. Mark relevant items `[-]` before implementation where practical.
-3. Update completed items to `[x]` only after verification.
-4. Add newly discovered work immediately.
-5. Record new blockers with `[!]`.
-6. Update exact commit and date.
-7. Update the confidence ledger.
-8. Update the release decision.
-9. Commit this file in the same commit or PR as the related change.
-10. Never remove incomplete work merely to make the checklist appear complete.
+1. Read this file before work begins.
+2. Mark relevant work `[-]` where practical.
+3. Add newly discovered work immediately.
+4. Mark `[x]` only after implementation and verification.
+5. Record blockers with `[!]`.
+6. Update the substantive date and evidence baseline where applicable.
+7. Update confidence scores only when evidence changes.
+8. Keep the release decision accurate.
+9. Commit this file with the related material change.
+10. Never remove unfinished work to make the project appear complete.
 
 ### Definition of complete
 
-An item may be marked `[x]` only when:
+An item may be marked `[x]` only when all applicable conditions are met:
 
 - implementation exists;
-- tests exist where applicable;
+- appropriate tests exist;
 - tests pass;
-- CI passes where applicable;
+- CI passes on the exact commit;
 - provider state is verified where applicable;
-- evidence is recorded;
-- no conflicting finding remains.
+- runtime evidence exists where applicable;
+- rollback evidence exists where applicable;
+- documentation matches reality;
+- no conflicting P0/P1/P2 finding remains.
 
 ---
 
-## 19. Final Completion Criteria
+## 18. Final Completion Criteria
 
-This tracker may be considered fully complete only when:
+This tracker is fully complete only when:
 
 - [ ] Every release-critical item is `[x]`.
 - [ ] All seven confidence categories exceed 95%.
-- [ ] Genuine Claude review passes.
+- [ ] Genuine Claude review passes on the final code-bearing commit.
 - [ ] PR #5 is merged.
-- [ ] Production deploys from `main`.
+- [ ] Production deploys from `main` at the verified merge commit.
 - [ ] Production smoke tests pass.
-- [ ] Firebase rules and rollback are verified.
+- [ ] Firebase deployment and rollback are verified.
 - [ ] Render rollback is verified.
-- [ ] Temporary RC service is deleted.
+- [ ] Temporary RC is deleted.
 - [ ] Billing is verified.
-- [ ] App operates without the Codespace.
+- [ ] The app operates without the Codespace.
 - [ ] Known limitations have explicit release decisions.
-- [ ] Final production URL and merge commit are recorded.
-- [ ] This document reflects the final production state.
+- [ ] Final production URL, service ID, deployment ID, and merge commit are recorded.
+- [ ] This document reflects final production reality.
