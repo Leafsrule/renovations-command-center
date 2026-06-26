@@ -258,13 +258,13 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 
 ### 4.4 PR #5 body
 
-- [ ] Replace stale wording that calls `e2208f78...` the current head.
-- [ ] Identify `e2208f78...` as the audited P2 remediation commit.
-- [ ] State that authoritative head comes from current PR metadata.
-- [ ] Record current observed CI evidence.
-- [ ] State `Genuine Claude review: pending`.
-- [ ] Remove wording that represents the fallback Codex review as independent.
-- [ ] Keep PR #5 draft.
+- [x] Replace stale wording that calls `e2208f78...` the current head.
+- [x] Identify `e2208f78...` as the audited P2 remediation commit.
+- [x] State that authoritative head comes from current PR metadata.
+- [x] Record current observed CI evidence.
+- [x] State `Genuine Claude review: pending`.
+- [x] Remove wording that represents the fallback Codex review as independent.
+- [x] Keep PR #5 draft.
 - [ ] Do not merge until all release gates pass.
 
 ---
