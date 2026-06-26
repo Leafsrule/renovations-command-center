@@ -1,30 +1,68 @@
 # Release Confidence Report
 
-## Scope
+## Document status
 
-This report records the live-Codespace remediation for PR #5 on `infra/remote-first-production`.
+- **Repository:** `Leafsrule/renovations-command-center`
+- **Pull request:** PR #5 — `infra: add remote-first Render production foundation`
+- **Working branch:** `infra/remote-first-production`
+- **Production branch:** `main`
+- **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
+- **Audited application commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
+- **Evidence baseline commit:** `e2208f78f8e191a9a2368c8c32d1b45e02686786`
+- **Last observed PR branch head:** `3632197f36c68a03d579be4662ff0e4338758177`
+- **Branch-head observation:** `2026-06-25T20:05:40-04:00`
+- **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
+- **Latest observed CI run:** `28122609980`
+- **Latest observed CI conclusion:** `success`
+- **Release decision:** `DO NOT RELEASE`
 
-The remediation closes P2 findings around Today Planner recommendations, task execution transitions, blocker modal validation, active-project navigation, and Firestore persistence boundaries. It does not change Render provisioning, Firebase deployed rules, GitHub secrets, or either rescue branch.
+The stored branch-head SHA is a timestamped observation. It is not self-currenting and must not be interpreted as the permanent current head after later evidence-maintenance commits.
 
-## Historical Review Disposition
+## Commit classification
 
-| Source | Finding | Disposition | Evidence |
+### Audited application commit
+
+`e2208f78f8e191a9a2368c8c32d1b45e02686786` is the latest code-bearing remediation checkpoint currently used as the application evidence baseline. It contains application, test, and release-hardening changes addressing the historical P2 findings.
+
+### Evidence-maintenance head
+
+`3632197f36c68a03d579be4662ff0e4338758177` added the living completion tracker and did not change executable application behaviour. CI run `28122609980` passed on that exact observed head.
+
+A documentation-only commit does not replace the audited application commit unless it also changes application code, tests, workflows, dependencies, lockfiles, infrastructure, configuration, build or deployment scripts, or Firebase Rules.
+
+## Verified implementation evidence
+
+The audited application checkpoint contains fixes for:
+
+- complete task-universe dependency evaluation;
+- recognition of completed dependencies outside the primary candidate subset;
+- continuing past oversized tasks so smaller tasks can fill remaining capacity;
+- exclusion of `waiting_curing` tasks from primary Today scheduling;
+- suppression of Start for over-capacity Not Today tasks;
+- targeted Firestore writes for task execution actions;
+- modal-local blocker validation;
+- active-project mobile-navigation refresh;
+- readiness synchronization for Start, Resume, and Mark Waiting.
+
+## Historical review disposition
+
+| Source | Finding | Current disposition | Current evidence |
 | --- | --- | --- | --- |
-| PR #3 | Today recommendations evaluated dependencies only inside the primary candidate subset. | Fixed by this remediation. | `getTodayPlan` passes the full task universe into the scheduler; regression coverage in `lib/today.test.ts` and `lib/scheduling.test.ts`. |
-| PR #3 | Completed dependencies outside the primary candidate subset were treated as incomplete. | Fixed by this remediation. | Full dependency-map tests cover helper-required completed dependencies outside the candidate set. |
-| PR #3 | Oversized recommendations stopped later smaller tasks from filling available capacity. | Fixed by this remediation. | Today planning now skips oversized candidates and continues; tests cover one and multiple oversized tasks. |
-| PR #3 | `waiting_curing` tasks could re-enter Start First or Do Next. | Fixed by this remediation. | Primary candidates exclude `waiting_curing`; tests verify waiting/curing exclusion. |
-| PR #3 | Over-capacity Not Today tasks still displayed Start. | Fixed by this remediation. | Today Planner hides Start when the task carries the remaining-capacity reason; source-contract coverage verifies the UI guard. |
-| PR #3 | Quick task actions risked overwriting stale task fields. | Already fixed and now regression-tested. | `executeProjectTaskAction` persists transition updates with targeted Firestore `updateDoc` payloads; persistence-boundary tests verify unrelated fields are excluded. |
-| PR #4 | Blocker validation errors escaped into page-level fatal error state. | Fixed by this remediation. | Blocker validation uses modal-local `blockerError`; tests verify separation and clearing. |
-| PR #4 | Active-project mobile navigation could retain a stale project id. | Fixed by this remediation. | Active-project changes dispatch a navigation refresh event and navigation links prefer the current active project; route helper tests cover switching and alias behavior. |
-| PR #4 | Starting ready tasks did not synchronize readiness fields. | Fixed by this remediation. | Start and resume transitions now persist coherent readiness fields; transition tests cover start, resume, and mark waiting behavior. |
+| PR #3 | Dependency evaluation used only the primary candidate subset. | Implemented and regression-tested. | Full task-universe scheduling logic and tests in Today/scheduling suites. |
+| PR #3 | Completed dependencies outside the candidate subset were not recognized. | Implemented and regression-tested. | Completed external dependency scenarios in Today/scheduling tests. |
+| PR #3 | Oversized tasks stopped later fitting work. | Implemented and regression-tested. | Scheduler continues past oversized candidates. |
+| PR #3 | Waiting/curing tasks could re-enter primary planning. | Implemented and regression-tested. | Primary candidate filtering excludes `waiting_curing`. |
+| PR #3 | Over-capacity Not Today tasks still displayed Start. | Implementation present; mounted behavioural proof still required. | Current source guard plus source-contract test. |
+| PR #3 | Quick actions could overwrite stale unrelated fields. | Implemented with partial writes; persistence-boundary evidence exists but is incomplete across every action. | `updateDoc` tests cover Start, Mark Waiting, stale-field exclusion, and permission-denied refresh prevention. |
+| PR #4 | Blocker validation escaped into the page-level fatal error state. | Implementation present; mounted behavioural proof still required. | Modal-local `blockerError` plus source-contract test. |
+| PR #4 | Mobile navigation retained a stale active-project id. | Implementation present; mounted runtime proof still required. | Active-project change event and route-helper tests. |
+| PR #4 | Start and Resume did not synchronize readiness fields. | Implemented and unit-tested. | Transition and persistence tests. |
 
-No historical P1 finding is known to remain open in this remediation scope.
+No historical P1 finding is currently known in this remediation scope. Historical review comments remain evidence sources; no claim is made here that every historical thread has been formally resolved in GitHub.
 
-## Persistence Boundary Evidence
+## Persistence-boundary evidence
 
-The tested write path is:
+The current write path is:
 
 ```text
 TodayPlanner action
@@ -34,23 +72,159 @@ TodayPlanner action
 -> refreshed task read after successful write
 ```
 
-Regression tests prove the Firestore update payload contains only intended transition fields plus `updatedAt`. They also verify stale snapshots do not overwrite independently changed `name`, `dependencyTaskIds`, `materialStatus`, `notes`, or `dueDate` fields, and that a permission-denied write rejects without a false refresh.
+Verified persistence tests currently prove:
 
-## Local Validation Evidence
+- exact Start payload fields;
+- exact Mark Waiting payload fields;
+- stale unrelated task fields are excluded;
+- permission-denied writes reject;
+- failed writes do not perform the refresh read.
 
-Latest local validation run in the live Codespace:
+Still required:
 
-- `npm ci`: passed before the final gate.
-- `npm run lint`: passed.
-- `npm run typecheck`: passed.
-- `npm test`: passed, 87 tests.
-- `npm run build`: passed.
-- `npm audit --audit-level=high`: passed; only moderate advisories were reported.
-- `npm run validate:production`: passed.
-- `npm run validate:render`: passed.
-- `npm run validate:firebase`: passed.
+- explicit exact-payload assertions for Resume;
+- explicit exact-payload assertions for Complete;
+- explicit exact-payload assertions for Block;
+- explicit exact-payload assertions for Clear Blocker;
+- mounted UI proof that rejected writes do not display false success and remain recoverable.
+
+## Automated validation evidence
+
+### Audited application checkpoint
+
+The live-Codespace validation reported for `e2208f78f8e191a9a2368c8c32d1b45e02686786` was:
+
+- `npm ci`: passed;
+- `npm run lint`: passed;
+- `npm run typecheck`: passed;
+- `npm test`: passed, 87 tests;
+- `npm run build`: passed;
+- `npm audit --audit-level=high`: passed, with moderate advisories reported;
+- `npm run validate:production`: passed;
+- `npm run validate:render`: passed;
+- `npm run validate:firebase`: passed;
 - `git diff --check`: passed.
 
-## Remaining External Validation
+### Latest observed branch head
 
-PR #5 must still pass GitHub Actions on the pushed remediation commit. Render release-candidate and Firebase deployed-rule checks remain outside this code-only remediation until external authorization is resumed.
+GitHub Actions run `28122609980` completed successfully on observed head `3632197f36c68a03d579be4662ff0e4338758177`. The `validate` job passed installation, whitespace validation, lint, type checking, production-infrastructure validation, Render Blueprint validation, Firebase configuration validation, production build, high-severity audit, and tests.
+
+## Test-quality gap
+
+`components/TodayPlanner.behavior.test.ts` currently reads source text and checks for implementation strings. These checks may remain as supplemental static contracts, but they are not sufficient proof of user-visible runtime behaviour.
+
+Required mounted behavioural coverage remains:
+
+- blocker modal open, correction, cancel, and save behaviour;
+- in-modal validation without page-level failure replacement;
+- failed blocker-write recovery and no false success;
+- capacity-based Start visibility;
+- Complete confirmation and failed-Complete handling;
+- active-project changes reflected in mobile links without reload;
+- focus refresh and safe no-project behaviour;
+- active-route alias behaviour without redirect loops.
+
+## Independent review
+
+- **Genuine Claude review:** `pending`
+- **Claude review packet:** not yet created
+- **Codex fallback review:** recorded only as an internal self-review and does not satisfy the independent-review gate
+
+No merge or release decision may rely on the fallback self-review as a substitute for genuine Claude review.
+
+## Render status
+
+Repository configuration is present and validates locally and in CI:
+
+- permanent service branch: `main`;
+- runtime: Node;
+- Node version: 22;
+- plan: Starter;
+- build: `npm ci && npm run build`;
+- start: `npm run start -- -H 0.0.0.0 -p $PORT`;
+- health path: `/api/health`.
+
+The permanent Blueprint must remain targeted at `main`. A temporary release-candidate service, if used, must separately target `infra/remote-first-production` without changing the permanent Blueprint.
+
+Live Render provider state remains unverified:
+
+- repository authorization;
+- workspace;
+- existing unrelated services;
+- RC service existence;
+- service source branch;
+- environment variables;
+- billing;
+- deployment, health, logs, restart, rollback, and cleanup.
+
+## Firebase status
+
+Repository configuration is present for Firestore Rules, Storage Rules, emulators, and a manually triggered Rules deployment workflow.
+
+Live Firebase and Google Cloud state remains unverified:
+
+- project identity;
+- Authentication providers;
+- authorized domains;
+- deployed Firestore Rules;
+- deployed Storage Rules;
+- required GitHub secret presence;
+- deploy identity and least privilege;
+- manual deployment;
+- authorization and denial smoke tests;
+- rollback.
+
+No Firebase Rules deployment has been verified for this release candidate.
+
+## Recovery, rollback, and cost status
+
+Verified:
+
+- both protected rescue branches exist;
+- GitHub remains the source of truth;
+- the application can be validated in GitHub Actions.
+
+Still required:
+
+- Render rollback rehearsal;
+- Firebase Firestore Rules rollback rehearsal;
+- Firebase Storage Rules rollback rehearsal;
+- fresh Codespace reconstruction test;
+- failed-deployment recovery proof;
+- RC deletion and orphaned-billing verification;
+- final recurring-cost verification.
+
+## Seven-category confidence ledger
+
+Scores are constrained by direct evidence and are not release authorization.
+
+| Category | Score | Evidence summary | Required before release |
+| --- | ---: | --- | --- |
+| A. Application Correctness | 90 | P2 implementation exists and unit coverage passes; mounted runtime proof is incomplete. | Mounted planner and navigation tests, RC smoke tests, independent review. |
+| B. Data Integrity and Persistence | 91 | Partial-write boundary proof exists for Start and Mark Waiting; remaining actions and UI failure paths are incomplete. | Complete payload matrix and rejected-write UI tests. |
+| C. Security and Access Control | 78 | Rules and workflow configuration exist; live provider state and denial tests are unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
+| D. Automated Quality Assurance | 92 | CI is green with 87 tests; primary behavioural UI tests are source-based. | Mounted behavioural coverage and final exact-head CI. |
+| E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment exists. | Correct-source RC, health, logs, authenticated smoke tests. |
+| F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup have not been demonstrated. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
+| G. Documentation and Release Governance | 84 | Living records exist; evidence model is being corrected; Claude and provider evidence are incomplete. | Verified current records, genuine Claude review, complete release evidence. |
+
+- **Lowest category:** F. Recovery, Rollback, and Cost Control — 65
+- **Overall release confidence:** 65
+- **Release decision:** `DO NOT RELEASE`
+
+Overall confidence equals the lowest release-critical category. Scores must be updated only when direct evidence changes.
+
+## Immediate next controlled work
+
+1. Correct and verify the living evidence checkpoint.
+2. Add mounted Today Planner behavioural tests.
+3. Add mounted MobileBottomNav runtime tests.
+4. Complete Firestore payload coverage for Resume, Complete, Block, and Clear Blocker.
+5. Push and verify CI on the new code-bearing checkpoint.
+6. Create a factual Claude review packet for that exact code-bearing commit.
+7. Obtain genuine independent Claude review.
+8. Proceed to Render RC and Firebase live verification only after code and review gates pass.
+
+## Final decision
+
+**DO NOT RELEASE.**
