@@ -211,6 +211,46 @@ describe("TodayPlanner mounted behavior", () => {
     expect(taskCard("Patch drywall").getByRole("button", { name: "Start" })).toBeTruthy();
   });
 
+  it("starts a capacity-eligible task with the intended action and refreshes tasks", async () => {
+    const task = createTask({
+      id: "eligible",
+      name: "Patch drywall",
+      estimatedDurationMinutes: 60,
+      priority: "high"
+    });
+    const refreshedTask = { ...task, status: "in_progress" as const };
+    dataMocks.listProjectTasks
+      .mockResolvedValueOnce([task])
+      .mockResolvedValueOnce([refreshedTask]);
+    dataMocks.listProjectRooms.mockResolvedValue([]);
+    render(<TodayPlanner />);
+    await screen.findByText("Planning controls");
+
+    await userEvent.click(taskCard("Patch drywall").getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(dataMocks.executeProjectTaskAction).toHaveBeenCalledTimes(1));
+    expect(dataMocks.executeProjectTaskAction).toHaveBeenCalledWith(
+      "project-1",
+      task,
+      "start",
+      expect.objectContaining({
+        tasks: [task],
+        today: expect.any(String),
+        helperAvailable: true
+      })
+    );
+    expect(dataMocks.executeProjectTaskAction).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.not.stringMatching(/^start$/),
+      expect.anything()
+    );
+    await waitFor(() => expect(dataMocks.listProjectTasks).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Unable to update task. Please try again.")).toBeNull();
+    expect(screen.queryByText("Tasks could not be refreshed. Please try again.")).toBeNull();
+    expect(taskCard("Patch drywall").getByText("In progress")).toBeTruthy();
+  });
+
   it("requires confirmation before Complete and writes nothing when cancelled", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     await renderPlanner([createTask({ name: "Install vanity", status: "in_progress" })]);

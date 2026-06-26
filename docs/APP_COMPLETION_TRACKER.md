@@ -137,7 +137,7 @@ Current source-contract tests are supplemental only. Real DOM-mounted behavioura
 - [x] Verify rejected blocker save reports failure without false success.
 - [x] Verify an over-capacity Not Today task does not render Start.
 - [x] Verify a capacity-eligible task renders Start.
-- [~] Start targeted-action invocation remains covered by transition and persistence-boundary tests; no new mounted Start click assertion was added in this checkpoint.
+- [x] Verify Start invokes the intended targeted action; Checkpoint A CI evidence is pending until this code-bearing commit is pushed.
 - [x] Verify Complete requires confirmation.
 - [x] Verify cancelling Complete writes nothing.
 - [x] Verify rejected Complete does not falsely update visible state and leaves the planner recoverable.
@@ -732,7 +732,7 @@ These items are not automatically first-release blockers unless the release deci
 | A. Application Correctness | 92 | Mounted Today Planner and MobileBottomNav runtime proof exists; RC smoke tests and independent review remain incomplete. | RC smoke tests, independent review. |
 | B. Data Integrity and Persistence | 93 | Targeted writes are verified across Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists. | Provider smoke tests and independent review. |
 | C. Security and Access Control | 78 | Rules and workflows exist; live provider state and denial tests unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
-| D. Automated Quality Assurance | 94 | Local tests are green with 112 tests including mounted UI coverage; final exact-head CI remains pending until push. | Final exact-head CI. |
+| D. Automated Quality Assurance | 94 | Local tests include mounted UI coverage; Checkpoint A exact-head CI remains pending until push. | Final exact-head CI. |
 | E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment. | Correct-source RC, health, logs, smoke tests. |
 | F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup unproven. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
 | G. Documentation and Release Governance | 84 | Living records exist and evidence model is corrected; Claude and provider evidence incomplete. | Verified checkpoints, genuine Claude review, complete release record. |
