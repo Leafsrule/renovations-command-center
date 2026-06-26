@@ -7,14 +7,17 @@
 - **Working branch:** `infra/remote-first-production`
 - **Production branch:** `main`
 - **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
-- **Audited application commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
-- **Evidence baseline commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Audited application commit:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Evidence baseline commit:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Previous application commit:** `a0d4f33b04150affe8eba677939ec54a85784645`
 - **Previous evidence-only head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
-- **Last observed PR branch head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
-- **Branch-head observation:** `2026-06-26T00:27:31Z`
+- **Last observed PR branch head:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Branch-head observation:** `2026-06-26T02:41:00Z`
 - **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
-- **Latest observed CI run:** `28208503195`
+- **Latest observed CI run:** `28213671401`
 - **Latest observed CI conclusion:** `success`
+- **Latest observed CI head:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Latest observed PR merge candidate:** `ad8f10d98062e5c51f9e492fbb66876d4cdd2aae`
 - **Release decision:** `DO NOT RELEASE`
 
 The stored branch-head SHA is a timestamped observation. It is not self-currenting and must not be interpreted as the permanent current head after later evidence-maintenance commits.
@@ -23,11 +26,11 @@ The stored branch-head SHA is a timestamped observation. It is not self-currenti
 
 ### Audited application commit
 
-The current mounted-test checkpoint is the latest code-bearing remediation checkpoint used as the application evidence baseline. Its exact SHA is verified after push because a commit cannot contain its own SHA without a follow-up documentation-only commit.
+`ad29eda4f259c65fca4a6859f396d3c8ff150b9b` is the latest code-bearing remediation checkpoint used as the application evidence baseline.
 
 ### Evidence-maintenance head
 
-`c373385f83d51d72096ddcba5b79d2cd21ac4106` is the previous evidence-only head and did not change executable application behaviour. CI run `28208503195` passed on that exact observed head.
+`c373385f83d51d72096ddcba5b79d2cd21ac4106` is the previous evidence-only head and did not change executable application behaviour. `a0d4f33b04150affe8eba677939ec54a85784645` is the previous application commit.
 
 A documentation-only commit does not replace the audited application commit unless it also changes application code, tests, workflows, dependencies, lockfiles, infrastructure, configuration, build or deployment scripts, or Firebase Rules.
 
@@ -40,6 +43,7 @@ The audited application checkpoint contains fixes for:
 - continuing past oversized tasks so smaller tasks can fill remaining capacity;
 - exclusion of `waiting_curing` tasks from primary Today scheduling;
 - suppression of Start for over-capacity Not Today tasks;
+- mounted proof that clicking an eligible Start button invokes the intended `start` action and refreshes tasks;
 - targeted Firestore writes for task execution actions;
 - modal-local blocker validation;
 - active-project mobile-navigation refresh;
@@ -91,12 +95,12 @@ Mounted UI tests also prove rejected blocker and Complete writes do not display 
 
 ### Audited application checkpoint
 
-The live-Codespace validation reported for the current mounted-test checkpoint was:
+The live-Codespace validation reported for `ad29eda4f259c65fca4a6859f396d3c8ff150b9b` was:
 
 - `npm ci`: passed;
 - `npm run lint`: passed;
 - `npm run typecheck`: passed;
-- `npm test`: passed, 112 tests;
+- `npm test`: passed, 113 tests;
 - `npm run build`: passed;
 - `npm audit --audit-level=high`: passed, with moderate advisories reported;
 - `npm run validate:production`: passed;
@@ -106,7 +110,7 @@ The live-Codespace validation reported for the current mounted-test checkpoint w
 
 ### Latest observed branch head
 
-GitHub Actions run `28208503195` completed successfully on observed evidence-only head `c373385f83d51d72096ddcba5b79d2cd21ac4106`. Exact-head CI for the current mounted-test checkpoint is recorded after push.
+GitHub Actions run `28213671401` completed successfully for PR head `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`. The workflow event was `pull_request`; Actions validated the PR merge candidate associated with that head. The merge-candidate ref resolved to `ad8f10d98062e5c51f9e492fbb66876d4cdd2aae`.
 
 ## Test-quality gap
 
@@ -117,7 +121,7 @@ Mounted behavioural coverage now includes blocker modal open, correction, cancel
 ## Independent review
 
 - **Genuine Claude review:** `pending`
-- **Claude review packet:** not yet created
+- **Claude review packet:** created for `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
 - **Codex fallback review:** recorded only as an internal self-review and does not satisfy the independent-review gate
 
 No merge or release decision may rely on the fallback self-review as a substitute for genuine Claude review.
@@ -193,7 +197,7 @@ Scores are constrained by direct evidence and are not release authorization.
 | A. Application Correctness | 92 | Mounted planner and navigation runtime proof exists; RC smoke tests and independent review remain incomplete. | RC smoke tests, independent review. |
 | B. Data Integrity and Persistence | 93 | Payload boundaries are covered for Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists. | Provider smoke tests and independent review. |
 | C. Security and Access Control | 78 | Rules and workflow configuration exist; live provider state and denial tests are unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
-| D. Automated Quality Assurance | 94 | Local tests are green with 112 tests including mounted UI coverage; exact-head CI remains pending until push. | Final exact-head CI. |
+| D. Automated Quality Assurance | 94 | GitHub Actions run `28213671401` passed with 113 tests on the PR merge candidate for head `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`. | Provider and release-candidate validation. |
 | E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment exists. | Correct-source RC, health, logs, authenticated smoke tests. |
 | F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup have not been demonstrated. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
 | G. Documentation and Release Governance | 84 | Living records exist; evidence model is being corrected; Claude and provider evidence are incomplete. | Verified current records, genuine Claude review, complete release evidence. |
@@ -206,10 +210,9 @@ Overall confidence equals the lowest release-critical category. Scores must be u
 
 ## Immediate next controlled work
 
-1. Push and verify CI on the new code-bearing checkpoint.
-2. Create a factual Claude review packet for that exact code-bearing commit.
-3. Obtain genuine independent Claude review.
-4. Proceed to Render RC and Firebase live verification only after code and review gates pass.
+1. Obtain genuine independent Claude review for `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`.
+2. Route any confirmed Claude P0/P1/P2 findings back through a bounded code checkpoint.
+3. Proceed to Render RC and Firebase live verification only after code and review gates pass.
 
 ## Final decision
 

@@ -1,16 +1,17 @@
 {
   "schemaVersion": "1.2",
-  "timestamp": "2026-06-26T00:27:31Z",
+  "timestamp": "2026-06-26T02:41:00Z",
   "repository": "Leafsrule/renovations-command-center",
   "pullRequest": 5,
   "branch": "infra/remote-first-production",
   "productionBranch": "main",
   "baseSha": "f053f7f4b1ebd32e61465e60d8a5eddc98323ec2",
-  "auditedApplicationCommit": "current code-bearing mounted-test checkpoint; exact SHA verified after push",
-  "evidenceBaselineCommit": "current code-bearing mounted-test checkpoint; exact SHA verified after push",
+  "auditedApplicationCommit": "ad29eda4f259c65fca4a6859f396d3c8ff150b9b",
+  "evidenceBaselineCommit": "ad29eda4f259c65fca4a6859f396d3c8ff150b9b",
+  "previousApplicationCommit": "a0d4f33b04150affe8eba677939ec54a85784645",
   "previousEvidenceOnlyHead": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
-  "lastObservedBranchHead": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
-  "branchHeadObservedAt": "2026-06-26T00:27:31Z",
+  "lastObservedBranchHead": "ad29eda4f259c65fca4a6859f396d3c8ff150b9b",
+  "branchHeadObservedAt": "2026-06-26T02:41:00Z",
   "authoritativeCurrentHeadSource": "GitHub PR metadata or git rev-parse HEAD",
   "commitModel": {
     "auditedApplicationCommitDefinition": "Latest code-bearing application checkpoint that completed the applicable validation.",
@@ -19,8 +20,9 @@
     "evidenceMaintenanceCommitDefinition": "Documentation-only commit that does not replace the audited application commit unless executable, test, workflow, dependency, lockfile, infrastructure, configuration, build, deployment, or security-rule files also change."
   },
   "latestObservedCi": {
-    "runId": 28208503195,
-    "headSha": "c373385f83d51d72096ddcba5b79d2cd21ac4106",
+    "runId": 28213671401,
+    "headSha": "ad29eda4f259c65fca4a6859f396d3c8ff150b9b",
+    "mergeCandidateSha": "ad8f10d98062e5c51f9e492fbb66876d4cdd2aae",
     "workflow": "CI",
     "job": "validate",
     "status": "completed",
@@ -43,7 +45,7 @@
       "npmCi": "passed",
       "lint": "passed",
       "typecheck": "passed",
-      "tests": "passed: 112 tests",
+      "tests": "passed: 113 tests",
       "build": "passed",
       "npmAuditHigh": "passed; moderate advisories reported",
       "validateProduction": "passed",
@@ -114,8 +116,8 @@
   ],
   "genuineClaudeReview": {
     "status": "pending",
-    "packetStatus": "not-created",
-    "reviewedCommit": null,
+    "packetStatus": "created",
+    "reviewedCommit": "ad29eda4f259c65fca4a6859f396d3c8ff150b9b",
     "invocationMethod": null,
     "verdict": null,
     "openP1": null,
@@ -184,7 +186,7 @@
     },
     "automatedQualityAssurance": {
       "score": 94,
-      "status": "Local tests are green with 112 tests including mounted UI coverage; exact-head CI remains pending until push"
+      "status": "GitHub Actions run 28213671401 passed with 113 tests on the PR merge candidate for head ad29eda4f259c65fca4a6859f396d3c8ff150b9b"
     },
     "infrastructureAndDeployment": {
       "score": 70,
@@ -205,7 +207,6 @@
   },
   "overallConfidence": 65,
   "openDeficiencies": [
-    "A genuine Claude review packet has not been created.",
     "A genuine Claude review has not been completed.",
     "Live Render provider state and RC deployment are unverified.",
     "Live Firebase project, deployed Rules, secrets, authorization tests, and rollback are unverified.",
@@ -214,8 +215,8 @@
     "Temporary-resource cleanup and final billing verification have not been completed."
   ],
   "nextControlledWork": [
-    "Verify CI on the resulting mounted-test code-bearing checkpoint.",
-    "Create a factual Claude review packet for the next green code-bearing commit."
+    "Obtain genuine independent Claude review for ad29eda4f259c65fca4a6859f396d3c8ff150b9b.",
+    "Route any confirmed Claude P0/P1/P2 findings through a bounded code checkpoint."
   ],
   "releaseDecision": "DO NOT RELEASE"
 }

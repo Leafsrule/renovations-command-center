@@ -13,15 +13,16 @@
 - **Working branch:** `infra/remote-first-production`
 - **Production branch:** `main`
 - **Base SHA:** `f053f7f4b1ebd32e61465e60d8a5eddc98323ec2`
-- **Last audited application commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
-- **Evidence baseline commit:** current code-bearing mounted-test checkpoint; exact SHA is verified after push.
+- **Last audited application commit:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Evidence baseline commit:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Previous application commit:** `a0d4f33b04150affe8eba677939ec54a85784645`
 - **Previous evidence-only head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
-- **Last observed PR branch head:** `c373385f83d51d72096ddcba5b79d2cd21ac4106`
-- **Branch-head observation:** `2026-06-26T00:27:31Z`
+- **Last observed PR branch head:** `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`
+- **Branch-head observation:** `2026-06-26T02:41:00Z`
 - **Authoritative current head:** Resolve dynamically from GitHub PR metadata or `git rev-parse HEAD`.
-- **Latest observed CI run:** `28208503195`
+- **Latest observed CI run:** `28213671401`
 - **Latest observed CI conclusion:** `success`
-- **Last observed automated test count:** 112
+- **Last observed automated test count:** 113
 - **Last substantive update:** 2026-06-26
 - **Document owner:** Release-Hardening Supervisor
 - **Release decision:** `DO NOT RELEASE`
@@ -93,11 +94,11 @@ Do not approve paid Render provisioning, deploy Firebase Rules, mark PR #5 ready
 - [x] Local remediation validation reported `npm ci` passed.
 - [x] Local remediation validation reported lint passed.
 - [x] Local remediation validation reported typecheck passed.
-- [x] Local mounted-test checkpoint validation reported 112 tests passed.
+- [x] Local mounted-test checkpoint validation reported 113 tests passed.
 - [x] Local remediation validation reported production build passed.
 - [x] Local remediation validation reported high-severity audit passed, with moderate advisories noted.
 - [x] Local remediation validation reported production, Render, and Firebase validators passed.
-- [x] GitHub Actions run `28208503195` passed on observed head `c373385f83d51d72096ddcba5b79d2cd21ac4106`.
+- [x] GitHub Actions run `28213671401` passed on PR head `ad29eda4f259c65fca4a6859f396d3c8ff150b9b` and validated PR merge candidate `ad8f10d98062e5c51f9e492fbb66876d4cdd2aae`.
 - [x] CI passed installation, whitespace checks, lint, typecheck, production validation, Render validation, Firebase validation, build, audit, and tests.
 
 ### 2.5 Current release state
@@ -137,7 +138,7 @@ Current source-contract tests are supplemental only. Real DOM-mounted behavioura
 - [x] Verify rejected blocker save reports failure without false success.
 - [x] Verify an over-capacity Not Today task does not render Start.
 - [x] Verify a capacity-eligible task renders Start.
-- [x] Verify Start invokes the intended targeted action; Checkpoint A CI evidence is pending until this code-bearing commit is pushed.
+- [x] Verify Start invokes the intended targeted action.
 - [x] Verify Complete requires confirmation.
 - [x] Verify cancelling Complete writes nothing.
 - [x] Verify rejected Complete does not falsely update visible state and leaves the planner recoverable.
@@ -252,7 +253,7 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 - [x] Add open deficiencies.
 - [x] Add Claude, Render, Firebase, RC, smoke-test, rollback, and cleanup status.
 - [x] Add explicit `DO NOT RELEASE` decision.
-- [-] Add next code-bearing checkpoint and CI evidence; local mounted-test evidence is recorded, CI evidence is added after push.
+- [x] Add next code-bearing checkpoint and CI evidence.
 - [ ] Add genuine Claude invocation and verdict.
 - [ ] Add provider deployment and rollback evidence.
 - [ ] Add final production decision.
@@ -274,20 +275,20 @@ Existing direct `updateDoc` tests cover Start, Mark Waiting, stale-field exclusi
 
 ### 5.1 Review packet
 
-- [ ] Create `docs/CLAUDE_REVIEW_PACKET.md` only after the mounted-test code checkpoint is green.
-- [ ] Reference the exact audited code-bearing commit.
-- [ ] Include base SHA.
-- [ ] Include changed files.
-- [ ] Include material implementation changes.
-- [ ] Include mounted behavioural test scenarios.
-- [ ] Include Firestore boundary matrix.
-- [ ] Include test totals and validation commands.
-- [ ] Include exact CI run and conclusion.
-- [ ] Include neutral historical PR #3 and PR #4 verification targets.
-- [ ] Include Render, Firebase, RC, smoke-test, and rollback status.
-- [ ] Include remaining evidence gaps.
-- [ ] Exclude desired verdicts, previous model verdicts, confidence recommendations, and approval language.
-- [ ] Verify no secrets or private data are included.
+- [x] Create `docs/CLAUDE_REVIEW_PACKET.md` after the mounted-test code checkpoint is green.
+- [x] Reference the exact audited code-bearing commit.
+- [x] Include base SHA.
+- [x] Include changed files.
+- [x] Include material implementation changes.
+- [x] Include mounted behavioural test scenarios.
+- [x] Include Firestore boundary matrix.
+- [x] Include test totals and validation commands.
+- [x] Include exact CI run and conclusion.
+- [x] Include neutral historical PR #3 and PR #4 verification targets.
+- [x] Include Render, Firebase, RC, smoke-test, and rollback status.
+- [x] Include remaining evidence gaps.
+- [x] Exclude desired verdicts, previous model verdicts, confidence recommendations, and approval language.
+- [x] Verify no secrets or private data are included.
 
 ### 5.2 Genuine independent invocation
 
@@ -580,13 +581,13 @@ Remaining work:
 
 ## 11. Final PR #5 Gate
 
-- [ ] Complete mounted Today Planner tests.
-- [ ] Complete mounted MobileBottomNav tests.
+- [x] Complete mounted Today Planner tests.
+- [x] Complete mounted MobileBottomNav tests.
 - [ ] Complete Firestore action payload matrix.
 - [ ] Pass full local validation.
 - [ ] Push exact code-bearing checkpoint.
 - [ ] Verify CI on exact code-bearing checkpoint.
-- [ ] Prepare factual Claude packet.
+- [x] Prepare factual Claude packet.
 - [ ] Complete genuine Claude review with no unresolved P0/P1/P2.
 - [ ] Complete Render RC deployment.
 - [ ] Complete Firebase live verification and controlled deployment.
@@ -732,7 +733,7 @@ These items are not automatically first-release blockers unless the release deci
 | A. Application Correctness | 92 | Mounted Today Planner and MobileBottomNav runtime proof exists; RC smoke tests and independent review remain incomplete. | RC smoke tests, independent review. |
 | B. Data Integrity and Persistence | 93 | Targeted writes are verified across Start, Resume, Mark Waiting, Complete, Block, and Clear Blocker; rejected-write no-refresh coverage exists. | Provider smoke tests and independent review. |
 | C. Security and Access Control | 78 | Rules and workflows exist; live provider state and denial tests unverified. | Firebase identity, least privilege, deployed-rule comparison, authorization tests. |
-| D. Automated Quality Assurance | 94 | Local tests include mounted UI coverage; Checkpoint A exact-head CI remains pending until push. | Final exact-head CI. |
+| D. Automated Quality Assurance | 94 | GitHub Actions run `28213671401` passed with 113 tests on the PR merge candidate for head `ad29eda4f259c65fca4a6859f396d3c8ff150b9b`. | Provider and release-candidate validation. |
 | E. Infrastructure and Deployment | 70 | Blueprint and validators pass; no verified RC deployment. | Correct-source RC, health, logs, smoke tests. |
 | F. Recovery, Rollback, and Cost Control | 65 | Rescue branches exist; provider rollback and cleanup unproven. | Render/Firebase rollback, Codespace rebuild, RC deletion, billing verification. |
 | G. Documentation and Release Governance | 84 | Living records exist and evidence model is corrected; Claude and provider evidence incomplete. | Verified checkpoints, genuine Claude review, complete release record. |
