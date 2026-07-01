@@ -1,14 +1,10 @@
 import { AppShell } from "@/components/AppShell";
-import { PagePlaceholder } from "@/components/PagePlaceholder";
+import { MaterialsWorkspace } from "@/components/MaterialsWorkspace";
 
 export default function MaterialsPage() {
   return (
-    <AppShell title="Materials" subtitle="Costs are stored but shown only on detail screens.">
-      <PagePlaceholder
-        title="Material blockers"
-        description="Main cards will show material status and task impact, while cost details stay inside material detail."
-        items={["Needed", "Ordered", "Delivered", "On site", "Missing"]}
-      />
+    <AppShell title="Materials" subtitle="Task-linked material readiness.">
+      <MaterialsWorkspace />
     </AppShell>
   );
 }
