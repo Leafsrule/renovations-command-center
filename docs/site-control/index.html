@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Favorite 1.0 — Site Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151a;
+    --surface:#1a1e25;
+    --surface-2:#20252d;
+    --line:#2a2f38;
+    --text:#eef0f3;
+    --muted:#8b93a1;
+    --muted-2:#5f6672;
+    --flag:#ff6a2b;
+    --flag-dim:#7a3a1e;
+    --chalk:#4fd1c5;
+    --chalk-dim:#1f4744;
+    --amber:#f5b942;
+    --red:#ef5b5b;
+    --grid: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100%;overscroll-behavior:none;}
+  #root{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;background:var(--bg);}
+  ::-webkit-scrollbar{display:none;}
+  * { scrollbar-width: none; }
+
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  /* Header */
+  header.topbar{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, var(--bg) 70%, transparent);
+    padding:18px 18px 10px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .crosshair{width:26px;height:26px;position:relative;flex-shrink:0;}
+  .crosshair::before,.crosshair::after{content:'';position:absolute;background:var(--flag);}
+  .crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-1px);}
+  .crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-1px);}
+  .crosshair .dot{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;border:2px solid var(--bg);background:var(--flag);transform:translate(-50%,-50%);}
+  .brand-text .t1{font-size:11px;letter-spacing:.14em;color:var(--muted-2);text-transform:uppercase;}
+  .brand-text .t2{font-size:17px;font-weight:700;font-family:'Space Grotesk',sans-serif;line-height:1.1;}
+  .rev-badge{font-size:10px;color:var(--muted);border:1px solid var(--line);padding:3px 7px;border-radius:20px;font-family:'IBM Plex Mono',monospace;}
+
+  main{flex:1;padding:0 16px 96px;overflow-y:auto;}
+  .screen{display:none;animation:fade .25s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* Bottom nav */
+  nav.tabbar{
+    position:fixed;bottom:0;left:0;right:0;z-index:30;
+    max-width:560px;margin:0 auto;
+    background:rgba(20,23,28,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  nav.tabbar button{
+    flex:1;background:none;border:none;color:var(--muted-2);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:8px 2px;font-family:'Inter';font-size:10px;font-weight:600;letter-spacing:.02em;
+  }
+  nav.tabbar button svg{width:20px;height:20px;}
+  nav.tabbar button.active{color:var(--flag);}
+  nav.tabbar button .dot-badge{position:absolute;transform:translate(10px,-8px);width:7px;height:7px;border-radius:50%;background:var(--red);}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;}
+  .card:active{background:var(--surface-2);}
+  .section-title{font-family:'Space Grotesk';font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .section-title .count{color:var(--muted-2);font-family:'IBM Plex Mono';font-size:11px;}
+
+  /* Stat strip */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;}
+  .stat .n{font-family:'Space Grotesk';font-size:20px;font-weight:700;}
+  .stat .l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .stat.flag .n{color:var(--flag);}
+  .stat.chalk .n{color:var(--chalk);}
+  .stat.red .n{color:var(--red);}
+
+  /* Hero survey block */
+  .hero{
+    border-radius:18px;padding:20px;position:relative;overflow:hidden;
+    background:var(--surface); border:1px solid var(--line);
+    background-image:var(--grid);
+  }
+  .hero .eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--flag);font-weight:600;}
+  .hero h1{font-family:'Space Grotesk';font-size:22px;margin:6px 0 4px;line-height:1.2;}
+  .hero p{color:var(--muted);font-size:13px;margin:0 0 14px;line-height:1.5;}
+  .progress-track{height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-top:4px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--flag),var(--amber));border-radius:4px;}
+  .progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted-2);margin-top:6px;font-family:'IBM Plex Mono';}
+
+  /* Chips / filters */
+  .chip-row{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;}
+  .chip{flex-shrink:0;background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+  .chip.active{background:var(--flag);border-color:var(--flag);color:#1a0e06;}
+
+  /* badges */
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .b-complete{background:var(--chalk-dim);color:var(--chalk);}
+  .b-progress{background:#3a3116;color:var(--amber);}
+  .b-notstarted{background:var(--surface-2);color:var(--muted);}
+  .b-recheck{background:#4a2020;color:var(--red);}
+  .b-critical{background:var(--flag-dim);color:var(--flag);}
+  .b-verified{background:var(--chalk-dim);color:var(--chalk);}
+
+  .item-title{font-size:14px;font-weight:600;line-height:1.35;}
+  .item-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;}
+  .item-meta{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+  .id-tag{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted-2);}
+
+  /* Day group for schedule */
+  .day-head{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 8px;}
+  .day-head .d1{font-family:'Space Grotesk';font-size:15px;font-weight:700;}
+  .day-head .d2{font-size:11px;color:var(--muted-2);font-family:'IBM Plex Mono';}
+  .block-row{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);}
+  .block-row:first-child{border-top:none;}
+  .block-time{width:56px;flex-shrink:0;font-family:'IBM Plex Mono';font-size:11px;color:var(--muted-2);padding-top:1px;}
+  .block-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .dot-field{background:var(--flag);} .dot-desk{background:var(--chalk);}
+
+  /* empty state */
+  .empty{text-align:center;padding:50px 20px;color:var(--muted-2);}
+  .empty .ico{font-size:30px;margin-bottom:8px;}
+
+  /* Search */
+  .search-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
+  .search-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:'Inter';}
+  .search-bar input::placeholder{color:var(--muted-2);}
+
+  /* Detail sheet */
+  .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;}
+  .sheet-overlay.open{display:block;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:51;
+    background:var(--surface);border-radius:20px 20px 0 0;border:1px solid var(--line);border-bottom:none;
+    max-height:82vh;overflow-y:auto;padding:10px 18px calc(28px + env(safe-area-inset-bottom));
+    transform:translateY(100%);transition:transform .28s ease;
+  }
+  .sheet.open{transform:translateY(0);}
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:3px;margin:6px auto 16px;}
+  .sheet h2{font-family:'Space Grotesk';font-size:19px;margin:2px 0 8px;line-height:1.3;}
+  .sheet .row{padding:11px 0;border-top:1px solid var(--line);}
+  .sheet .row:first-of-type{border-top:none;}
+  .sheet .row .k{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-2);margin-bottom:3px;}
+  .sheet .row .v{font-size:14px;line-height:1.5;}
+  .close-x{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:none;color:var(--muted);font-size:16px;}
+
+  .measure-fig{font-family:'IBM Plex Mono';font-size:18px;color:var(--flag);font-weight:600;}
+  .tol{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted-2);}
+
+  .fab{
+    position:fixed;bottom:148px;right:calc(50% - 280px + 16px);z-index:25;
+    background:var(--flag);color:#1a0e06;border:none;width:52px;height:52px;border-radius:50%;
+    font-size:22px;font-weight:700;box-shadow:0 8px 20px rgba(255,106,43,.35);
+    display:flex;align-items:center;justify-content:center;
+  }
+  @media(max-width:600px){ .fab{right:16px;} }
+
+  h3.group-h{font-family:'Space Grotesk';font-size:14px;color:var(--muted);margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+</style>
+</head>
+<body>
+<div id="root">
+  <header class="topbar">
+    <div class="brand">
+      <div class="crosshair"><div class="dot"></div></div>
+      <div class="brand-text">
+        <div class="t1">Site Control</div>
+        <div class="t2">Favorite 1.0</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="rev-badge">R04</div>
+      <button id="gearBtn" style="background:var(--surface);border:1px solid var(--line);width:34px;height:34px;border-radius:10px;color:var(--muted);font-size:15px;">⚙</button>
+    </div>
+  </header>
+  <div id="syncBar" style="display:none;position:fixed;left:16px;right:16px;bottom:78px;max-width:528px;margin:0 auto;z-index:26;background:var(--flag);color:#1a0e06;border-radius:12px;padding:11px 14px;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;">
+    <span>Unsaved changes</span>
+    <button onclick="openSettings()" style="background:#1a0e06;color:var(--flag);border:none;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12px;">Sync to GitHub →</button>
+  </div>
+
+  <main id="main">
+    <section id="screen-home" class="screen"></section>
+    <section id="screen-tasks" class="screen"></section>
+    <section id="screen-schedule" class="screen"></section>
+    <section id="screen-measure" class="screen"></section>
+    <section id="screen-photos" class="screen"></section>
+    <section id="screen-materials" class="screen"></section>
+    <section id="screen-log" class="screen"></section>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+
+  <div class="sheet-overlay" id="overlay"></div>
+  <div class="sheet" id="sheet"><button class="close-x" id="sheetClose">✕</button><div id="sheetBody"></div></div>
+  <button class="fab" id="fab" onclick="fabClick()">+</button>
+</div>
+
+<script>
+let DATA = null;
+let DIRTY = false;
+const TODAY = new Date().toISOString().slice(0,10);
+
+// ---- GitHub sync config (in-memory only, never persisted to disk/localStorage) ----
+let GH = { owner:'Leafsrule', repo:'renovations-command-center', branch:'main', path:'docs/site-control/data.json', token:'', sha:null };
+
+async function loadData(){
+  try{
+    const res = await fetch('./data.json', {cache:'no-store'});
+    DATA = await res.json();
+  }catch(e){
+    document.getElementById('main').innerHTML = `<div class="empty" style="padding-top:80px;"><div class="ico">⚠</div>Couldn't load data.json.<br>Make sure it sits next to index.html.</div>`;
+    return;
+  }
+  renderAll();
+}
+
+function markDirty(){
+  DIRTY = true;
+  document.getElementById('syncBar').style.display = 'flex';
+}
+
+async function githubGetSha(){
+  const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}?ref=${GH.branch}`;
+  const res = await fetch(url, { headers:{ 'Authorization':`Bearer ${GH.token}`, 'Accept':'application/vnd.github+json' } });
+  if(!res.ok) throw new Error(`Couldn't read current file (${res.status}). Check owner/repo/path/token.`);
+  const json = await res.json();
+  return json.sha;
+}
+
+async function githubCommit(message){
+  const sha = await githubGetSha();
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(DATA, null, 2))));
+  const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`;
+  const res = await fetch(url, {
+    method:'PUT',
+    headers:{ 'Authorization':`Bearer ${GH.token}`, 'Accept':'application/vnd.github+json' },
+    body: JSON.stringify({ message: message || 'Update site control data', content, sha, branch: GH.branch })
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error(`Commit failed (${res.status}): ${t.slice(0,200)}`); }
+  return res.json();
+}
+
+const TABS = [
+  {id:'home', label:'Home', icon:'M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z'},
+  {id:'tasks', label:'Tasks', icon:'M4 6h16M4 12h16M4 18h10'},
+  {id:'schedule', label:'Schedule', icon:'M4 5h16v15H4zM4 9h16M8 3v4M16 3v4'},
+  {id:'measure', label:'Measure', icon:'M3 17l6-6M3 17h4v-4M9 5l6 14M15 5h4v4'},
+  {id:'photos', label:'Photos', icon:'M4 8h3l2-2h6l2 2h3v11H4z'},
+  {id:'materials', label:'Materials', icon:'M4 7l8-4 8 4-8 4-8-4zM4 7v10l8 4 8-4V7M12 11v10'},
+  {id:'log', label:'Log', icon:'M6 3h9l5 5v13H6zM14 3v6h5'}
+];
+
+let state = { tab:'home', taskFilter:'All', taskSearch:'' };
+
+function svgIcon(d){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d.split('M').filter(Boolean).map(seg=>`<path d="M${seg}"/>`).join('')}</svg>`;
+}
+
+function statusBadge(status){
+  if(!status) return `<span class="badge b-notstarted">—</span>`;
+  const s = status.toLowerCase();
+  if(s.includes('complete')||s.includes('verified')||s.includes('approved')) return `<span class="badge b-complete">${status}</span>`;
+  if(s.includes('progress')) return `<span class="badge b-progress">${status}</span>`;
+  if(s.includes('recheck')) return `<span class="badge b-recheck">${status}</span>`;
+  return `<span class="badge b-notstarted">${status}</span>`;
+}
+function priorityBadge(p){
+  if(!p) return '';
+  if(p.toLowerCase()==='critical'||p==='P1') return `<span class="badge b-critical">${p}</span>`;
+  return `<span class="badge b-notstarted">${p}</span>`;
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const tasks = DATA.tasks;
+  const complete = tasks.filter(t=>t.Status==='Complete').length;
+  const inProgress = tasks.filter(t=>t.Status==='In Progress').length;
+  const recheck = DATA.measurements.filter(m=>m.Status==='Recheck Required').length;
+  const todayCal = DATA.dailyCalendar.find(d=>d.Date===TODAY);
+  const dayIdx = todayCal ? todayCal['Day #'] : '—';
+  const totalDays = DATA.dailyCalendar.length;
+  const pctDays = todayCal ? Math.round((dayIdx/totalDays)*100) : 0;
+  const todayBlocks = DATA.dailySchedule.filter(b=>b['Work Date']===TODAY);
+  const overdue = tasks.filter(t=>t.Status!=='Complete' && t['Planned Date'] && t['Planned Date'] < TODAY);
+
+  let html = `
+    <div class="hero">
+      <div class="eyebrow">Day ${dayIdx} of ${totalDays} · ${todayCal ? todayCal.Phase : ''}</div>
+      <h1>${todayCal ? todayCal['Main Objective'] : 'Planning window'}</h1>
+      <p>${todayCal ? todayCal['Milestone / Done When'] : ''}</p>
+      <div class="progress-track"><div class="progress-fill" style="width:${pctDays}%"></div></div>
+      <div class="progress-label"><span>${TODAY}</span><span>${pctDays}% through planning horizon</span></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat chalk"><div class="n">${complete}</div><div class="l">Done</div></div>
+      <div class="stat flag"><div class="n">${inProgress}</div><div class="l">Active</div></div>
+      <div class="stat red"><div class="n">${overdue.length}</div><div class="l">Overdue</div></div>
+      <div class="stat"><div class="n">${recheck}</div><div class="l">Recheck</div></div>
+    </div>
+
+    <div class="section-title">Today's blocks <span class="count">${todayBlocks.length}</span></div>
+    ${todayBlocks.length ? todayBlocks.map(b=>`
+      <div class="card" onclick="openScheduleBlock('${b['Schedule ID']}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="item-title">${b['Daily Task']}</div>
+        </div>
+        <div class="item-meta">${statusBadge(b.Status)}${priorityBadge(b.Priority)}<span class="id-tag">${b['Time Block']} · ${b['Planned Hours']}h · ${b['Work Mode']}</span></div>
+      </div>`).join('') : `<div class="empty"><div class="ico">◎</div>No scheduled blocks land on this date.</div>`}
+
+    <div class="section-title">Needs attention <span class="count">${overdue.length}</span></div>
+    ${overdue.length ? overdue.slice(0,5).map(t=>`
+      <div class="card" onclick="openTask('${t['Task ID']}')">
+        <div class="item-title">${t.Task}</div>
+        <div class="item-meta"><span class="id-tag">${t['Task ID']}</span>${statusBadge(t.Status)}${priorityBadge(t.Priority)}</div>
+      </div>`).join('') : `<div class="empty"><div class="ico">✓</div>Nothing overdue right now.</div>`}
+  `;
+  document.getElementById('screen-home').innerHTML = html;
+}
+
+/* ---------- TASKS ---------- */
+function renderTasks(){
+  const phases = ['All', ...new Set(DATA.tasks.map(t=>t.Phase))];
+  const q = state.taskSearch.toLowerCase();
+  let list = DATA.tasks.filter(t=>
+    (state.taskFilter==='All' || t.Phase===state.taskFilter) &&
+    (!q || t.Task.toLowerCase().includes(q) || t['Task ID'].toLowerCase().includes(q))
+  );
+  let html = `
+    <div class="search-bar">
+      <span class="mono" style="color:var(--muted-2)">⌕</span>
+      <input id="taskSearchInput" placeholder="Search tasks..." value="${state.taskSearch}">
+    </div>
+    <div class="chip-row">${phases.map(p=>`<div class="chip ${state.taskFilter===p?'active':''}" onclick="setTaskFilter('${p.replace(/'/g,"\\'")}')">${p}</div>`).join('')}</div>
+    <div class="section-title">${list.length} task${list.length!==1?'s':''}</div>
+    ${list.map(t=>`
+      <div class="card" onclick="openTask('${t['Task ID']}')">
+        <div class="item-title">${t.Task}</div>
+        <div class="item-sub">${t.Category}${t.Owner?' · '+t.Owner:''}</div>
+        <div class="item-meta"><span class="id-tag">${t['Task ID']}</span>${statusBadge(t.Status)}${priorityBadge(t.Priority)}</div>
+      </div>`).join('') || `<div class="empty"><div class="ico">∅</div>No tasks match.</div>`}
+  `;
+  document.getElementById('screen-tasks').innerHTML = html;
+  document.getElementById('taskSearchInput').addEventListener('input', e=>{ state.taskSearch = e.target.value; renderTasks(); e.target.focus(); e.target.setSelectionRange(e.target.value.length, e.target.value.length); });
+}
+function setTaskFilter(p){ state.taskFilter = p; renderTasks(); }
+
+/* ---------- SCHEDULE ---------- */
+function renderSchedule(){
+  const days = {};
+  DATA.dailySchedule.forEach(b=>{ (days[b['Work Date']] = days[b['Work Date']] || []).push(b); });
+  const dates = Object.keys(days).sort();
+  let html = '';
+  dates.forEach(date=>{
+    const cal = DATA.dailyCalendar.find(d=>d.Date===date);
+    const isToday = date === TODAY;
+    html += `<div class="day-head"><div class="d1">${cal?cal.Day:''} · ${date}${isToday?' <span style=\"color:var(--flag)\">● today</span>':''}</div><div class="d2">Day ${cal?cal['Day #']:''}/${DATA.dailyCalendar.length}</div></div>`;
+    html += `<div class="card" style="padding:4px 14px;">`;
+    days[date].forEach(b=>{
+      html += `<div class="block-row" onclick="openScheduleBlock('${b['Schedule ID']}')">
+        <div class="block-time">${b['Time Block']}</div>
+        <div class="block-dot ${b['Work Mode']==='Field'?'dot-field':'dot-desk'}"></div>
+        <div style="flex:1;">
+          <div class="item-title" style="font-size:13px;">${b['Daily Task']}</div>
+          <div class="item-meta">${statusBadge(b.Status)}<span class="id-tag">${b['Planned Hours']}h</span></div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('screen-schedule').innerHTML = html || `<div class="empty">No schedule data.</div>`;
+}
+
+/* ---------- MEASUREMENTS ---------- */
+function renderMeasure(){
+  const zones = ['All', ...new Set(DATA.measurements.map(m=>m.Zone))];
+  let filter = state.measureFilter || 'All';
+  let list = DATA.measurements.filter(m=> filter==='All' || m.Zone===filter);
+  let html = `
+    <div class="chip-row">${zones.map(z=>`<div class="chip ${filter===z?'active':''}" onclick="setMeasureFilter('${z.replace(/'/g,"\\'")}')">${z}</div>`).join('')}</div>
+    <div class="section-title">${list.length} measurement${list.length!==1?'s':''}</div>
+    ${list.map(m=>`
+      <div class="card" onclick="openMeasurement('${m['Measurement ID']}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="item-title">${m.Element}</div>
+          <div class="measure-fig">${m.Feet}' ${m.Inches}"</div>
+        </div>
+        <div class="item-sub">${m['From / Datum']} → ${m['To / Point']}</div>
+        <div class="item-meta"><span class="id-tag">${m['Measurement ID']}</span>${statusBadge(m.Status)}<span class="tol">${m['Tolerance / Accuracy']||''}</span></div>
+      </div>`).join('')}
+  `;
+  document.getElementById('screen-measure').innerHTML = html;
+}
+function setMeasureFilter(z){ state.measureFilter = z; renderMeasure(); }
+
+/* ---------- PHOTOS ---------- */
+function renderPhotos(){
+  const captured = DATA.photos.filter(p=>p.Status!=='Not Captured').length;
+  let html = `
+    <div class="section-title">Photo checklist <span class="count">${captured}/${DATA.photos.length}</span></div>
+    ${DATA.photos.map(p=>`
+      <div class="card" onclick="openPhoto('${p['Photo ID']}')">
+        <div class="item-title">${p['Required View / Subject']}</div>
+        <div class="item-sub">${p['Capture Point']} · ${p.Direction}</div>
+        <div class="item-meta"><span class="id-tag">${p['Photo ID']}</span>${statusBadge(p.Status)}</div>
+      </div>`).join('')}
+  `;
+  document.getElementById('screen-photos').innerHTML = html;
+}
+
+/* ---------- MATERIALS ---------- */
+function renderMaterials(){
+  let html = `<div class="section-title">Inventory <span class="count">${DATA.materials.length}</span></div>
+    ${DATA.materials.map(m=>`
+      <div class="card" onclick="openMaterial('${m['Item ID']}')">
+        <div class="item-title">${m['Item Description']}</div>
+        <div class="item-sub">${m.Category} · ${m['Existing / New']}${m.Quantity?' · '+m.Quantity+' '+m.Unit:''}</div>
+        <div class="item-meta"><span class="id-tag">${m['Item ID']}</span>${statusBadge(m['Verification Status'])}</div>
+      </div>`).join('')}`;
+  document.getElementById('screen-materials').innerHTML = html;
+}
+
+/* ---------- LOG (decisions) ---------- */
+function renderLog(){
+  let html = `<div class="section-title">Decision & revision log <span class="count">${DATA.decisions.length}</span></div>
+    ${DATA.decisions.map(d=>`
+      <div class="card" onclick="openDecision('${d['Decision ID']}')">
+        <div class="item-title">${d.Subject}</div>
+        <div class="item-sub">${d['Decision / Revision']}</div>
+        <div class="item-meta"><span class="id-tag">${d['Decision ID']} · ${d.Date}</span>${statusBadge(d.Status)}</div>
+      </div>`).join('')}`;
+  document.getElementById('screen-log').innerHTML = html;
+}
+
+/* ---------- SHEET (detail modal) ---------- */
+function openSheet(title, rows){
+  document.getElementById('sheetBody').innerHTML = `<h2>${title}</h2>` + rows.filter(r=>r[1]!==undefined && r[1]!==null && r[1]!=='').map(r=>`<div class="row"><div class="k">${r[0]}</div><div class="v">${r[1]}</div></div>`).join('');
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('sheetClose').onclick = closeSheet;
+document.getElementById('overlay').onclick = closeSheet;
+
+/* ---------- EDIT INFRASTRUCTURE ---------- */
+const SCHEMAS = {
+  task:     {idField:'Task ID', arr:'tasks', prefix:'TASK', fields:['Task ID','Phase','Category','Task','Status','Priority','Owner','Dependency','Planned Date','Completed Date','Completion / Evidence Requirement','Evidence Reference / File Name','Coordinate / Location','Notes']},
+  block:    {idField:'Schedule ID', arr:'dailySchedule', prefix:'BLK', fields:['Schedule ID','Work Date','Day','Phase','Time Block','Task ID(s)','Daily Task','Planned Hours','Priority','Work Mode','Status']},
+  measure:  {idField:'Measurement ID', arr:'measurements', prefix:'MEAS', fields:['Measurement ID','Zone','Element','From / Datum','To / Point','Direction / Method','Feet','Inches','Decimal Feet','Tolerance / Accuracy','Status','Date','Linked Task','Notes']},
+  material: {idField:'Item ID', arr:'materials', prefix:'MAT', fields:['Item ID','Item Description','Category','Existing / New','Quantity','Unit','Dimensions / Specification','Condition','Intended Use','Verification Status','Source / Store','Notes']},
+  decision: {idField:'Decision ID', arr:'decisions', prefix:'DEC', fields:['Decision ID','Date','Subject','Decision / Revision','Reason','Affects','Revision','Status','Approved By','Evidence Reference','Notes']},
+  photo:    {idField:'Photo ID', arr:'photos', prefix:'PH', fields:['Photo ID','Required View / Subject','Capture Point','Direction','Include Scale','Expected File Name','Status','Linked Task','Coordinates','Notes']}
+};
+const OPEN_FN = {}; // filled in below once open* functions are defined
+
+const TASK_PHASE_PREFIX = {
+  'Project Controls':'PC','Existing Conditions':'PH','Measurements':'MS','Materials':'MT',
+  'Drawings':'DR','BOM & Costing':'BOM','Review & Approval':'RV'
+};
+const ID_RULES = {
+  task:     {prefixFromPhase:true, pad:3},
+  block:    {prefix:'DS', pad:3},
+  measure:  {prefix:'MEAS', pad:3},
+  material: {prefix:'MAT', pad:3},
+  decision: {prefix:'DEC', pad:3},
+  photo:    {prefix:'SITE', pad:2}
+};
+function nextIdForPrefix(arr, idField, prefix, pad){
+  let max = 0;
+  arr.forEach(r=>{
+    const v = r[idField];
+    if(typeof v === 'string' && v.startsWith(prefix+'-')){
+      const n = parseInt(v.slice(prefix.length+1),10);
+      if(!isNaN(n) && n>max) max = n;
+    }
+  });
+  return prefix + '-' + String(max+1).padStart(pad,'0');
+}
+function generateId(kind, phase){
+  const s = SCHEMAS[kind];
+  const rule = ID_RULES[kind];
+  const prefix = rule.prefixFromPhase ? (TASK_PHASE_PREFIX[phase] || 'GEN') : rule.prefix;
+  return nextIdForPrefix(DATA[s.arr], s.idField, prefix, rule.pad);
+}
+
+function findRecord(kind, id){
+  const s = SCHEMAS[kind];
+  return DATA[s.arr].find(x=>x[s.idField]===id);
+}
+function esc(v){ return (v===undefined||v===null?'':String(v)).replace(/"/g,'&quot;'); }
+
+function updateField(kind, id, field, value){
+  const rec = findRecord(kind, id); if(!rec) return;
+  rec[field] = value;
+  markDirty();
+  ({task:renderTasks, block:renderSchedule, measure:renderMeasure, material:renderMaterials, decision:renderLog, photo:renderPhotos})[kind]();
+  renderHome();
+}
+function editRow(kind, id, label, field, value, opts){
+  opts = opts || {};
+  const oc = `updateField('${kind}','${String(id).replace(/'/g,"\\'")}','${field}',this.value)`;
+  if(opts.select){
+    const options = opts.select.map(o=>`<option value="${esc(o)}" ${o===value?'selected':''}>${o}</option>`).join('');
+    return `<div class="row"><div class="k">${label}</div><select onchange="${oc}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;">${options}</select></div>`;
+  }
+  if(opts.textarea){
+    return `<div class="row"><div class="k">${label}</div><textarea onblur="${oc}" rows="3" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;font-family:'Inter';resize:vertical;">${esc(value)}</textarea></div>`;
+  }
+  return `<div class="row"><div class="k">${label}</div><input type="${opts.type||'text'}" value="${esc(value)}" onblur="${oc}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;font-family:'IBM Plex Mono';"></div>`;
+}
+function addNew(kind, phase){
+  const s = SCHEMAS[kind];
+  const rec = {}; s.fields.forEach(f=>rec[f]='');
+  if(kind==='task' && phase) rec.Phase = phase;
+  const newId = generateId(kind, phase);
+  rec[s.idField] = newId;
+  if('Status' in rec) rec.Status = 'Not Started';
+  DATA[s.arr].unshift(rec);
+  markDirty();
+  ({task:renderTasks, block:renderSchedule, measure:renderMeasure, material:renderMaterials, decision:renderLog, photo:renderPhotos})[kind]();
+  renderHome();
+  OPEN_FN[kind](newId);
+}
+function openPhasePicker(){
+  const phases = Object.keys(TASK_PHASE_PREFIX);
+  document.getElementById('sheetBody').innerHTML = `<h2>New task — choose phase</h2>
+    <p style="color:var(--muted);font-size:12.5px;line-height:1.5;">The task ID follows your existing numbering, e.g. the next Project Controls task becomes <span class="mono">PC-009</span>.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
+      ${phases.map(p=>`<button class="chip" style="margin:0;" onclick="addNew('task','${p.replace(/'/g,"\\'")}')">${p} <span class="mono" style="opacity:.55">${TASK_PHASE_PREFIX[p]}</span></button>`).join('')}
+    </div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+/* ---------- DETAIL / EDIT SHEETS ---------- */
+function openTask(id){
+  const t = DATA.tasks.find(x=>x['Task ID']===id); if(!t) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${t.Task || 'New task'}</h2>` +
+    editRow('task',id,'Task','Task',t.Task) +
+    editRow('task',id,'Status','Status',t.Status,{select:STATUS_OPTIONS}) +
+    editRow('task',id,'Priority','Priority',t.Priority,{select:['Critical','High','Normal','Low']}) +
+    `<div class="row"><div class="k">Phase</div><div class="v">${t.Phase||'—'} <span class="mono" style="color:var(--muted-2);font-size:11px;">fixes ID prefix, set at creation</span></div></div>` +
+    editRow('task',id,'Category','Category',t.Category) +
+    editRow('task',id,'Owner','Owner',t.Owner) +
+    editRow('task',id,'Dependency','Dependency',t.Dependency) +
+    editRow('task',id,'Planned date','Planned Date',t['Planned Date'],{type:'date'}) +
+    editRow('task',id,'Completed date','Completed Date',t['Completed Date'],{type:'date'}) +
+    editRow('task',id,'Evidence needed','Completion / Evidence Requirement',t['Completion / Evidence Requirement'],{textarea:true}) +
+    editRow('task',id,'Evidence ref','Evidence Reference / File Name',t['Evidence Reference / File Name']) +
+    editRow('task',id,'Location','Coordinate / Location',t['Coordinate / Location']) +
+    editRow('task',id,'Notes','Notes',t.Notes,{textarea:true}) +
+    `<div class="id-tag" style="margin-top:10px;">${t['Task ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function openScheduleBlock(id){
+  const b = DATA.dailySchedule.find(x=>x['Schedule ID']===id); if(!b) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${b['Daily Task'] || 'New block'}</h2>` +
+    editRow('block',id,'Task','Daily Task',b['Daily Task']) +
+    editRow('block',id,'Status','Status',b.Status,{select:STATUS_OPTIONS}) +
+    editRow('block',id,'Date','Work Date',b['Work Date'],{type:'date'}) +
+    editRow('block',id,'Day','Day',b.Day) +
+    editRow('block',id,'Phase','Phase',b.Phase) +
+    editRow('block',id,'Time block','Time Block',b['Time Block']) +
+    editRow('block',id,'Related tasks','Task ID(s)',b['Task ID(s)']) +
+    editRow('block',id,'Planned hours','Planned Hours',b['Planned Hours'],{type:'number'}) +
+    editRow('block',id,'Priority','Priority',b.Priority,{select:['Critical','High','Normal','Low']}) +
+    editRow('block',id,'Work mode','Work Mode',b['Work Mode'],{select:['Field','Desk']}) +
+    `<div class="id-tag" style="margin-top:10px;">${b['Schedule ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function openMeasurement(id){
+  const m = DATA.measurements.find(x=>x['Measurement ID']===id); if(!m) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${m.Element || 'New measurement'}</h2>` +
+    editRow('measure',id,'Element','Element',m.Element) +
+    editRow('measure',id,'Status','Status',m.Status,{select:STATUS_OPTIONS}) +
+    editRow('measure',id,'Zone','Zone',m.Zone) +
+    editRow('measure',id,'From','From / Datum',m['From / Datum']) +
+    editRow('measure',id,'To','To / Point',m['To / Point']) +
+    editRow('measure',id,'Method','Direction / Method',m['Direction / Method']) +
+    editRow('measure',id,'Feet','Feet',m.Feet,{type:'number'}) +
+    editRow('measure',id,'Inches','Inches',m.Inches,{type:'number'}) +
+    editRow('measure',id,'Tolerance','Tolerance / Accuracy',m['Tolerance / Accuracy']) +
+    editRow('measure',id,'Date','Date',m.Date,{type:'date'}) +
+    editRow('measure',id,'Linked task','Linked Task',m['Linked Task']) +
+    editRow('measure',id,'Notes','Notes',m.Notes,{textarea:true}) +
+    `<div class="id-tag" style="margin-top:10px;">${m['Measurement ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function openPhoto(id){
+  const p = DATA.photos.find(x=>x['Photo ID']===id); if(!p) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${p['Required View / Subject'] || 'New photo'}</h2>` +
+    editRow('photo',id,'Subject','Required View / Subject',p['Required View / Subject']) +
+    editRow('photo',id,'Status','Status',p.Status,{select:STATUS_OPTIONS}) +
+    editRow('photo',id,'Capture point','Capture Point',p['Capture Point']) +
+    editRow('photo',id,'Direction','Direction',p.Direction) +
+    editRow('photo',id,'Include scale','Include Scale',p['Include Scale']) +
+    editRow('photo',id,'File name','Expected File Name',p['Expected File Name']) +
+    editRow('photo',id,'Linked task','Linked Task',p['Linked Task']) +
+    editRow('photo',id,'Coordinates','Coordinates',p.Coordinates) +
+    editRow('photo',id,'Notes','Notes',p.Notes,{textarea:true}) +
+    `<div class="id-tag" style="margin-top:10px;">${p['Photo ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function openMaterial(id){
+  const m = DATA.materials.find(x=>x['Item ID']===id); if(!m) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${m['Item Description'] || 'New material'}</h2>` +
+    editRow('material',id,'Description','Item Description',m['Item Description']) +
+    editRow('material',id,'Verification','Verification Status',m['Verification Status'],{select:STATUS_OPTIONS}) +
+    editRow('material',id,'Category','Category',m.Category) +
+    editRow('material',id,'Existing/new','Existing / New',m['Existing / New'],{select:['Existing','New']}) +
+    editRow('material',id,'Quantity','Quantity',m.Quantity,{type:'number'}) +
+    editRow('material',id,'Unit','Unit',m.Unit) +
+    editRow('material',id,'Spec','Dimensions / Specification',m['Dimensions / Specification']) +
+    editRow('material',id,'Condition','Condition',m.Condition) +
+    editRow('material',id,'Intended use','Intended Use',m['Intended Use']) +
+    editRow('material',id,'Source','Source / Store',m['Source / Store']) +
+    editRow('material',id,'Notes','Notes',m.Notes,{textarea:true}) +
+    `<div class="id-tag" style="margin-top:10px;">${m['Item ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function openDecision(id){
+  const d = DATA.decisions.find(x=>x['Decision ID']===id); if(!d) return;
+  document.getElementById('sheetBody').innerHTML = `<h2>${d.Subject || 'New decision'}</h2>` +
+    editRow('decision',id,'Subject','Subject',d.Subject) +
+    editRow('decision',id,'Status','Status',d.Status,{select:STATUS_OPTIONS}) +
+    editRow('decision',id,'Date','Date',d.Date,{type:'date'}) +
+    editRow('decision',id,'Decision','Decision / Revision',d['Decision / Revision'],{textarea:true}) +
+    editRow('decision',id,'Reason','Reason',d.Reason,{textarea:true}) +
+    editRow('decision',id,'Affects','Affects',d.Affects) +
+    editRow('decision',id,'Revision','Revision',d.Revision) +
+    editRow('decision',id,'Approved by','Approved By',d['Approved By']) +
+    editRow('decision',id,'Evidence','Evidence Reference',d['Evidence Reference']) +
+    editRow('decision',id,'Notes','Notes',d.Notes,{textarea:true}) +
+    `<div class="id-tag" style="margin-top:10px;">${d['Decision ID']}</div>`;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+OPEN_FN.task = openTask; OPEN_FN.block = openScheduleBlock; OPEN_FN.measure = openMeasurement;
+OPEN_FN.photo = openPhoto; OPEN_FN.material = openMaterial; OPEN_FN.decision = openDecision;
+
+/* ---------- NAV ---------- */
+function renderTabbar(){
+  document.getElementById('tabbar').innerHTML = TABS.map(t=>`
+    <button class="${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      ${svgIcon(t.icon)}
+      <span>${t.label}</span>
+    </button>`).join('');
+}
+const FAB_KIND = { tasks:'task', schedule:'block', measure:'measure', photos:'photo', materials:'material', log:'decision' };
+function fabClick(){
+  const k = FAB_KIND[state.tab];
+  if(!k) return;
+  if(k==='task'){ openPhasePicker(); return; }
+  addNew(k);
+}
+function setTab(id){
+  state.tab = id;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  renderTabbar();
+  document.getElementById('main').scrollTop = 0;
+  document.getElementById('fab').style.display = FAB_KIND[id] ? 'flex' : 'none';
+}
+
+function renderAll(){
+  renderHome(); renderTasks(); renderSchedule(); renderMeasure(); renderPhotos(); renderMaterials(); renderLog();
+  renderTabbar();
+  setTab(state.tab);
+}
+
+/* ---------- SETTINGS / GITHUB SYNC ---------- */
+function openSettings(){
+  document.getElementById('sheetBody').innerHTML = `
+    <h2>GitHub sync</h2>
+    <p style="color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:-4px;">
+      Paste a fine-grained personal access token scoped to just this repo, with <b>Contents: Read & Write</b> permission.
+      The token is kept in memory only — it clears when you close the tab and is never saved to disk.
+    </p>
+    <div class="row"><div class="k">Owner / Repo</div>
+      <div style="display:flex;gap:6px;margin-top:4px;">
+        <input id="ghOwner" value="${GH.owner}" style="flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;">
+        <input id="ghRepo" value="${GH.repo}" style="flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;">
+      </div>
+    </div>
+    <div class="row"><div class="k">Branch</div>
+      <input id="ghBranch" value="${GH.branch}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
+    </div>
+    <div class="row"><div class="k">Path to data.json in repo</div>
+      <input id="ghPath" value="${GH.path}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
+    </div>
+    <div class="row"><div class="k">Personal access token</div>
+      <input id="ghToken" type="password" value="${GH.token}" placeholder="github_pat_..." style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
+    </div>
+    <div class="row"><div class="k">Commit message</div>
+      <input id="ghMsg" placeholder="Update task/schedule status" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Inter';font-size:13px;margin-top:4px;">
+    </div>
+    <div id="ghStatus" style="font-size:12px;color:var(--muted);margin-top:10px;min-height:16px;"></div>
+    <button onclick="doCommit()" style="width:100%;background:var(--flag);color:#1a0e06;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:14px;margin-top:6px;">Commit ${DIRTY ? 'changes' : '(no local changes)'} to GitHub</button>
+  `;
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+async function doCommit(){
+  GH.owner = document.getElementById('ghOwner').value.trim();
+  GH.repo = document.getElementById('ghRepo').value.trim();
+  GH.branch = document.getElementById('ghBranch').value.trim();
+  GH.path = document.getElementById('ghPath').value.trim();
+  GH.token = document.getElementById('ghToken').value.trim();
+  const msg = document.getElementById('ghMsg').value.trim();
+  const statusEl = document.getElementById('ghStatus');
+  if(!GH.token){ statusEl.textContent = 'Paste a token first.'; statusEl.style.color = 'var(--red)'; return; }
+  statusEl.textContent = 'Committing…'; statusEl.style.color = 'var(--muted)';
+  try{
+    await githubCommit(msg);
+    DIRTY = false;
+    document.getElementById('syncBar').style.display = 'none';
+    statusEl.textContent = 'Committed ✓ — synced to ' + GH.owner + '/' + GH.repo;
+    statusEl.style.color = 'var(--chalk)';
+  }catch(e){
+    statusEl.textContent = e.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+document.getElementById('gearBtn').onclick = openSettings;
+
+/* ---------- INLINE STATUS EDITING ---------- */
+const STATUS_OPTIONS = ['Not Started','In Progress','Complete','On Hold','Field Verified','Recheck Required','User Supplied'];
+function statusPicker(kind, id, current){
+  const opts = STATUS_OPTIONS.map(s=>`<button class="chip ${s===current?'active':''}" style="margin:3px 4px 3px 0;" onclick="setStatus('${kind}','${id.replace(/'/g,"\\'")}','${s}')">${s}</button>`).join('');
+  return `<div class="row"><div class="k">Change status</div><div style="margin-top:6px;">${opts}</div></div>`;
+}
+function setStatus(kind, id, newStatus){
+  let rec;
+  if(kind==='task') rec = DATA.tasks.find(x=>x['Task ID']===id);
+  if(kind==='block') rec = DATA.dailySchedule.find(x=>x['Schedule ID']===id);
+  if(kind==='measure') rec = DATA.measurements.find(x=>x['Measurement ID']===id);
+  if(!rec) return;
+  rec.Status = newStatus;
+  markDirty();
+  if(kind==='task'){ renderTasks(); renderHome(); openTask(id); }
+  if(kind==='block'){ renderSchedule(); renderHome(); openScheduleBlock(id); }
+  if(kind==='measure'){ renderMeasure(); openMeasurement(id); }
+}
+
+loadData();
+</script>
+</body>
+</html>
