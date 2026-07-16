@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   activeProjectAlias,
   getActiveProjectId,
+  getNavigationProjectId,
   getProjectSectionHref,
   getProjectIdFromPathname,
   resolveProjectRouteId
@@ -47,4 +48,31 @@ describe("project route resolution", () => {
       expect(href).not.toContain("/projects/active/");
     }
   );
+
+  it("refreshes navigation to the active project after active project changes", () => {
+    expect(getNavigationProjectId("project-old", "project-new")).toBe(
+      "project-new"
+    );
+    expect(getProjectSectionHref("project-new", "today")).toBe(
+      "/projects/project-new/today"
+    );
+  });
+
+  it("uses the active-project alias safely without producing alias links", () => {
+    const projectId = getNavigationProjectId(activeProjectAlias, "project-new");
+
+    expect(projectId).toBe("project-new");
+    expect(getProjectSectionHref(projectId, "tasks")).toBe(
+      "/projects/project-new/tasks"
+    );
+    expect(getProjectSectionHref(projectId, "tasks")).not.toContain(
+      "/projects/active/"
+    );
+  });
+
+  it("falls back safely when no active project is available", () => {
+    expect(getNavigationProjectId(activeProjectAlias, null)).toBeNull();
+    expect(getNavigationProjectId("project-old", null)).toBeNull();
+    expect(getProjectSectionHref(null, "schedule")).toBe("/projects");
+  });
 });

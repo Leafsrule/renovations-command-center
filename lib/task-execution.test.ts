@@ -61,7 +61,27 @@ describe("task execution transitions", () => {
   it("starts a ready task", () => {
     expect(evaluate(createTask(), "start")).toMatchObject({
       allowed: true,
-      updates: { status: "in_progress" }
+      updates: {
+        status: "in_progress",
+        readinessState: "ready",
+        readinessReasons: []
+      }
+    });
+  });
+
+  it("synchronizes readiness when starting a task", () => {
+    const result = evaluate(
+      createTask({ status: "ready", readinessState: "not_ready" }),
+      "start"
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      updates: {
+        status: "in_progress",
+        readinessState: "ready",
+        readinessReasons: []
+      }
     });
   });
 
@@ -84,10 +104,26 @@ describe("task execution transitions", () => {
     expect(evaluate(createTask({ status: "in_progress" }), "mark_waiting")).toMatchObject({ allowed: true, updates: { status: "waiting_curing" } });
   });
 
+  it("preserves coherent readiness when marking active work waiting", () => {
+    expect(evaluate(createTask({ status: "in_progress" }), "mark_waiting"))
+      .toMatchObject({
+        allowed: true,
+        updates: {
+          status: "waiting_curing",
+          readinessState: "ready",
+          readinessReasons: []
+        }
+      });
+  });
+
   it("resumes waiting work only when readiness still passes", () => {
     expect(evaluate(createTask({ status: "waiting_curing" }), "resume")).toMatchObject({
       allowed: true,
-      updates: { status: "in_progress" }
+      updates: {
+        status: "in_progress",
+        readinessState: "ready",
+        readinessReasons: []
+      }
     });
     expect(
       evaluate(
@@ -95,6 +131,26 @@ describe("task execution transitions", () => {
         "resume"
       ).allowed
     ).toBe(false);
+  });
+
+  it("synchronizes readiness when resuming waiting work", () => {
+    const result = evaluate(
+      createTask({
+        status: "waiting_curing",
+        readinessState: "ready",
+        readinessReasons: ["stale reason"]
+      }),
+      "resume"
+    );
+
+    expect(result).toMatchObject({
+      allowed: true,
+      updates: {
+        status: "in_progress",
+        readinessState: "ready",
+        readinessReasons: []
+      }
+    });
   });
 
   it("does not move ready work directly into waiting or curing", () => {
@@ -136,5 +192,23 @@ describe("task execution transitions", () => {
     const second = evaluate(task, "clear_blocker");
     expect(JSON.stringify(task)).toBe(before);
     expect(first).toEqual(second);
+  });
+
+  it("does not include unrelated task fields in execution updates", () => {
+    const result = evaluate(createTask({ status: "in_progress" }), "mark_waiting");
+
+    expect(result.allowed).toBe(true);
+    if (result.allowed) {
+      expect(result.updates).toEqual({
+        status: "waiting_curing",
+        readinessState: "ready",
+        readinessReasons: []
+      });
+      expect(result.updates).not.toHaveProperty("name");
+      expect(result.updates).not.toHaveProperty("dependencyTaskIds");
+      expect(result.updates).not.toHaveProperty("materialStatus");
+      expect(result.updates).not.toHaveProperty("notes");
+      expect(result.updates).not.toHaveProperty("dueDate");
+    }
   });
 });

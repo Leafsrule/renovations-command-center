@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isProjectOwner(projectId) {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
+    }
+
+    match /projects/{projectId}/{allPaths=**} {
+      allow read, write: if isProjectOwner(projectId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

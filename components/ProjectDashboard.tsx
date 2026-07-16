@@ -10,6 +10,7 @@ import {
   setActiveOwnerProject,
   type RenovationProject
 } from "@/lib/projects";
+import { activeProjectChangedEvent } from "@/lib/project-routes";
 
 function projectTypeLabel(type: RenovationProject["type"]) {
   return type === "bathroom_ensuite" ? "Bathroom / Ensuite" : "Custom";
@@ -83,6 +84,7 @@ export function ProjectDashboard() {
           activeProject: project.id === projectId
         }))
       );
+      window.dispatchEvent(new Event(activeProjectChangedEvent));
     } catch (projectError) {
       setError(friendlyProjectError(projectError));
     } finally {
