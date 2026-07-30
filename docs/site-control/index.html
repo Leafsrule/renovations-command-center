@@ -3,25 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Favorite 1.0 — Site Control</title>
+<title>Site Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#12151a;
-    --surface:#1a1e25;
-    --surface-2:#20252d;
-    --line:#2a2f38;
-    --text:#eef0f3;
-    --muted:#8b93a1;
-    --muted-2:#5f6672;
-    --flag:#ff6a2b;
-    --flag-dim:#7a3a1e;
-    --chalk:#4fd1c5;
-    --chalk-dim:#1f4744;
-    --amber:#f5b942;
-    --red:#ef5b5b;
+  :root, [data-theme="dark-amber"]{
+    --bg:#12151a; --surface:#1a1e25; --surface-2:#20252d; --line:#2a2f38;
+    --text:#eef0f3; --muted:#8b93a1; --muted-2:#5f6672;
+    --flag:#ff6a2b; --flag-dim:#7a3a1e; --chalk:#4fd1c5; --chalk-dim:#1f4744;
+    --amber:#f5b942; --red:#ef5b5b;
     --grid: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px);
+  }
+  [data-theme="dark-teal"]{
+    --bg:#0f1517; --surface:#161f22; --surface-2:#1c282c; --line:#25343a;
+    --text:#e9f3f3; --muted:#87a0a0; --muted-2:#5a6f6f;
+    --flag:#2dd4bf; --flag-dim:#134e4a; --chalk:#ff9d5c; --chalk-dim:#5c3a1a;
+    --amber:#f5b942; --red:#ef5b5b;
+    --grid: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 24px);
+  }
+  [data-theme="light"]{
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#eceef2; --line:#dde1e7;
+    --text:#181b20; --muted:#5b6472; --muted-2:#88909c;
+    --flag:#d9540f; --flag-dim:#fce3d3; --chalk:#0f9c8f; --chalk-dim:#d6f3f0;
+    --amber:#b9790a; --red:#c8372f;
+    --grid: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 24px), repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 24px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100%;overscroll-behavior:none;}
@@ -32,7 +37,6 @@
   .mono{font-family:'IBM Plex Mono',monospace;}
   .display{font-family:'Space Grotesk',sans-serif;}
 
-  /* Header */
   header.topbar{
     position:sticky;top:0;z-index:20;
     background:linear-gradient(180deg, var(--bg) 70%, transparent);
@@ -54,16 +58,15 @@
   .screen.active{display:block;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
-  /* Bottom nav */
   nav.tabbar{
     position:fixed;bottom:0;left:0;right:0;z-index:30;
     max-width:560px;margin:0 auto;
-    background:rgba(20,23,28,.92);backdrop-filter:blur(10px);
+    background:color-mix(in srgb, var(--bg) 92%, transparent);backdrop-filter:blur(10px);
     border-top:1px solid var(--line);
     display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
   }
   nav.tabbar button{
-    flex:1;background:none;border:none;color:var(--muted-2);
+    flex:1;background:none;border:none;color:var(--muted-2);position:relative;
     display:flex;flex-direction:column;align-items:center;gap:3px;
     padding:8px 2px;font-family:'Inter';font-size:10px;font-weight:600;letter-spacing:.02em;
   }
@@ -71,13 +74,12 @@
   nav.tabbar button.active{color:var(--flag);}
   nav.tabbar button .dot-badge{position:absolute;transform:translate(10px,-8px);width:7px;height:7px;border-radius:50%;background:var(--red);}
 
-  /* Cards */
   .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;}
   .card:active{background:var(--surface-2);}
   .section-title{font-family:'Space Grotesk';font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px;display:flex;align-items:center;justify-content:space-between;}
   .section-title .count{color:var(--muted-2);font-family:'IBM Plex Mono';font-size:11px;}
+  .section-title .add-btn{background:var(--surface);border:1px solid var(--line);color:var(--flag);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:none;letter-spacing:0;}
 
-  /* Stat strip */
   .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
   .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;}
   .stat .n{font-family:'Space Grotesk';font-size:20px;font-weight:700;}
@@ -86,7 +88,28 @@
   .stat.chalk .n{color:var(--chalk);}
   .stat.red .n{color:var(--red);}
 
-  /* Hero survey block */
+  /* Global snapshot grid (dashboard) */
+  .global-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .global-cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;}
+  .global-cell .gn{font-family:'Space Grotesk';font-size:17px;font-weight:700;}
+  .global-cell .gl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+  .global-cell .gp{font-size:10px;color:var(--muted-2);font-family:'IBM Plex Mono';margin-top:1px;}
+
+  /* Phase progress bars */
+  .phase-row{margin-bottom:10px;}
+  .phase-row .ph-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+  .phase-row .ph-name{font-weight:600;}
+  .phase-row .ph-pct{color:var(--muted-2);font-family:'IBM Plex Mono';font-size:11px;}
+  .phase-bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;}
+  .phase-bar-fill{height:100%;background:linear-gradient(90deg,var(--flag),var(--amber));border-radius:3px;}
+
+  /* Job card */
+  .job-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;}
+  .job-card .jc-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .job-card .jc-name{font-family:'Space Grotesk';font-size:15px;font-weight:700;}
+  .job-card .jc-client{font-size:12px;color:var(--muted);margin-top:2px;}
+  .job-badge{font-family:'IBM Plex Mono';font-size:9px;color:var(--muted-2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;}
+
   .hero{
     border-radius:18px;padding:20px;position:relative;overflow:hidden;
     background:var(--surface); border:1px solid var(--line);
@@ -99,12 +122,10 @@
   .progress-fill{height:100%;background:linear-gradient(90deg,var(--flag),var(--amber));border-radius:4px;}
   .progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted-2);margin-top:6px;font-family:'IBM Plex Mono';}
 
-  /* Chips / filters */
   .chip-row{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;}
   .chip{flex-shrink:0;background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:7px 13px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
-  .chip.active{background:var(--flag);border-color:var(--flag);color:#1a0e06;}
+  .chip.active{background:var(--flag);border-color:var(--flag);color:var(--bg);}
 
-  /* badges */
   .badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em;}
   .b-complete{background:var(--chalk-dim);color:var(--chalk);}
   .b-progress{background:#3a3116;color:var(--amber);}
@@ -118,7 +139,6 @@
   .item-meta{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;}
   .id-tag{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted-2);}
 
-  /* Day group for schedule */
   .day-head{display:flex;align-items:baseline;justify-content:space-between;margin:20px 0 8px;}
   .day-head .d1{font-family:'Space Grotesk';font-size:15px;font-weight:700;}
   .day-head .d2{font-size:11px;color:var(--muted-2);font-family:'IBM Plex Mono';}
@@ -127,17 +147,15 @@
   .block-time{width:56px;flex-shrink:0;font-family:'IBM Plex Mono';font-size:11px;color:var(--muted-2);padding-top:1px;}
   .block-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
   .dot-field{background:var(--flag);} .dot-desk{background:var(--chalk);}
+  .dot-late{background:var(--red);}
 
-  /* empty state */
   .empty{text-align:center;padding:50px 20px;color:var(--muted-2);}
   .empty .ico{font-size:30px;margin-bottom:8px;}
 
-  /* Search */
   .search-bar{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
   .search-bar input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:'Inter';}
   .search-bar input::placeholder{color:var(--muted-2);}
 
-  /* Detail sheet */
   .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;}
   .sheet-overlay.open{display:block;}
   .sheet{
@@ -155,18 +173,31 @@
   .sheet .row .v{font-size:14px;line-height:1.5;}
   .close-x{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:none;color:var(--muted);font-size:16px;}
 
+  .field-input, .sheet select, .sheet input, .sheet textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;font-family:'IBM Plex Mono';}
+  .sheet textarea{font-family:'Inter';resize:vertical;}
+
   .measure-fig{font-family:'IBM Plex Mono';font-size:18px;color:var(--flag);font-weight:600;}
   .tol{font-family:'IBM Plex Mono';font-size:11px;color:var(--muted-2);}
 
   .fab{
     position:fixed;bottom:148px;right:calc(50% - 280px + 16px);z-index:25;
-    background:var(--flag);color:#1a0e06;border:none;width:52px;height:52px;border-radius:50%;
+    background:var(--flag);color:var(--bg);border:none;width:52px;height:52px;border-radius:50%;
     font-size:22px;font-weight:700;box-shadow:0 8px 20px rgba(255,106,43,.35);
     display:flex;align-items:center;justify-content:center;
   }
   @media(max-width:600px){ .fab{right:16px;} }
 
   h3.group-h{font-family:'Space Grotesk';font-size:14px;color:var(--muted);margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+
+  /* Settings tabs */
+  .settings-tabs{display:flex;gap:6px;margin:10px 0 16px;border-bottom:1px solid var(--line);padding-bottom:0;}
+  .settings-tab{background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;padding:8px 4px 10px;border-bottom:2px solid transparent;}
+  .settings-tab.active{color:var(--flag);border-bottom-color:var(--flag);}
+  .theme-swatch-row{display:flex;gap:10px;margin-top:8px;}
+  .theme-swatch{width:52px;height:52px;border-radius:12px;border:2px solid var(--line);position:relative;cursor:pointer;}
+  .theme-swatch.selected{border-color:var(--flag);}
+  .primary-btn{width:100%;background:var(--flag);color:var(--bg);border:none;border-radius:10px;padding:13px;font-weight:700;font-size:14px;}
+  .ghost-btn{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font-weight:600;font-size:13px;}
 </style>
 </head>
 <body>
@@ -176,17 +207,17 @@
       <div class="crosshair"><div class="dot"></div></div>
       <div class="brand-text">
         <div class="t1">Site Control</div>
-        <div class="t2">Favorite 1.0</div>
+        <div class="t2" id="brandJobName">Site Control</div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <div class="rev-badge">R04</div>
+      <div class="rev-badge">R05</div>
       <button id="gearBtn" style="background:var(--surface);border:1px solid var(--line);width:34px;height:34px;border-radius:10px;color:var(--muted);font-size:15px;">⚙</button>
     </div>
   </header>
-  <div id="syncBar" style="display:none;position:fixed;left:16px;right:16px;bottom:78px;max-width:528px;margin:0 auto;z-index:26;background:var(--flag);color:#1a0e06;border-radius:12px;padding:11px 14px;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;">
+  <div id="syncBar" style="display:none;position:fixed;left:16px;right:16px;bottom:78px;max-width:528px;margin:0 auto;z-index:26;background:var(--flag);color:var(--bg);border-radius:12px;padding:11px 14px;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;">
     <span>Unsaved changes</span>
-    <button onclick="openSettings()" style="background:#1a0e06;color:var(--flag);border:none;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12px;">Sync to GitHub →</button>
+    <button onclick="openSettings('sync')" style="background:var(--bg);color:var(--flag);border:none;border-radius:8px;padding:7px 12px;font-weight:700;font-size:12px;">Sync to GitHub →</button>
   </div>
 
   <main id="main">
@@ -209,15 +240,59 @@
 <script>
 let DATA = null;
 let DIRTY = false;
-const TODAY = new Date().toISOString().slice(0,10);
+function today(){ return new Date().toISOString().slice(0,10); }
 
-// ---- GitHub sync config (in-memory only, never persisted to disk/localStorage) ----
-let GH = { owner:'Leafsrule', repo:'renovations-command-center', branch:'main', path:'docs/site-control/data.json', token:'', sha:null };
+/* ---------- PERSISTENT PREFS & GITHUB CONFIG (localStorage, this device only) ---------- */
+const PREFS_KEY = 'siteControlPrefs_v1';
+const GH_KEY = 'siteControlGH_v1';
+let PREFS = { theme:'dark-amber' };
+let GH = { owner:'Leafsrule', repo:'renovations-command-center', branch:'main', path:'docs/site-control/data.json', token:'', remember:false };
 
+function loadLocalPrefs(){
+  try{
+    const p = localStorage.getItem(PREFS_KEY);
+    if(p) PREFS = Object.assign(PREFS, JSON.parse(p));
+  }catch(e){}
+  try{
+    const g = localStorage.getItem(GH_KEY);
+    if(g) GH = Object.assign(GH, JSON.parse(g));
+  }catch(e){}
+  applyTheme(PREFS.theme);
+}
+function savePrefs(){
+  try{ localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); }catch(e){}
+}
+function saveGH(){
+  try{
+    if(GH.remember){ localStorage.setItem(GH_KEY, JSON.stringify(GH)); }
+    else{ localStorage.removeItem(GH_KEY); }
+  }catch(e){}
+}
+function forgetCredentials(){
+  GH.token = ''; GH.remember = false;
+  try{ localStorage.removeItem(GH_KEY); }catch(e){}
+  openSettings('sync');
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+/* ---------- DATE FORMATTING (full format: Wed-Jul-29-2026) ---------- */
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatDateFull(iso){
+  if(!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d.getTime())) return iso;
+  return `${DOW[d.getDay()]}-${MON[d.getMonth()]}-${String(d.getDate()).padStart(2,'0')}-${d.getFullYear()}`;
+}
+
+/* ---------- DATA LOAD ---------- */
 async function loadData(){
   try{
     const res = await fetch('./data.json', {cache:'no-store'});
     DATA = await res.json();
+    if(!DATA.jobs) DATA.jobs = [];
   }catch(e){
     document.getElementById('main').innerHTML = `<div class="empty" style="padding-top:80px;"><div class="ico">⚠</div>Couldn't load data.json.<br>Make sure it sits next to index.html.</div>`;
     return;
@@ -225,11 +300,35 @@ async function loadData(){
   renderAll();
 }
 
+/* ---------- JOBS & CLIENTS ---------- */
+function jobById(id){ return DATA.jobs.find(j=>j['Job ID']===id); }
+function jobLabel(id){ const j = jobById(id); return j ? `${j['Job Name']} · ${j.Client}` : (id||'—'); }
+function nextJobId(){ return nextIdForPrefix(DATA.jobs, 'Job ID', 'JOB', 3); }
+function addJob(name, client){
+  if(!name || !client) return;
+  const id = nextJobId();
+  DATA.jobs.push({ 'Job ID': id, 'Job Name': name, 'Client': client, 'Status': 'Active' });
+  markDirty();
+  renderHome();
+  return id;
+}
+function currentJobId(){
+  return (DATA.jobs[0] && DATA.jobs[0]['Job ID']) || '';
+}
+function updateBrandJobName(){
+  const el = document.getElementById('brandJobName');
+  if(!el) return;
+  if(DATA.jobs.length === 1) el.textContent = DATA.jobs[0]['Job Name'];
+  else if(DATA.jobs.length > 1) el.textContent = `${DATA.jobs.length} active jobs`;
+  else el.textContent = 'Site Control';
+}
+
 function markDirty(){
   DIRTY = true;
   document.getElementById('syncBar').style.display = 'flex';
 }
 
+/* ---------- GITHUB SYNC ---------- */
 async function githubGetSha(){
   const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}?ref=${GH.branch}`;
   const res = await fetch(url, { headers:{ 'Authorization':`Bearer ${GH.token}`, 'Accept':'application/vnd.github+json' } });
@@ -237,7 +336,6 @@ async function githubGetSha(){
   const json = await res.json();
   return json.sha;
 }
-
 async function githubCommit(message){
   const sha = await githubGetSha();
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(DATA, null, 2))));
@@ -251,6 +349,7 @@ async function githubCommit(message){
   return res.json();
 }
 
+/* ---------- TABS ---------- */
 const TABS = [
   {id:'home', label:'Home', icon:'M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z'},
   {id:'tasks', label:'Tasks', icon:'M4 6h16M4 12h16M4 18h10'},
@@ -258,14 +357,17 @@ const TABS = [
   {id:'measure', label:'Measure', icon:'M3 17l6-6M3 17h4v-4M9 5l6 14M15 5h4v4'},
   {id:'photos', label:'Photos', icon:'M4 8h3l2-2h6l2 2h3v11H4z'},
   {id:'materials', label:'Materials', icon:'M4 7l8-4 8 4-8 4-8-4zM4 7v10l8 4 8-4V7M12 11v10'},
-  {id:'log', label:'Log', icon:'M6 3h9l5 5v13H6zM14 3v6h5'}
+  {id:'log', label:'Decisions', icon:'M6 3h9l5 5v13H6zM14 3v6h5'}
 ];
 
-let state = { tab:'home', taskFilter:'All', taskSearch:'' };
+let state = { tab:'home', taskFilter:'All', taskSearch:'', scheduleView:'day', measureFilter:'All' };
 
 function svgIcon(d){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d.split('M').filter(Boolean).map(seg=>`<path d="M${seg}"/>`).join('')}</svg>`;
 }
+
+/* consistent Status vocabulary used everywhere */
+const STATUS_OPTIONS = ['Not Started','In Progress','Complete','On Hold','Field Verified','Recheck Required','User Supplied'];
 
 function statusBadge(status){
   if(!status) return `<span class="badge b-notstarted">—</span>`;
@@ -280,19 +382,73 @@ function priorityBadge(p){
   if(p.toLowerCase()==='critical'||p==='P1') return `<span class="badge b-critical">${p}</span>`;
   return `<span class="badge b-notstarted">${p}</span>`;
 }
+function jobBadge(jobId){
+  if(!jobId) return '';
+  return `<span class="job-badge">${jobLabel(jobId)}</span>`;
+}
+function isLate(dateStr, status){
+  if(!dateStr) return false;
+  if(status && status.toLowerCase().includes('complete')) return false;
+  return dateStr < today();
+}
 
-/* ---------- HOME ---------- */
+/* ---------- HOME (global dashboard, overhauled) ---------- */
 function renderHome(){
-  const tasks = DATA.tasks;
-  const complete = tasks.filter(t=>t.Status==='Complete').length;
-  const inProgress = tasks.filter(t=>t.Status==='In Progress').length;
-  const recheck = DATA.measurements.filter(m=>m.Status==='Recheck Required').length;
-  const todayCal = DATA.dailyCalendar.find(d=>d.Date===TODAY);
+  updateBrandJobName();
+  const T = today();
+  const tasks = DATA.tasks, blocks = DATA.dailySchedule, meas = DATA.measurements,
+        mats = DATA.materials, decs = DATA.decisions, photos = DATA.photos;
+
+  const taskComplete = tasks.filter(t=>t.Status==='Complete').length;
+  const taskActive = tasks.filter(t=>t.Status==='In Progress').length;
+  const taskOverdue = tasks.filter(t=>isLate(t['Planned Date'], t.Status));
+  const measRecheck = meas.filter(m=>m.Status==='Recheck Required');
+  const matsVerified = mats.filter(m=>(m['Verification Status']||'').toLowerCase().includes('verif') || (m['Verification Status']||'').toLowerCase().includes('complete')).length;
+  const photosCaptured = photos.filter(p=>p.Status && p.Status!=='Not Captured' && p.Status!=='Not Started').length;
+  const decsPending = decs.filter(d=>(d.Status||'').toLowerCase().includes('pending'));
+  const blocksLate = blocks.filter(b=>isLate(b['Work Date'], b.Status));
+
+  const todayCal = DATA.dailyCalendar.find(d=>d.Date===T);
   const dayIdx = todayCal ? todayCal['Day #'] : '—';
   const totalDays = DATA.dailyCalendar.length;
   const pctDays = todayCal ? Math.round((dayIdx/totalDays)*100) : 0;
-  const todayBlocks = DATA.dailySchedule.filter(b=>b['Work Date']===TODAY);
-  const overdue = tasks.filter(t=>t.Status!=='Complete' && t['Planned Date'] && t['Planned Date'] < TODAY);
+  const todayBlocks = blocks.filter(b=>b['Work Date']===T);
+
+  // Phase progress (tasks grouped by phase)
+  const phases = [...new Set(tasks.map(t=>t.Phase))];
+  const phaseRows = phases.map(ph=>{
+    const inPhase = tasks.filter(t=>t.Phase===ph);
+    const done = inPhase.filter(t=>t.Status==='Complete').length;
+    const pct = inPhase.length ? Math.round((done/inPhase.length)*100) : 0;
+    return `<div class="phase-row">
+      <div class="ph-top"><span class="ph-name">${ph}</span><span class="ph-pct">${done}/${inPhase.length} · ${pct}%</span></div>
+      <div class="phase-bar"><div class="phase-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // Global "needs attention" — spans every entity type, not just tasks
+  const attention = [
+    ...taskOverdue.map(t=>({title:t.Task, sub:`Task overdue · planned ${formatDateFull(t['Planned Date'])}`, status:t.Status, pr:t.Priority, open:()=>openTask(t['Task ID'])})),
+    ...blocksLate.map(b=>({title:b['Daily Task'], sub:`Schedule block overdue · ${formatDateFull(b['Work Date'])}`, status:b.Status, pr:b.Priority, open:()=>openScheduleBlock(b['Schedule ID'])})),
+    ...measRecheck.map(m=>({title:m.Element, sub:`Measurement needs recheck · ${m.Zone||''}`, status:m.Status, pr:'', open:()=>openMeasurement(m['Measurement ID'])})),
+    ...decsPending.map(d=>({title:d.Subject, sub:`Decision pending approval`, status:d.Status, pr:'', open:()=>openDecision(d['Decision ID'])})),
+  ].slice(0, 8);
+
+  // Jobs summary (multi-job aware, even with just one job today)
+  const jobCards = DATA.jobs.map(j=>{
+    const jt = tasks.filter(t=>t['Job ID']===j['Job ID']);
+    const done = jt.filter(t=>t.Status==='Complete').length;
+    const pct = jt.length ? Math.round((done/jt.length)*100) : 0;
+    const overdue = jt.filter(t=>isLate(t['Planned Date'], t.Status)).length;
+    return `<div class="job-card">
+      <div class="jc-top">
+        <div><div class="jc-name">${j['Job Name']}</div><div class="jc-client">Client: ${j.Client}</div></div>
+        <span class="job-badge">${j['Job ID']}</span>
+      </div>
+      <div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label"><span>${done}/${jt.length} tasks complete</span><span style="${overdue?'color:var(--red)':''}">${overdue} overdue</span></div>
+    </div>`;
+  }).join('');
 
   let html = `
     <div class="hero">
@@ -300,34 +456,47 @@ function renderHome(){
       <h1>${todayCal ? todayCal['Main Objective'] : 'Planning window'}</h1>
       <p>${todayCal ? todayCal['Milestone / Done When'] : ''}</p>
       <div class="progress-track"><div class="progress-fill" style="width:${pctDays}%"></div></div>
-      <div class="progress-label"><span>${TODAY}</span><span>${pctDays}% through planning horizon</span></div>
+      <div class="progress-label"><span>${formatDateFull(T)}</span><span>${pctDays}% through planning horizon</span></div>
     </div>
 
-    <div class="stat-grid">
-      <div class="stat chalk"><div class="n">${complete}</div><div class="l">Done</div></div>
-      <div class="stat flag"><div class="n">${inProgress}</div><div class="l">Active</div></div>
-      <div class="stat red"><div class="n">${overdue.length}</div><div class="l">Overdue</div></div>
-      <div class="stat"><div class="n">${recheck}</div><div class="l">Recheck</div></div>
+    <div class="section-title">Global snapshot</div>
+    <div class="global-grid">
+      <div class="global-cell"><div class="gn" style="color:var(--chalk)">${taskComplete}/${tasks.length}</div><div class="gl">Tasks done</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--flag)">${taskActive}</div><div class="gl">Tasks active</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--red)">${taskOverdue.length}</div><div class="gl">Tasks overdue</div></div>
+      <div class="global-cell"><div class="gn">${meas.length-measRecheck.length}/${meas.length}</div><div class="gl">Measured OK</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--red)">${measRecheck.length}</div><div class="gl">Recheck</div></div>
+      <div class="global-cell"><div class="gn">${matsVerified}/${mats.length}</div><div class="gl">Materials verified</div></div>
+      <div class="global-cell"><div class="gn">${photosCaptured}/${photos.length}</div><div class="gl">Photos captured</div></div>
+      <div class="global-cell"><div class="gn" style="${decsPending.length?'color:var(--amber)':''}">${decsPending.length}</div><div class="gl">Decisions pending</div></div>
+      <div class="global-cell"><div class="gn" style="${blocksLate.length?'color:var(--red)':''}">${blocksLate.length}</div><div class="gl">Blocks late</div></div>
     </div>
+
+    <div class="section-title">Jobs <span class="count">${DATA.jobs.length}</span></div>
+    ${jobCards || `<div class="empty"><div class="ico">◎</div>No jobs yet.</div>`}
+
+    <div class="section-title">Phase progress</div>
+    ${phaseRows}
 
     <div class="section-title">Today's blocks <span class="count">${todayBlocks.length}</span></div>
     ${todayBlocks.length ? todayBlocks.map(b=>`
       <div class="card" onclick="openScheduleBlock('${b['Schedule ID']}')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div class="item-title">${b['Daily Task']}</div>
-        </div>
+        <div class="item-title">${b['Daily Task']}</div>
         <div class="item-meta">${statusBadge(b.Status)}${priorityBadge(b.Priority)}<span class="id-tag">${b['Time Block']} · ${b['Planned Hours']}h · ${b['Work Mode']}</span></div>
       </div>`).join('') : `<div class="empty"><div class="ico">◎</div>No scheduled blocks land on this date.</div>`}
 
-    <div class="section-title">Needs attention <span class="count">${overdue.length}</span></div>
-    ${overdue.length ? overdue.slice(0,5).map(t=>`
-      <div class="card" onclick="openTask('${t['Task ID']}')">
-        <div class="item-title">${t.Task}</div>
-        <div class="item-meta"><span class="id-tag">${t['Task ID']}</span>${statusBadge(t.Status)}${priorityBadge(t.Priority)}</div>
-      </div>`).join('') : `<div class="empty"><div class="ico">✓</div>Nothing overdue right now.</div>`}
+    <div class="section-title">Needs attention (all categories) <span class="count">${attention.length}</span></div>
+    ${attention.length ? attention.map((a,i)=>`
+      <div class="card" onclick="attentionClick(${i})">
+        <div class="item-title">${a.title||'Untitled'}</div>
+        <div class="item-sub">${a.sub}</div>
+        <div class="item-meta">${statusBadge(a.status)}${priorityBadge(a.pr)}</div>
+      </div>`).join('') : `<div class="empty"><div class="ico">✓</div>Nothing needs attention right now.</div>`}
   `;
   document.getElementById('screen-home').innerHTML = html;
+  window._attention = attention;
 }
+function attentionClick(i){ window._attention[i].open(); }
 
 /* ---------- TASKS ---------- */
 function renderTasks(){
@@ -348,7 +517,7 @@ function renderTasks(){
       <div class="card" onclick="openTask('${t['Task ID']}')">
         <div class="item-title">${t.Task}</div>
         <div class="item-sub">${t.Category}${t.Owner?' · '+t.Owner:''}</div>
-        <div class="item-meta"><span class="id-tag">${t['Task ID']}</span>${statusBadge(t.Status)}${priorityBadge(t.Priority)}</div>
+        <div class="item-meta"><span class="id-tag">${t['Task ID']}</span>${statusBadge(t.Status)}${priorityBadge(t.Priority)}${jobBadge(t['Job ID'])}</div>
       </div>`).join('') || `<div class="empty"><div class="ico">∅</div>No tasks match.</div>`}
   `;
   document.getElementById('screen-tasks').innerHTML = html;
@@ -356,29 +525,88 @@ function renderTasks(){
 }
 function setTaskFilter(p){ state.taskFilter = p; renderTasks(); }
 
-/* ---------- SCHEDULE ---------- */
+/* ---------- SCHEDULE (real-time, multiple view modes) ---------- */
+const SCHEDULE_VIEWS = [
+  {id:'day', label:'Day'}, {id:'week', label:'Week'}, {id:'month', label:'Month'},
+  {id:'job', label:'Job'}, {id:'client', label:'Client'}, {id:'late', label:'Late'}
+];
+function setScheduleView(v){ state.scheduleView = v; renderSchedule(); }
+
+function scheduleBlockRow(b){
+  const late = isLate(b['Work Date'], b.Status);
+  return `<div class="block-row" onclick="openScheduleBlock('${b['Schedule ID']}')">
+    <div class="block-time">${b['Time Block']||''}</div>
+    <div class="block-dot ${late?'dot-late':(b['Work Mode']==='Field'?'dot-field':'dot-desk')}"></div>
+    <div style="flex:1;">
+      <div class="item-title" style="font-size:13px;">${b['Daily Task']}</div>
+      <div class="item-meta">${statusBadge(b.Status)}${late?'<span class="badge b-recheck">Late</span>':''}<span class="id-tag">${formatDateFull(b['Work Date'])} · ${b['Planned Hours']}h</span>${jobBadge(b['Job ID'])}</div>
+    </div>
+  </div>`;
+}
+
 function renderSchedule(){
-  const days = {};
-  DATA.dailySchedule.forEach(b=>{ (days[b['Work Date']] = days[b['Work Date']] || []).push(b); });
-  const dates = Object.keys(days).sort();
-  let html = '';
-  dates.forEach(date=>{
-    const cal = DATA.dailyCalendar.find(d=>d.Date===date);
-    const isToday = date === TODAY;
-    html += `<div class="day-head"><div class="d1">${cal?cal.Day:''} · ${date}${isToday?' <span style=\"color:var(--flag)\">● today</span>':''}</div><div class="d2">Day ${cal?cal['Day #']:''}/${DATA.dailyCalendar.length}</div></div>`;
-    html += `<div class="card" style="padding:4px 14px;">`;
-    days[date].forEach(b=>{
-      html += `<div class="block-row" onclick="openScheduleBlock('${b['Schedule ID']}')">
-        <div class="block-time">${b['Time Block']}</div>
-        <div class="block-dot ${b['Work Mode']==='Field'?'dot-field':'dot-desk'}"></div>
-        <div style="flex:1;">
-          <div class="item-title" style="font-size:13px;">${b['Daily Task']}</div>
-          <div class="item-meta">${statusBadge(b.Status)}<span class="id-tag">${b['Planned Hours']}h</span></div>
-        </div>
-      </div>`;
+  const T = today();
+  const blocks = DATA.dailySchedule;
+  const view = state.scheduleView;
+
+  let html = `<div class="chip-row">${SCHEDULE_VIEWS.map(v=>`<div class="chip ${view===v.id?'active':''}" onclick="setScheduleView('${v.id}')">${v.label}</div>`).join('')}</div>`;
+
+  if(view==='late'){
+    const late = blocks.filter(b=>isLate(b['Work Date'], b.Status)).sort((a,b)=>a['Work Date']<b['Work Date']?-1:1);
+    html += `<div class="section-title">Late blocks — live <span class="count">${late.length}</span></div>`;
+    html += late.length ? `<div class="card" style="padding:4px 14px;">${late.map(scheduleBlockRow).join('')}</div>` : `<div class="empty"><div class="ico">✓</div>Nothing is late right now.</div>`;
+  }
+  else if(view==='job' || view==='client'){
+    const groups = {};
+    blocks.forEach(b=>{
+      const j = jobById(b['Job ID']);
+      const key = view==='job' ? (j ? j['Job Name'] : (b['Job ID']||'Unassigned')) : (j ? j.Client : 'Unassigned');
+      (groups[key] = groups[key] || []).push(b);
     });
-    html += `</div>`;
-  });
+    Object.keys(groups).sort().forEach(key=>{
+      const rows = groups[key].sort((a,b)=>a['Work Date']<b['Work Date']?-1:1);
+      html += `<div class="day-head"><div class="d1">${key}</div><div class="d2">${rows.length} blocks</div></div>`;
+      html += `<div class="card" style="padding:4px 14px;">${rows.map(scheduleBlockRow).join('')}</div>`;
+    });
+  }
+  else if(view==='week'){
+    const groups = {};
+    blocks.forEach(b=>{
+      const wk = b['Week'] || '—';
+      (groups[wk] = groups[wk] || []).push(b);
+    });
+    Object.keys(groups).sort((a,b)=>Number(a)-Number(b)).forEach(wk=>{
+      const rows = groups[wk].sort((a,b)=>a['Work Date']<b['Work Date']?-1:1);
+      const isCurrentWeek = rows.some(r=>r['Work Date']===T);
+      html += `<div class="day-head"><div class="d1">Week ${wk}${isCurrentWeek?' <span style="color:var(--flag)">● current</span>':''}</div><div class="d2">${rows.length} blocks</div></div>`;
+      html += `<div class="card" style="padding:4px 14px;">${rows.map(scheduleBlockRow).join('')}</div>`;
+    });
+  }
+  else if(view==='month'){
+    const groups = {};
+    blocks.forEach(b=>{
+      const m = (b['Work Date']||'').slice(0,7);
+      (groups[m] = groups[m] || []).push(b);
+    });
+    Object.keys(groups).sort().forEach(m=>{
+      const rows = groups[m].sort((a,b)=>a['Work Date']<b['Work Date']?-1:1);
+      const d = new Date(m+'-01T00:00:00');
+      const label = isNaN(d.getTime()) ? m : `${MON[d.getMonth()]}-${d.getFullYear()}`;
+      const isCurrentMonth = m === T.slice(0,7);
+      html += `<div class="day-head"><div class="d1">${label}${isCurrentMonth?' <span style="color:var(--flag)">● current</span>':''}</div><div class="d2">${rows.length} blocks</div></div>`;
+      html += `<div class="card" style="padding:4px 14px;">${rows.map(scheduleBlockRow).join('')}</div>`;
+    });
+  }
+  else { // day (default)
+    const days = {};
+    blocks.forEach(b=>{ (days[b['Work Date']] = days[b['Work Date']] || []).push(b); });
+    Object.keys(days).sort().forEach(date=>{
+      const cal = DATA.dailyCalendar.find(d=>d.Date===date);
+      const isToday = date === T;
+      html += `<div class="day-head"><div class="d1">${cal?cal.Day:''} · ${formatDateFull(date)}${isToday?' <span style="color:var(--flag)">● today</span>':''}</div><div class="d2">Day ${cal?cal['Day #']:''}/${DATA.dailyCalendar.length}</div></div>`;
+      html += `<div class="card" style="padding:4px 14px;">${days[date].map(scheduleBlockRow).join('')}</div>`;
+    });
+  }
   document.getElementById('screen-schedule').innerHTML = html || `<div class="empty">No schedule data.</div>`;
 }
 
@@ -397,7 +625,7 @@ function renderMeasure(){
           <div class="measure-fig">${m.Feet}' ${m.Inches}"</div>
         </div>
         <div class="item-sub">${m['From / Datum']} → ${m['To / Point']}</div>
-        <div class="item-meta"><span class="id-tag">${m['Measurement ID']}</span>${statusBadge(m.Status)}<span class="tol">${m['Tolerance / Accuracy']||''}</span></div>
+        <div class="item-meta"><span class="id-tag">${m['Measurement ID']}</span>${statusBadge(m.Status)}<span class="tol">${m['Tolerance / Accuracy']||''}</span>${jobBadge(m['Job ID'])}</div>
       </div>`).join('')}
   `;
   document.getElementById('screen-measure').innerHTML = html;
@@ -413,7 +641,7 @@ function renderPhotos(){
       <div class="card" onclick="openPhoto('${p['Photo ID']}')">
         <div class="item-title">${p['Required View / Subject']}</div>
         <div class="item-sub">${p['Capture Point']} · ${p.Direction}</div>
-        <div class="item-meta"><span class="id-tag">${p['Photo ID']}</span>${statusBadge(p.Status)}</div>
+        <div class="item-meta"><span class="id-tag">${p['Photo ID']}</span>${statusBadge(p.Status)}${jobBadge(p['Job ID'])}</div>
       </div>`).join('')}
   `;
   document.getElementById('screen-photos').innerHTML = html;
@@ -426,47 +654,44 @@ function renderMaterials(){
       <div class="card" onclick="openMaterial('${m['Item ID']}')">
         <div class="item-title">${m['Item Description']}</div>
         <div class="item-sub">${m.Category} · ${m['Existing / New']}${m.Quantity?' · '+m.Quantity+' '+m.Unit:''}</div>
-        <div class="item-meta"><span class="id-tag">${m['Item ID']}</span>${statusBadge(m['Verification Status'])}</div>
+        <div class="item-meta"><span class="id-tag">${m['Item ID']}</span>${statusBadge(m['Verification Status'])}${jobBadge(m['Job ID'])}</div>
       </div>`).join('')}`;
   document.getElementById('screen-materials').innerHTML = html;
 }
 
-/* ---------- LOG (decisions) ---------- */
+/* ---------- DECISIONS LOG ---------- */
 function renderLog(){
   let html = `<div class="section-title">Decision & revision log <span class="count">${DATA.decisions.length}</span></div>
     ${DATA.decisions.map(d=>`
       <div class="card" onclick="openDecision('${d['Decision ID']}')">
         <div class="item-title">${d.Subject}</div>
         <div class="item-sub">${d['Decision / Revision']}</div>
-        <div class="item-meta"><span class="id-tag">${d['Decision ID']} · ${d.Date}</span>${statusBadge(d.Status)}</div>
+        <div class="item-meta"><span class="id-tag">${d['Decision ID']} · ${formatDateFull(d.Date)}</span>${statusBadge(d.Status)}${jobBadge(d['Job ID'])}</div>
       </div>`).join('')}`;
   document.getElementById('screen-log').innerHTML = html;
 }
 
-/* ---------- SHEET (detail modal) ---------- */
-function openSheet(title, rows){
-  document.getElementById('sheetBody').innerHTML = `<h2>${title}</h2>` + rows.filter(r=>r[1]!==undefined && r[1]!==null && r[1]!=='').map(r=>`<div class="row"><div class="k">${r[0]}</div><div class="v">${r[1]}</div></div>`).join('');
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
-}
+document.getElementById('sheetClose').onclick = closeSheet;
+document.getElementById('overlay').onclick = closeSheet;
 function closeSheet(){
   document.getElementById('sheet').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
 }
-document.getElementById('sheetClose').onclick = closeSheet;
-document.getElementById('overlay').onclick = closeSheet;
+function openSheetRaw(){
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
 
 /* ---------- EDIT INFRASTRUCTURE ---------- */
 const SCHEMAS = {
-  task:     {idField:'Task ID', arr:'tasks', prefix:'TASK', fields:['Task ID','Phase','Category','Task','Status','Priority','Owner','Dependency','Planned Date','Completed Date','Completion / Evidence Requirement','Evidence Reference / File Name','Coordinate / Location','Notes']},
-  block:    {idField:'Schedule ID', arr:'dailySchedule', prefix:'BLK', fields:['Schedule ID','Work Date','Day','Phase','Time Block','Task ID(s)','Daily Task','Planned Hours','Priority','Work Mode','Status']},
-  measure:  {idField:'Measurement ID', arr:'measurements', prefix:'MEAS', fields:['Measurement ID','Zone','Element','From / Datum','To / Point','Direction / Method','Feet','Inches','Decimal Feet','Tolerance / Accuracy','Status','Date','Linked Task','Notes']},
-  material: {idField:'Item ID', arr:'materials', prefix:'MAT', fields:['Item ID','Item Description','Category','Existing / New','Quantity','Unit','Dimensions / Specification','Condition','Intended Use','Verification Status','Source / Store','Notes']},
-  decision: {idField:'Decision ID', arr:'decisions', prefix:'DEC', fields:['Decision ID','Date','Subject','Decision / Revision','Reason','Affects','Revision','Status','Approved By','Evidence Reference','Notes']},
-  photo:    {idField:'Photo ID', arr:'photos', prefix:'PH', fields:['Photo ID','Required View / Subject','Capture Point','Direction','Include Scale','Expected File Name','Status','Linked Task','Coordinates','Notes']}
+  task:     {idField:'Task ID', arr:'tasks', fields:['Task ID','Job ID','Phase','Category','Task','Status','Priority','Owner','Dependency','Planned Date','Completed Date','Completion / Evidence Requirement','Evidence Reference / File Name','Coordinate / Location','Notes']},
+  block:    {idField:'Schedule ID', arr:'dailySchedule', fields:['Schedule ID','Job ID','Work Date','Day','Week','Phase','Time Block','Task ID(s)','Daily Task','Planned Hours','Priority','Work Mode','Status']},
+  measure:  {idField:'Measurement ID', arr:'measurements', fields:['Measurement ID','Job ID','Zone','Element','From / Datum','To / Point','Direction / Method','Feet','Inches','Decimal Feet','Tolerance / Accuracy','Status','Date','Linked Task','Notes']},
+  material: {idField:'Item ID', arr:'materials', fields:['Item ID','Job ID','Item Description','Category','Existing / New','Quantity','Unit','Dimensions / Specification','Condition','Intended Use','Verification Status','Source / Store','Notes']},
+  decision: {idField:'Decision ID', arr:'decisions', fields:['Decision ID','Job ID','Date','Subject','Decision / Revision','Reason','Affects','Revision','Status','Approved By','Evidence Reference','Notes']},
+  photo:    {idField:'Photo ID', arr:'photos', fields:['Photo ID','Job ID','Required View / Subject','Capture Point','Direction','Include Scale','Expected File Name','Status','Linked Task','Coordinates','Notes']}
 };
-const OPEN_FN = {}; // filled in below once open* functions are defined
-
+const OPEN_FN = {};
 const TASK_PHASE_PREFIX = {
   'Project Controls':'PC','Existing Conditions':'PH','Measurements':'MS','Materials':'MT',
   'Drawings':'DR','BOM & Costing':'BOM','Review & Approval':'RV'
@@ -496,7 +721,6 @@ function generateId(kind, phase){
   const prefix = rule.prefixFromPhase ? (TASK_PHASE_PREFIX[phase] || 'GEN') : rule.prefix;
   return nextIdForPrefix(DATA[s.arr], s.idField, prefix, rule.pad);
 }
-
 function findRecord(kind, id){
   const s = SCHEMAS[kind];
   return DATA[s.arr].find(x=>x[s.idField]===id);
@@ -515,17 +739,22 @@ function editRow(kind, id, label, field, value, opts){
   const oc = `updateField('${kind}','${String(id).replace(/'/g,"\\'")}','${field}',this.value)`;
   if(opts.select){
     const options = opts.select.map(o=>`<option value="${esc(o)}" ${o===value?'selected':''}>${o}</option>`).join('');
-    return `<div class="row"><div class="k">${label}</div><select onchange="${oc}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;">${options}</select></div>`;
+    return `<div class="row"><div class="k">${label}</div><select onchange="${oc}">${options}</select></div>`;
   }
   if(opts.textarea){
-    return `<div class="row"><div class="k">${label}</div><textarea onblur="${oc}" rows="3" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;font-family:'Inter';resize:vertical;">${esc(value)}</textarea></div>`;
+    return `<div class="row"><div class="k">${label}</div><textarea onblur="${oc}" rows="3">${esc(value)}</textarea></div>`;
   }
-  return `<div class="row"><div class="k">${label}</div><input type="${opts.type||'text'}" value="${esc(value)}" onblur="${oc}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;margin-top:4px;font-family:'IBM Plex Mono';"></div>`;
+  return `<div class="row"><div class="k">${label}</div><input type="${opts.type||'text'}" value="${esc(value)}" onblur="${oc}"></div>`;
 }
-function addNew(kind, phase){
+function jobSelectRow(kind, id, currentJobId){
+  const options = DATA.jobs.map(j=>`<option value="${j['Job ID']}" ${j['Job ID']===currentJobId?'selected':''}>${j['Job Name']} · ${j.Client} (${j['Job ID']})</option>`).join('');
+  return `<div class="row"><div class="k">Job / Client</div><select onchange="updateField('${kind}','${String(id).replace(/'/g,"\\'")}','Job ID',this.value)">${options}</select></div>`;
+}
+function addNew(kind, phase, jobId){
   const s = SCHEMAS[kind];
   const rec = {}; s.fields.forEach(f=>rec[f]='');
   if(kind==='task' && phase) rec.Phase = phase;
+  rec['Job ID'] = jobId || currentJobId();
   const newId = generateId(kind, phase);
   rec[s.idField] = newId;
   if('Status' in rec) rec.Status = 'Not Started';
@@ -542,8 +771,7 @@ function openPhasePicker(){
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
       ${phases.map(p=>`<button class="chip" style="margin:0;" onclick="addNew('task','${p.replace(/'/g,"\\'")}')">${p} <span class="mono" style="opacity:.55">${TASK_PHASE_PREFIX[p]}</span></button>`).join('')}
     </div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 
 /* ---------- DETAIL / EDIT SHEETS ---------- */
@@ -554,26 +782,28 @@ function openTask(id){
     editRow('task',id,'Status','Status',t.Status,{select:STATUS_OPTIONS}) +
     editRow('task',id,'Priority','Priority',t.Priority,{select:['Critical','High','Normal','Low']}) +
     `<div class="row"><div class="k">Phase</div><div class="v">${t.Phase||'—'} <span class="mono" style="color:var(--muted-2);font-size:11px;">fixes ID prefix, set at creation</span></div></div>` +
+    jobSelectRow('task', id, t['Job ID']) +
     editRow('task',id,'Category','Category',t.Category) +
     editRow('task',id,'Owner','Owner',t.Owner) +
     editRow('task',id,'Dependency','Dependency',t.Dependency) +
     editRow('task',id,'Planned date','Planned Date',t['Planned Date'],{type:'date'}) +
     editRow('task',id,'Completed date','Completed Date',t['Completed Date'],{type:'date'}) +
     editRow('task',id,'Evidence needed','Completion / Evidence Requirement',t['Completion / Evidence Requirement'],{textarea:true}) +
-    editRow('task',id,'Evidence ref','Evidence Reference / File Name',t['Evidence Reference / File Name']) +
+    editRow('task',id,'Evidence reference','Evidence Reference / File Name',t['Evidence Reference / File Name']) +
     editRow('task',id,'Location','Coordinate / Location',t['Coordinate / Location']) +
     editRow('task',id,'Notes','Notes',t.Notes,{textarea:true}) +
     `<div class="id-tag" style="margin-top:10px;">${t['Task ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 function openScheduleBlock(id){
   const b = DATA.dailySchedule.find(x=>x['Schedule ID']===id); if(!b) return;
   document.getElementById('sheetBody').innerHTML = `<h2>${b['Daily Task'] || 'New block'}</h2>` +
     editRow('block',id,'Task','Daily Task',b['Daily Task']) +
     editRow('block',id,'Status','Status',b.Status,{select:STATUS_OPTIONS}) +
+    jobSelectRow('block', id, b['Job ID']) +
     editRow('block',id,'Date','Work Date',b['Work Date'],{type:'date'}) +
     editRow('block',id,'Day','Day',b.Day) +
+    editRow('block',id,'Week','Week',b.Week) +
     editRow('block',id,'Phase','Phase',b.Phase) +
     editRow('block',id,'Time block','Time Block',b['Time Block']) +
     editRow('block',id,'Related tasks','Task ID(s)',b['Task ID(s)']) +
@@ -581,14 +811,14 @@ function openScheduleBlock(id){
     editRow('block',id,'Priority','Priority',b.Priority,{select:['Critical','High','Normal','Low']}) +
     editRow('block',id,'Work mode','Work Mode',b['Work Mode'],{select:['Field','Desk']}) +
     `<div class="id-tag" style="margin-top:10px;">${b['Schedule ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 function openMeasurement(id){
   const m = DATA.measurements.find(x=>x['Measurement ID']===id); if(!m) return;
   document.getElementById('sheetBody').innerHTML = `<h2>${m.Element || 'New measurement'}</h2>` +
     editRow('measure',id,'Element','Element',m.Element) +
     editRow('measure',id,'Status','Status',m.Status,{select:STATUS_OPTIONS}) +
+    jobSelectRow('measure', id, m['Job ID']) +
     editRow('measure',id,'Zone','Zone',m.Zone) +
     editRow('measure',id,'From','From / Datum',m['From / Datum']) +
     editRow('measure',id,'To','To / Point',m['To / Point']) +
@@ -600,30 +830,30 @@ function openMeasurement(id){
     editRow('measure',id,'Linked task','Linked Task',m['Linked Task']) +
     editRow('measure',id,'Notes','Notes',m.Notes,{textarea:true}) +
     `<div class="id-tag" style="margin-top:10px;">${m['Measurement ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 function openPhoto(id){
   const p = DATA.photos.find(x=>x['Photo ID']===id); if(!p) return;
   document.getElementById('sheetBody').innerHTML = `<h2>${p['Required View / Subject'] || 'New photo'}</h2>` +
     editRow('photo',id,'Subject','Required View / Subject',p['Required View / Subject']) +
     editRow('photo',id,'Status','Status',p.Status,{select:STATUS_OPTIONS}) +
+    jobSelectRow('photo', id, p['Job ID']) +
     editRow('photo',id,'Capture point','Capture Point',p['Capture Point']) +
     editRow('photo',id,'Direction','Direction',p.Direction) +
     editRow('photo',id,'Include scale','Include Scale',p['Include Scale']) +
     editRow('photo',id,'File name','Expected File Name',p['Expected File Name']) +
     editRow('photo',id,'Linked task','Linked Task',p['Linked Task']) +
-    editRow('photo',id,'Coordinates','Coordinates',p.Coordinates) +
+    editRow('photo',id,'Site location','Coordinates',p.Coordinates) +
     editRow('photo',id,'Notes','Notes',p.Notes,{textarea:true}) +
     `<div class="id-tag" style="margin-top:10px;">${p['Photo ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 function openMaterial(id){
   const m = DATA.materials.find(x=>x['Item ID']===id); if(!m) return;
   document.getElementById('sheetBody').innerHTML = `<h2>${m['Item Description'] || 'New material'}</h2>` +
     editRow('material',id,'Description','Item Description',m['Item Description']) +
-    editRow('material',id,'Verification','Verification Status',m['Verification Status'],{select:STATUS_OPTIONS}) +
+    editRow('material',id,'Status','Verification Status',m['Verification Status'],{select:STATUS_OPTIONS}) +
+    jobSelectRow('material', id, m['Job ID']) +
     editRow('material',id,'Category','Category',m.Category) +
     editRow('material',id,'Existing/new','Existing / New',m['Existing / New'],{select:['Existing','New']}) +
     editRow('material',id,'Quantity','Quantity',m.Quantity,{type:'number'}) +
@@ -634,25 +864,24 @@ function openMaterial(id){
     editRow('material',id,'Source','Source / Store',m['Source / Store']) +
     editRow('material',id,'Notes','Notes',m.Notes,{textarea:true}) +
     `<div class="id-tag" style="margin-top:10px;">${m['Item ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 function openDecision(id){
   const d = DATA.decisions.find(x=>x['Decision ID']===id); if(!d) return;
   document.getElementById('sheetBody').innerHTML = `<h2>${d.Subject || 'New decision'}</h2>` +
     editRow('decision',id,'Subject','Subject',d.Subject) +
     editRow('decision',id,'Status','Status',d.Status,{select:STATUS_OPTIONS}) +
+    jobSelectRow('decision', id, d['Job ID']) +
     editRow('decision',id,'Date','Date',d.Date,{type:'date'}) +
     editRow('decision',id,'Decision','Decision / Revision',d['Decision / Revision'],{textarea:true}) +
     editRow('decision',id,'Reason','Reason',d.Reason,{textarea:true}) +
     editRow('decision',id,'Affects','Affects',d.Affects) +
     editRow('decision',id,'Revision','Revision',d.Revision) +
     editRow('decision',id,'Approved by','Approved By',d['Approved By']) +
-    editRow('decision',id,'Evidence','Evidence Reference',d['Evidence Reference']) +
+    editRow('decision',id,'Evidence reference','Evidence Reference',d['Evidence Reference']) +
     editRow('decision',id,'Notes','Notes',d.Notes,{textarea:true}) +
     `<div class="id-tag" style="margin-top:10px;">${d['Decision ID']}</div>`;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+  openSheetRaw();
 }
 OPEN_FN.task = openTask; OPEN_FN.block = openScheduleBlock; OPEN_FN.measure = openMeasurement;
 OPEN_FN.photo = openPhoto; OPEN_FN.material = openMaterial; OPEN_FN.decision = openDecision;
@@ -687,37 +916,81 @@ function renderAll(){
   setTab(state.tab);
 }
 
-/* ---------- SETTINGS / GITHUB SYNC ---------- */
-function openSettings(){
-  document.getElementById('sheetBody').innerHTML = `
-    <h2>GitHub sync</h2>
-    <p style="color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:-4px;">
+/* ---------- SETTINGS (global menu: Preferences / Jobs & Clients / Sync) ---------- */
+let settingsTab = 'prefs';
+function openSettings(tab){
+  settingsTab = tab || settingsTab || 'prefs';
+  const tabs = [
+    {id:'prefs', label:'Preferences'},
+    {id:'jobs', label:'Jobs & Clients'},
+    {id:'sync', label:'Sync'}
+  ];
+  let body = `<h2>Settings</h2>
+    <div class="settings-tabs">${tabs.map(t=>`<button class="settings-tab ${settingsTab===t.id?'active':''}" onclick="openSettings('${t.id}')">${t.label}</button>`).join('')}</div>`;
+
+  if(settingsTab==='prefs'){
+    const themes = [
+      {id:'dark-amber', name:'Dark · Amber'},
+      {id:'dark-teal', name:'Dark · Teal'},
+      {id:'light', name:'Light'}
+    ];
+    body += `<div class="row"><div class="k">Theme</div>
+      <div class="theme-swatch-row">
+        ${themes.map(t=>`<div title="${t.name}" class="theme-swatch ${PREFS.theme===t.id?'selected':''}" data-theme="${t.id}" onclick="setTheme('${t.id}')" style="background:${t.id==='light'?'#f4f5f7':(t.id==='dark-teal'?'#0f1517':'#12151a')}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="row"><div class="k">Date format</div><div class="v">Full — e.g. ${formatDateFull(today())}</div></div>`;
+  }
+  else if(settingsTab==='jobs'){
+    body += `<div class="row"><div class="k">Existing jobs</div><div style="margin-top:8px;">
+      ${DATA.jobs.map(j=>`<div class="job-card"><div class="jc-top"><div><div class="jc-name">${j['Job Name']}</div><div class="jc-client">Client: ${j.Client}</div></div><span class="job-badge">${j['Job ID']}</span></div></div>`).join('') || '<div style="color:var(--muted);font-size:13px;">No jobs yet.</div>'}
+    </div></div>
+    <div class="row"><div class="k">Add a new job</div>
+      <input id="newJobName" placeholder="Job name" style="margin-top:6px;">
+      <input id="newJobClient" placeholder="Client name" style="margin-top:8px;">
+      <button class="primary-btn" style="margin-top:10px;" onclick="submitNewJob()">Add job</button>
+    </div>`;
+  }
+  else if(settingsTab==='sync'){
+    body += `<p style="color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:-4px;">
       Paste a fine-grained personal access token scoped to just this repo, with <b>Contents: Read & Write</b> permission.
-      The token is kept in memory only — it clears when you close the tab and is never saved to disk.
     </p>
     <div class="row"><div class="k">Owner / Repo</div>
       <div style="display:flex;gap:6px;margin-top:4px;">
-        <input id="ghOwner" value="${GH.owner}" style="flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;">
-        <input id="ghRepo" value="${GH.repo}" style="flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;">
+        <input id="ghOwner" value="${GH.owner}" style="flex:1;">
+        <input id="ghRepo" value="${GH.repo}" style="flex:1;">
       </div>
     </div>
-    <div class="row"><div class="k">Branch</div>
-      <input id="ghBranch" value="${GH.branch}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
+    <div class="row"><div class="k">Branch</div><input id="ghBranch" value="${GH.branch}"></div>
+    <div class="row"><div class="k">Path to data.json in repo</div><input id="ghPath" value="${GH.path}"></div>
+    <div class="row"><div class="k">Personal access token</div><input id="ghToken" type="password" value="${GH.token}" placeholder="github_pat_..."></div>
+    <div class="row" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="ghRemember" ${GH.remember?'checked':''} style="width:auto;margin:0;">
+      <label for="ghRemember" style="font-size:12.5px;color:var(--muted);">Remember token on this device (stored in this browser only, until you forget it)</label>
     </div>
-    <div class="row"><div class="k">Path to data.json in repo</div>
-      <input id="ghPath" value="${GH.path}" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
-    </div>
-    <div class="row"><div class="k">Personal access token</div>
-      <input id="ghToken" type="password" value="${GH.token}" placeholder="github_pat_..." style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'IBM Plex Mono';font-size:12px;margin-top:4px;">
-    </div>
-    <div class="row"><div class="k">Commit message</div>
-      <input id="ghMsg" placeholder="Update task/schedule status" style="width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'Inter';font-size:13px;margin-top:4px;">
-    </div>
+    <div class="row"><div class="k">Commit message</div><input id="ghMsg" placeholder="Update task/schedule status" style="font-family:'Inter';"></div>
     <div id="ghStatus" style="font-size:12px;color:var(--muted);margin-top:10px;min-height:16px;"></div>
-    <button onclick="doCommit()" style="width:100%;background:var(--flag);color:#1a0e06;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:14px;margin-top:6px;">Commit ${DIRTY ? 'changes' : '(no local changes)'} to GitHub</button>
-  `;
-  document.getElementById('sheet').classList.add('open');
-  document.getElementById('overlay').classList.add('open');
+    <button class="primary-btn" onclick="doCommit()">Commit ${DIRTY ? 'changes' : '(no local changes)'} to GitHub</button>
+    ${GH.remember || GH.token ? `<button class="ghost-btn" style="margin-top:8px;" onclick="forgetCredentials()">Forget saved token</button>` : ''}`;
+  }
+
+  document.getElementById('sheetBody').innerHTML = body;
+  openSheetRaw();
+}
+function setTheme(id){
+  PREFS.theme = id;
+  applyTheme(id);
+  savePrefs();
+  openSettings('prefs');
+}
+function submitNewJob(){
+  const name = document.getElementById('newJobName').value.trim();
+  const client = document.getElementById('newJobClient').value.trim();
+  if(!name || !client) return;
+  addJob(name, client);
+  document.getElementById('newJobName').value = '';
+  document.getElementById('newJobClient').value = '';
+  openSettings('jobs');
 }
 async function doCommit(){
   GH.owner = document.getElementById('ghOwner').value.trim();
@@ -725,7 +998,9 @@ async function doCommit(){
   GH.branch = document.getElementById('ghBranch').value.trim();
   GH.path = document.getElementById('ghPath').value.trim();
   GH.token = document.getElementById('ghToken').value.trim();
+  GH.remember = document.getElementById('ghRemember').checked;
   const msg = document.getElementById('ghMsg').value.trim();
+  saveGH();
   const statusEl = document.getElementById('ghStatus');
   if(!GH.token){ statusEl.textContent = 'Paste a token first.'; statusEl.style.color = 'var(--red)'; return; }
   statusEl.textContent = 'Committing…'; statusEl.style.color = 'var(--muted)';
@@ -740,28 +1015,12 @@ async function doCommit(){
     statusEl.style.color = 'var(--red)';
   }
 }
-document.getElementById('gearBtn').onclick = openSettings;
+document.getElementById('gearBtn').onclick = () => openSettings('prefs');
 
-/* ---------- INLINE STATUS EDITING ---------- */
-const STATUS_OPTIONS = ['Not Started','In Progress','Complete','On Hold','Field Verified','Recheck Required','User Supplied'];
-function statusPicker(kind, id, current){
-  const opts = STATUS_OPTIONS.map(s=>`<button class="chip ${s===current?'active':''}" style="margin:3px 4px 3px 0;" onclick="setStatus('${kind}','${id.replace(/'/g,"\\'")}','${s}')">${s}</button>`).join('');
-  return `<div class="row"><div class="k">Change status</div><div style="margin-top:6px;">${opts}</div></div>`;
-}
-function setStatus(kind, id, newStatus){
-  let rec;
-  if(kind==='task') rec = DATA.tasks.find(x=>x['Task ID']===id);
-  if(kind==='block') rec = DATA.dailySchedule.find(x=>x['Schedule ID']===id);
-  if(kind==='measure') rec = DATA.measurements.find(x=>x['Measurement ID']===id);
-  if(!rec) return;
-  rec.Status = newStatus;
-  markDirty();
-  if(kind==='task'){ renderTasks(); renderHome(); openTask(id); }
-  if(kind==='block'){ renderSchedule(); renderHome(); openScheduleBlock(id); }
-  if(kind==='measure'){ renderMeasure(); openMeasurement(id); }
-}
-
+/* ---------- INIT ---------- */
+loadLocalPrefs();
 loadData();
-</script>
+// keep "late" / "today" indicators genuinely real-time even if the tab is left open
+setInterval(()=>{ if(DATA){ renderHome(); if(state.tab==='schedule') renderSchedule(); } }, 60000);</script>
 </body>
 </html>
