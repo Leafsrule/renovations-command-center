@@ -461,15 +461,15 @@ function renderHome(){
 
     <div class="section-title">Global snapshot</div>
     <div class="global-grid">
-      <div class="global-cell"><div class="gn" style="color:var(--chalk)">${taskComplete}/${tasks.length}</div><div class="gl">Tasks done</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--flag)">${taskActive}</div><div class="gl">Tasks active</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--red)">${taskOverdue.length}</div><div class="gl">Tasks overdue</div></div>
-      <div class="global-cell"><div class="gn">${meas.length-measRecheck.length}/${meas.length}</div><div class="gl">Measured OK</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--red)">${measRecheck.length}</div><div class="gl">Recheck</div></div>
-      <div class="global-cell"><div class="gn">${matsVerified}/${mats.length}</div><div class="gl">Materials verified</div></div>
-      <div class="global-cell"><div class="gn">${photosCaptured}/${photos.length}</div><div class="gl">Photos captured</div></div>
-      <div class="global-cell"><div class="gn" style="${decsPending.length?'color:var(--amber)':''}">${decsPending.length}</div><div class="gl">Decisions pending</div></div>
-      <div class="global-cell"><div class="gn" style="${blocksLate.length?'color:var(--red)':''}">${blocksLate.length}</div><div class="gl">Blocks late</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--chalk)">${taskComplete}/${tasks.length}</div><div class="gl">Tasks done</div><div class="gp">${tasks.length?Math.round(taskComplete/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--flag)">${taskActive}</div><div class="gl">Tasks active</div><div class="gp">${tasks.length?Math.round(taskActive/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--red)">${taskOverdue.length}</div><div class="gl">Tasks overdue</div><div class="gp">${tasks.length?Math.round(taskOverdue.length/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell"><div class="gn">${meas.length-measRecheck.length}/${meas.length}</div><div class="gl">Measured OK</div><div class="gp">${meas.length?Math.round((meas.length-measRecheck.length)/meas.length*100):0}% of readings</div></div>
+      <div class="global-cell"><div class="gn" style="color:var(--red)">${measRecheck.length}</div><div class="gl">Recheck</div><div class="gp">${meas.length?Math.round(measRecheck.length/meas.length*100):0}% of readings</div></div>
+      <div class="global-cell"><div class="gn">${matsVerified}/${mats.length}</div><div class="gl">Materials verified</div><div class="gp">${mats.length?Math.round(matsVerified/mats.length*100):0}% of inventory</div></div>
+      <div class="global-cell"><div class="gn">${photosCaptured}/${photos.length}</div><div class="gl">Photos captured</div><div class="gp">${photos.length?Math.round(photosCaptured/photos.length*100):0}% of checklist</div></div>
+      <div class="global-cell"><div class="gn" style="${decsPending.length?'color:var(--amber)':''}">${decsPending.length}</div><div class="gl">Decisions pending</div><div class="gp">of ${decs.length} logged</div></div>
+      <div class="global-cell"><div class="gn" style="${blocksLate.length?'color:var(--red)':''}">${blocksLate.length}</div><div class="gl">Blocks late</div><div class="gp">${blocks.length?Math.round(blocksLate.length/blocks.length*100):0}% of ${blocks.length} blocks</div></div>
     </div>
 
     <div class="section-title">Jobs <span class="count">${DATA.jobs.length}</span></div>
