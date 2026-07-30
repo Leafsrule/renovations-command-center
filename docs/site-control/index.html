@@ -90,7 +90,8 @@
 
   /* Global snapshot grid (dashboard) */
   .global-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
-  .global-cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;}
+  .global-cell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;}
+  .global-cell:active{background:var(--surface-2);}
   .global-cell .gn{font-family:'Space Grotesk';font-size:17px;font-weight:700;}
   .global-cell .gl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
   .global-cell .gp{font-size:10px;color:var(--muted-2);font-family:'IBM Plex Mono';margin-top:1px;}
@@ -461,15 +462,15 @@ function renderHome(){
 
     <div class="section-title">Global snapshot</div>
     <div class="global-grid">
-      <div class="global-cell"><div class="gn" style="color:var(--chalk)">${taskComplete}/${tasks.length}</div><div class="gl">Tasks done</div><div class="gp">${tasks.length?Math.round(taskComplete/tasks.length*100):0}% of all tasks</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--flag)">${taskActive}</div><div class="gl">Tasks active</div><div class="gp">${tasks.length?Math.round(taskActive/tasks.length*100):0}% of all tasks</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--red)">${taskOverdue.length}</div><div class="gl">Tasks overdue</div><div class="gp">${tasks.length?Math.round(taskOverdue.length/tasks.length*100):0}% of all tasks</div></div>
-      <div class="global-cell"><div class="gn">${meas.length-measRecheck.length}/${meas.length}</div><div class="gl">Measured OK</div><div class="gp">${meas.length?Math.round((meas.length-measRecheck.length)/meas.length*100):0}% of readings</div></div>
-      <div class="global-cell"><div class="gn" style="color:var(--red)">${measRecheck.length}</div><div class="gl">Recheck</div><div class="gp">${meas.length?Math.round(measRecheck.length/meas.length*100):0}% of readings</div></div>
-      <div class="global-cell"><div class="gn">${matsVerified}/${mats.length}</div><div class="gl">Materials verified</div><div class="gp">${mats.length?Math.round(matsVerified/mats.length*100):0}% of inventory</div></div>
-      <div class="global-cell"><div class="gn">${photosCaptured}/${photos.length}</div><div class="gl">Photos captured</div><div class="gp">${photos.length?Math.round(photosCaptured/photos.length*100):0}% of checklist</div></div>
-      <div class="global-cell"><div class="gn" style="${decsPending.length?'color:var(--amber)':''}">${decsPending.length}</div><div class="gl">Decisions pending</div><div class="gp">of ${decs.length} logged</div></div>
-      <div class="global-cell"><div class="gn" style="${blocksLate.length?'color:var(--red)':''}">${blocksLate.length}</div><div class="gl">Blocks late</div><div class="gp">${blocks.length?Math.round(blocksLate.length/blocks.length*100):0}% of ${blocks.length} blocks</div></div>
+      <div class="global-cell" onclick="goToModule('tasks')"><div class="gn" style="color:var(--chalk)">${taskComplete}/${tasks.length}</div><div class="gl">Tasks done</div><div class="gp">${tasks.length?Math.round(taskComplete/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell" onclick="goToModule('tasks')"><div class="gn" style="color:var(--flag)">${taskActive}</div><div class="gl">Tasks active</div><div class="gp">${tasks.length?Math.round(taskActive/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell" onclick="goToModule('tasks')"><div class="gn" style="color:var(--red)">${taskOverdue.length}</div><div class="gl">Tasks overdue</div><div class="gp">${tasks.length?Math.round(taskOverdue.length/tasks.length*100):0}% of all tasks</div></div>
+      <div class="global-cell" onclick="goToModule('measure')"><div class="gn">${meas.length-measRecheck.length}/${meas.length}</div><div class="gl">Measured OK</div><div class="gp">${meas.length?Math.round((meas.length-measRecheck.length)/meas.length*100):0}% of readings</div></div>
+      <div class="global-cell" onclick="goToModule('measure')"><div class="gn" style="color:var(--red)">${measRecheck.length}</div><div class="gl">Recheck</div><div class="gp">${meas.length?Math.round(measRecheck.length/meas.length*100):0}% of readings</div></div>
+      <div class="global-cell" onclick="goToModule('materials')"><div class="gn">${matsVerified}/${mats.length}</div><div class="gl">Materials verified</div><div class="gp">${mats.length?Math.round(matsVerified/mats.length*100):0}% of inventory</div></div>
+      <div class="global-cell" onclick="goToModule('photos')"><div class="gn">${photosCaptured}/${photos.length}</div><div class="gl">Photos captured</div><div class="gp">${photos.length?Math.round(photosCaptured/photos.length*100):0}% of checklist</div></div>
+      <div class="global-cell" onclick="goToModule('log')"><div class="gn" style="${decsPending.length?'color:var(--amber)':''}">${decsPending.length}</div><div class="gl">Decisions pending</div><div class="gp">of ${decs.length} logged</div></div>
+      <div class="global-cell" onclick="goToModule('schedule','late')"><div class="gn" style="${blocksLate.length?'color:var(--red)':''}">${blocksLate.length}</div><div class="gl">Blocks late</div><div class="gp">${blocks.length?Math.round(blocksLate.length/blocks.length*100):0}% of ${blocks.length} blocks</div></div>
     </div>
 
     <div class="section-title">Jobs <span class="count">${DATA.jobs.length}</span></div>
@@ -497,6 +498,10 @@ function renderHome(){
   window._attention = attention;
 }
 function attentionClick(i){ window._attention[i].open(); }
+function goToModule(tabId, scheduleView){
+  if(scheduleView){ state.scheduleView = scheduleView; renderSchedule(); }
+  setTab(tabId);
+}
 
 /* ---------- TASKS ---------- */
 function renderTasks(){
