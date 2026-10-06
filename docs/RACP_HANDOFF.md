@@ -5,8 +5,13 @@ Status: IN PROGRESS / EXTERNALLY BLOCKED. No production app completion is claime
 Repository: Leafsrule/renovations-command-center
 Branch: racp/rev02-completion
 Base: 37a83fb9ada89a05a43b0a01acdcccce3dd9a787
-Isolation checkpoint: cb92f5e
-Candidate commit: see branch HEAD (this handoff is committed with the candidate).
+Local isolation checkpoint: cb92f5e (retained in racp/local-checkpoint-20261006).
+Published application candidate: 4a7177772fb71998b7629d3ff0e5f744f4ec0e34
+Draft PR: https://github.com/Leafsrule/renovations-command-center/pull/8
+Published tree: a555f0098687aca5414e1ff0a01ee36a035fd023 (identical to locally tested tree).
+Later documentation-only commits do not change this application candidate.
+
+CLI git push had no HTTPS credentials. The authorized GitHub connector published the identical tree; remote content was fetched and compared successfully. Continue via the connector or an already authorized git credential. Do not force-push to reconcile local/remote author metadata.
 
 ## Resume without restarting
 
