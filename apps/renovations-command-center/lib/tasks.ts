@@ -1,0 +1,563 @@
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  runTransaction,
+  serverTimestamp
+} from "firebase/firestore";
+import { validateTaskEdit } from "./task-integrity";
+import { auth, db } from "@/lib/firebase";
+import {
+  evaluateTaskTransition,
+  type TaskExecutionAction,
+  type TaskTransitionContext
+} from "@/lib/task-execution";
+
+export type TaskStatus =
+  | "draft"
+  | "not_ready"
+  | "ready"
+  | "in_progress"
+  | "blocked"
+  | "waiting_curing"
+  | "qc_review"
+  | "complete"
+  | "rework_required"
+  | "cancelled";
+
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export type TaskPhase =
+  | "setup"
+  | "demolition"
+  | "prep"
+  | "rough_in"
+  | "waterproofing"
+  | "tile"
+  | "flooring"
+  | "drywall"
+  | "paint"
+  | "trim"
+  | "fixtures"
+  | "cleanup"
+  | "other";
+
+export type TaskReadinessState =
+  | "not_ready"
+  | "ready"
+  | "blocked"
+  | "needs_review";
+
+export type TaskBlockerType =
+  | "none"
+  | "dependency"
+  | "material"
+  | "site_condition"
+  | "labor"
+  | "access"
+  | "inspection"
+  | "client_decision"
+  | "weather"
+  | "safety"
+  | "other";
+
+export type TaskMaterialStatus =
+  | "not_required"
+  | "needed"
+  | "ordered"
+  | "partial"
+  | "ready"
+  | "blocked";
+
+export type TaskCriticalPathRisk = "none" | "low" | "medium" | "high";
+
+export type RenovationTask = {
+  id: string;
+  name: string;
+  roomId: string | null;
+  phase: TaskPhase;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  championPersonId: string | null;
+  helperPersonIds: string[];
+  dependencyTaskIds: string[];
+  helperRequired: boolean;
+  estimatedDurationMinutes: number | null;
+  actualDurationMinutes: number | null;
+  earliestStartDate: string | null;
+  dueDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  readinessState: TaskReadinessState;
+  readinessReasons: string[];
+  blockerType: TaskBlockerType;
+  blockerNotes: string;
+  blockedUntilDate: string | null;
+  materialStatus: TaskMaterialStatus;
+  materialItems: string[];
+  materialNotes: string;
+  materialNeededByDate: string | null;
+  materialBlockerNotes: string;
+  criticalPathRisk: TaskCriticalPathRisk;
+  photosRequired: boolean;
+  canRunConcurrent: boolean;
+  qcChecklist?: {label:string;required:boolean;passed:boolean}[];
+  completionOverrideReason?: string;
+  requiredItemsReady?: boolean;
+  evidenceCount?: number;
+  qcRequired?: boolean;
+  qcPassed?: boolean;
+  cureUntil?: string | null;
+  notes: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+export type TaskFormInput = {
+  expectedUpdatedAt?: string;
+  name: string;
+  roomId: string;
+  phase: TaskPhase;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  championPersonId: string;
+  helperPersonIds: string[];
+  dependencyTaskIds: string[];
+  helperRequired: boolean;
+  estimatedDurationMinutes: string;
+  earliestStartDate: string;
+  dueDate: string;
+  notes: string;
+  photosRequired: boolean;
+  canRunConcurrent: boolean;
+  criticalPathRisk: TaskCriticalPathRisk;
+  readinessState: TaskReadinessState;
+  readinessReasons: string[];
+  blockerType: TaskBlockerType;
+  blockerNotes: string;
+  blockedUntilDate: string;
+  materialStatus: TaskMaterialStatus;
+  materialItemsText: string;
+  materialNotes: string;
+  materialNeededByDate: string;
+  materialBlockerNotes: string;
+};
+
+export type TaskCount = {
+  total: number;
+};
+
+function requireDb() {
+  if (!db) {
+    throw new Error(
+      "Firestore is not configured yet. Check your Firebase values in .env.local."
+    );
+  }
+
+  return db;
+}
+
+function tasksCollection(projectId: string) {
+  return collection(requireDb(), "projects", projectId, "tasks");
+}
+
+function taskDocument(projectId: string, taskId: string) {
+  return doc(requireDb(), "projects", projectId, "tasks", taskId);
+}
+
+function nullableString(value: unknown) {
+  const stringValue = String(value || "").trim();
+
+  return stringValue || null;
+}
+
+function nullableNumber(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+function formDurationToNumber(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const numericValue = Number(trimmedValue);
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error("Estimated duration must be a number of minutes.");
+  }
+
+  const parsedValue = parseInt(trimmedValue, 10);
+
+  if (parsedValue < 0) {
+    throw new Error("Estimated duration cannot be negative.");
+  }
+
+  return parsedValue;
+}
+
+function parseMaterialItems(text: string): string[] {
+  return [
+    ...new Set(
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+    )
+  ];
+}
+
+function statusFromValue(value: unknown): TaskStatus {
+  const status = String(value || "draft");
+
+  if (
+    status === "draft" ||
+    status === "not_ready" ||
+    status === "ready" ||
+    status === "in_progress" ||
+    status === "blocked" ||
+    status === "waiting_curing" ||
+    status === "qc_review" ||
+    status === "complete" ||
+    status === "rework_required" ||
+    status === "cancelled"
+  ) {
+    return status;
+  }
+
+  return "draft";
+}
+
+function priorityFromValue(value: unknown): TaskPriority {
+  const priority = String(value || "medium");
+
+  if (
+    priority === "low" ||
+    priority === "medium" ||
+    priority === "high" ||
+    priority === "urgent"
+  ) {
+    return priority;
+  }
+
+  return "medium";
+}
+
+function phaseFromValue(value: unknown): TaskPhase {
+  const phase = String(value || "setup");
+
+  if (
+    phase === "setup" ||
+    phase === "demolition" ||
+    phase === "prep" ||
+    phase === "rough_in" ||
+    phase === "waterproofing" ||
+    phase === "tile" ||
+    phase === "flooring" ||
+    phase === "drywall" ||
+    phase === "paint" ||
+    phase === "trim" ||
+    phase === "fixtures" ||
+    phase === "cleanup" ||
+    phase === "other"
+  ) {
+    return phase;
+  }
+
+  return "setup";
+}
+
+function readinessFromValue(value: unknown): TaskReadinessState {
+  const readinessState = String(value || "not_ready");
+
+  if (
+    readinessState === "not_ready" ||
+    readinessState === "ready" ||
+    readinessState === "blocked" ||
+    readinessState === "needs_review"
+  ) {
+    return readinessState;
+  }
+
+  return "not_ready";
+}
+
+function blockerTypeFromValue(value: unknown): TaskBlockerType {
+  const blockerType = String(value || "none");
+
+  if (
+    blockerType === "none" ||
+    blockerType === "dependency" ||
+    blockerType === "material" ||
+    blockerType === "site_condition" ||
+    blockerType === "labor" ||
+    blockerType === "access" ||
+    blockerType === "inspection" ||
+    blockerType === "client_decision" ||
+    blockerType === "weather" ||
+    blockerType === "safety" ||
+    blockerType === "other"
+  ) {
+    return blockerType;
+  }
+
+  return "none";
+}
+
+function materialStatusFromValue(value: unknown): TaskMaterialStatus {
+  if (
+    value === "not_required" ||
+    value === "needed" ||
+    value === "ordered" ||
+    value === "partial" ||
+    value === "ready" ||
+    value === "blocked"
+  ) {
+    return value;
+  }
+
+  return "not_required";
+}
+
+function riskFromValue(value: unknown): TaskCriticalPathRisk {
+  const risk = String(value || "none");
+
+  if (risk === "low" || risk === "medium" || risk === "high") {
+    return risk;
+  }
+
+  return "none";
+}
+
+export function toTask(id: string, data: Record<string, unknown>): RenovationTask {
+  return {
+    id,
+    name: String(data.name || ""),
+    roomId: nullableString(data.roomId),
+    phase: phaseFromValue(data.phase),
+    description: String(data.description || ""),
+    status: statusFromValue(data.status),
+    priority: priorityFromValue(data.priority),
+    championPersonId: nullableString(data.championPersonId),
+    helperPersonIds: Array.isArray(data.helperPersonIds)
+      ? data.helperPersonIds.map(String)
+      : [],
+    dependencyTaskIds: Array.isArray(data.dependencyTaskIds)
+      ? data.dependencyTaskIds.filter(
+          (dependencyId): dependencyId is string =>
+            typeof dependencyId === "string"
+        )
+      : [],
+    helperRequired: Boolean(data.helperRequired),
+    estimatedDurationMinutes: nullableNumber(data.estimatedDurationMinutes),
+    actualDurationMinutes: nullableNumber(data.actualDurationMinutes),
+    earliestStartDate: nullableString(data.earliestStartDate),
+    dueDate: nullableString(data.dueDate),
+    scheduledStart: nullableString(data.scheduledStart),
+    scheduledEnd: nullableString(data.scheduledEnd),
+    readinessState: readinessFromValue(data.readinessState),
+    readinessReasons: Array.isArray(data.readinessReasons)
+      ? data.readinessReasons.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : [],
+    blockerType: blockerTypeFromValue(data.blockerType),
+    blockerNotes:
+      typeof data.blockerNotes === "string" ? data.blockerNotes : "",
+    blockedUntilDate:
+      typeof data.blockedUntilDate === "string" &&
+      data.blockedUntilDate !== ""
+        ? data.blockedUntilDate
+        : null,
+    materialStatus: materialStatusFromValue(data.materialStatus),
+    materialItems: Array.isArray(data.materialItems)
+      ? data.materialItems.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : [],
+    materialNotes:
+      typeof data.materialNotes === "string" ? data.materialNotes : "",
+    materialNeededByDate:
+      typeof data.materialNeededByDate === "string" &&
+      data.materialNeededByDate !== ""
+        ? data.materialNeededByDate
+        : null,
+    materialBlockerNotes:
+      typeof data.materialBlockerNotes === "string"
+        ? data.materialBlockerNotes
+        : "",
+    criticalPathRisk: riskFromValue(data.criticalPathRisk),
+    photosRequired: Boolean(data.photosRequired),
+    canRunConcurrent: Boolean(data.canRunConcurrent),
+    qcChecklist: Array.isArray(data.qcChecklist) ? data.qcChecklist : [],
+    completionOverrideReason: String(data.completionOverrideReason || ""),
+    requiredItemsReady: typeof data.requiredItemsReady === "boolean" ? data.requiredItemsReady : undefined,
+    evidenceCount: Number(data.evidenceCount || 0),
+    qcRequired: Boolean(data.qcRequired),
+    qcPassed: Boolean(data.qcPassed),
+    cureUntil: nullableString(data.cureUntil),
+    notes: String(data.notes || ""),
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt
+  };
+}
+
+export function taskFormToDuration(value: string) {
+  return formDurationToNumber(value);
+}
+
+export async function listProjectTasks(projectId: string) {
+  const snapshot = await getDocs(tasksCollection(projectId));
+  const tasks = snapshot.docs.map((taskDoc) =>
+    toTask(taskDoc.id, taskDoc.data())
+  );
+
+  return tasks.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function getProjectTask(projectId: string, taskId: string) {
+  const taskDoc = await getDoc(taskDocument(projectId, taskId));
+
+  if (!taskDoc.exists()) {
+    return null;
+  }
+
+  return toTask(taskDoc.id, taskDoc.data());
+}
+
+export async function countProjectTasks(
+  projectId: string
+): Promise<TaskCount> {
+  const tasks = await listProjectTasks(projectId);
+
+  return {
+    total: tasks.length
+  };
+}
+
+export async function createProjectTask(
+  projectId: string,
+  input: TaskFormInput
+) {
+  validateTaskEdit(input, await listProjectTasks(projectId));
+  await addDoc(tasksCollection(projectId), {
+    name: input.name.trim(),
+    roomId: nullableString(input.roomId),
+    phase: input.phase || "setup",
+    description: input.description.trim(),
+    status: input.status || "draft",
+    priority: input.priority || "medium",
+    championPersonId: nullableString(input.championPersonId),
+    helperPersonIds: input.helperPersonIds,
+    dependencyTaskIds: [...new Set(input.dependencyTaskIds)],
+    helperRequired: input.helperRequired,
+    estimatedDurationMinutes: formDurationToNumber(
+      input.estimatedDurationMinutes
+    ),
+    actualDurationMinutes: null,
+    earliestStartDate: nullableString(input.earliestStartDate),
+    dueDate: nullableString(input.dueDate),
+    scheduledStart: null,
+    scheduledEnd: null,
+    readinessState: input.readinessState,
+    readinessReasons: [...new Set(input.readinessReasons)],
+    blockerType: input.blockerType,
+    blockerNotes: input.blockerNotes.trim(),
+    blockedUntilDate: input.blockedUntilDate || null,
+    materialStatus: input.materialStatus,
+    materialItems: parseMaterialItems(input.materialItemsText),
+    materialNotes: input.materialNotes.trim(),
+    materialNeededByDate: input.materialNeededByDate || null,
+    materialBlockerNotes: input.materialBlockerNotes.trim(),
+    criticalPathRisk: input.criticalPathRisk || "none",
+    photosRequired: input.photosRequired,
+    canRunConcurrent: input.canRunConcurrent,
+    notes: input.notes.trim(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function updateProjectTask(
+  projectId: string,
+  taskId: string,
+  input: TaskFormInput
+) {
+  const knownTasks = await listProjectTasks(projectId);
+  const updates = {
+    name: input.name.trim(),
+    roomId: nullableString(input.roomId),
+    phase: input.phase,
+    description: input.description.trim(),
+    status: input.status,
+    priority: input.priority,
+    championPersonId: nullableString(input.championPersonId),
+    helperPersonIds: input.helperPersonIds,
+    dependencyTaskIds: [...new Set(input.dependencyTaskIds)],
+    helperRequired: input.helperRequired,
+    estimatedDurationMinutes: formDurationToNumber(
+      input.estimatedDurationMinutes
+    ),
+    earliestStartDate: nullableString(input.earliestStartDate),
+    dueDate: nullableString(input.dueDate),
+    readinessState: input.readinessState,
+    readinessReasons: [...new Set(input.readinessReasons)],
+    blockerType: input.blockerType,
+    blockerNotes: input.blockerNotes.trim(),
+    blockedUntilDate: input.blockedUntilDate || null,
+    materialStatus: input.materialStatus,
+    materialItems: parseMaterialItems(input.materialItemsText),
+    materialNotes: input.materialNotes.trim(),
+    materialNeededByDate: input.materialNeededByDate || null,
+    materialBlockerNotes: input.materialBlockerNotes.trim(),
+    criticalPathRisk: input.criticalPathRisk,
+    photosRequired: input.photosRequired,
+    canRunConcurrent: input.canRunConcurrent,
+    notes: input.notes.trim(),
+    updatedAt: serverTimestamp()
+  };
+  await runTransaction(requireDb(), async transaction => {
+    const snapshots = await Promise.all(knownTasks.map(task => transaction.get(taskDocument(projectId,task.id))));
+    const tasks = snapshots.filter(snapshot => snapshot.exists()).map(snapshot=>toTask(snapshot.id,snapshot.data()!));
+    const current = tasks.find(task=>task.id===taskId);
+    if (!current) throw new Error("Task is unavailable.");
+    if (input.expectedUpdatedAt !== JSON.stringify(current.updatedAt ?? null)) throw new Error("Task changed since this draft was opened. Reload and compare your draft before saving.");
+    validateTaskEdit(input,tasks,current);
+    transaction.update(taskDocument(projectId,taskId),updates);
+  });
+}
+
+export async function executeProjectTaskAction(
+  projectId: string,
+  task: RenovationTask,
+  action: TaskExecutionAction,
+  context: TaskTransitionContext
+) {
+  if (!auth?.currentUser) throw new Error("Sign in before changing task execution.");
+  const actor = auth.currentUser.uid;
+  const historyRef = doc(collection(requireDb(), "projects", projectId, "taskHistory"));
+  const transition = await runTransaction(requireDb(), async transaction => {
+    const current = await transaction.get(taskDocument(projectId, task.id));
+    if (!current.exists()) throw new Error("Task is unavailable. Reload this project.");
+    const freshTask = toTask(current.id, current.data());
+    const dependencies = await Promise.all(freshTask.dependencyTaskIds.map(id => transaction.get(taskDocument(projectId,id))));
+    const freshDependencies = dependencies.filter(d => d.exists()).map(d => toTask(d.id,d.data()!));
+    const result = evaluateTaskTransition(freshTask, action, {...context, tasks:[freshTask,...freshDependencies,...context.tasks.filter(item=>item.id!==freshTask.id && !freshTask.dependencyTaskIds.includes(item.id))]});
+    if (!result.allowed) throw new Error(result.reason);
+    transaction.update(taskDocument(projectId, task.id), {...result.updates,updatedAt:serverTimestamp()});
+    transaction.set(historyRef,{taskId:task.id,action,fromStatus:freshTask.status,toStatus:result.updates.status??freshTask.status,actor,createdAt:serverTimestamp(),reason:context.blocker?.blockerNotes??freshTask.completionOverrideReason??""});
+    return result;
+  });
+  const refreshedTask = await getProjectTask(projectId, task.id);
+  if (!refreshedTask) throw new Error("Task was updated but could not be refreshed.");
+  return {task:refreshedTask,transition};
+}

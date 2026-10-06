@@ -1,0 +1,79 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isProjectOwner(projectId) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
+    }
+
+    function isProjectOwnerAfter(projectId) {
+      return request.auth != null
+        && getAfter(/databases/$(database)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
+    }
+
+    function hasCompletionOverride(projectId, taskId) {
+      let auditId = resource.data.get('overrideAuditId', '');
+      return auditId is string && auditId.size() > 0
+        && resource.data.get('completionOverrideReason', '') != ''
+        && get(/databases/$(database)/documents/projects/$(projectId)/taskHistory/$(auditId)).data.action == 'owner_exception'
+        && get(/databases/$(database)/documents/projects/$(projectId)/taskHistory/$(auditId)).data.taskId == taskId
+        && get(/databases/$(database)/documents/projects/$(projectId)/taskHistory/$(auditId)).data.reason == resource.data.completionOverrideReason
+        && get(/databases/$(database)/documents/projects/$(projectId)/taskHistory/$(auditId)).data.actor == request.auth.uid;
+    }
+
+    match /projects/{projectId} {
+      allow create: if request.auth != null
+        && request.resource.data.ownerUserId == request.auth.uid;
+
+      allow read, delete: if request.auth != null
+        && resource.data.ownerUserId == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.ownerUserId == resource.data.ownerUserId;
+
+      match /rooms/{roomId} {
+        allow read: if isProjectOwner(projectId);
+        allow create, update, delete: if isProjectOwnerAfter(projectId);
+      }
+
+      match /people/{personId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if isProjectOwnerAfter(projectId);
+      }
+
+      match /tasks/{taskId} {
+        allow read, delete: if isProjectOwner(projectId);
+        allow create: if isProjectOwnerAfter(projectId)
+          && (request.resource.data.status in ['draft', 'not_ready', 'ready', 'cancelled']
+            || getAfter(/databases/$(database)/documents/projects/$(projectId)).data.get('restoredFrom', '') != '');
+        allow update: if isProjectOwner(projectId)
+          && (request.resource.data.status != 'complete'
+            || ((!resource.data.get('photosRequired', false) || resource.data.get('evidenceCount', 0) > 0 || hasCompletionOverride(projectId, taskId))
+              && (!resource.data.get('qcRequired', false) || resource.data.get('qcPassed', false) || hasCompletionOverride(projectId, taskId))));
+      }
+      match /{recordKind}/{recordId} {
+        allow read: if isProjectOwner(projectId) && recordKind in ['materials', 'tools', 'measurements', 'decisions'];
+        allow write: if isProjectOwnerAfter(projectId)
+          && recordKind in ['materials', 'tools', 'measurements', 'decisions'];
+      }
+      match /taskHistory/{historyId} { allow read: if isProjectOwner(projectId); allow create: if isProjectOwnerAfter(projectId); }
+      match /recordHistory/{historyId} { allow read: if isProjectOwner(projectId); allow create: if isProjectOwnerAfter(projectId); }
+      match /settings/{settingId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if isProjectOwnerAfter(projectId);
+      }
+      match /scheduleRuns/{runId} {
+        allow read: if isProjectOwner(projectId); allow create: if isProjectOwnerAfter(projectId);
+      }
+      match /evidence/{evidenceId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if isProjectOwnerAfter(projectId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

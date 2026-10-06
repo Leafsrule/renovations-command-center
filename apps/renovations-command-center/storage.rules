@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+ match /b/{bucket}/o {
+  function owner(projectId) {
+   return request.auth != null && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
+  }
+  match /projects/{projectId}/evidence/{fileId} {
+   allow read, delete: if owner(projectId);
+   allow create: if resource == null && owner(projectId) && request.resource.size < 10 * 1024 * 1024
+     && request.resource.contentType.matches('image/(jpeg|png|webp)');
+   allow update: if false;
+  }
+  match /{allPaths=**} { allow read, write: if false; }
+ }
+}

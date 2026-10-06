@@ -1,8 +1,10 @@
 {
   "name": "Renovations Command Center",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
-  "postCreateCommand": "npm ci",
-  "forwardPorts": [3000],
+  "postCreateCommand": "npm ci --prefix apps/renovations-command-center",
+  "forwardPorts": [
+    3000
+  ],
   "portsAttributes": {
     "3000": {
       "label": "Renovations Command Center",

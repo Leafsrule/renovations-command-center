@@ -2,7 +2,7 @@
 
 This repository uses GitHub Codespaces as the primary development environment.
 
-- Work in `/workspaces/renovations-command-center` on Linux/bash.
+- Use the available Linux/bash checkout. Run core npm commands from `apps/renovations-command-center`; Site Control stays independent at `docs/site-control`.
 - Use feature branches for changes; do not work directly on `main`.
 - Never commit secrets or `.env` files.
 - Keep port `3000` private and do not expose it publicly.

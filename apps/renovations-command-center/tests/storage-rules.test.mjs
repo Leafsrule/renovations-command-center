@@ -1,0 +1,11 @@
+import {readFile} from 'node:fs/promises';
+import {after,before,test} from 'node:test';
+import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
+import {doc,setDoc} from 'firebase/firestore';
+import {ref,uploadBytes,getBytes} from 'firebase/storage';
+let env;
+before(async()=>{env=await initializeTestEnvironment({projectId:'demo-renovations-racp',firestore:{rules:await readFile('firestore.rules','utf8')},storage:{rules:await readFile('storage.rules','utf8')}});await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'projects','owned'),{ownerUserId:'owner'}));});
+after(async()=>{if(env)await env.cleanup()});
+test('project owner may upload and read private image evidence',async()=>{const storage=env.authenticatedContext('owner').storage();const photo=ref(storage,'projects/owned/evidence/photo1');await assertSucceeds(uploadBytes(photo,new Uint8Array([255,216,255]),{contentType:'image/jpeg'}));await assertSucceeds(getBytes(photo));});
+test('other owners and anonymous users cannot read or write evidence',async()=>{for(const c of [env.authenticatedContext('other'),env.unauthenticatedContext()]){const storage=c.storage();await assertFails(getBytes(ref(storage,'projects/owned/evidence/photo1')));await assertFails(uploadBytes(ref(storage,'projects/owned/evidence/unauthorized'),new Uint8Array([1]),{contentType:'image/jpeg'}));}});
+test('nonimage uploads and overwriting existing objects are rejected',async()=>{const storage=env.authenticatedContext('owner').storage();await assertFails(uploadBytes(ref(storage,'projects/owned/evidence/text'),new Uint8Array([1]),{contentType:'text/plain'}));await assertFails(uploadBytes(ref(storage,'projects/owned/evidence/photo1'),new Uint8Array([1]),{contentType:'image/jpeg'}));});

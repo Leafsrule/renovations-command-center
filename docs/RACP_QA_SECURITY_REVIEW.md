@@ -1,0 +1,34 @@
+# RACP QA and Security review — 2026-10-06
+
+Mode: separate specialist review passes by the same work session. No independent agent, external model, Claude, licensed-professional or owner acceptance is claimed.
+
+## Decision
+
+DO NOT RELEASE. This is an in-progress development candidate. Required A–I scope has not yet met full acceptance. Main and existing production resources were not changed.
+
+## Evidence
+
+- Lint, typecheck and Next.js 16.4 production build passed.
+- 139 Vitest tests passed, including mounted navigation/planner and browser draft tests, transactional actions, calendar/DST, input integrity, app-scoped backup validation and lint-glob compatibility.
+- Nine Firestore/Storage emulator tests passed: ownership immutability, cross-owner/anonymous isolation, missing evidence, guarded completed-task creation, atomic restore, private image access, rejected nonimages and object-overwrite denial. The overwrite test caught a defect; adding `resource == null` fixed it.
+- `npm audit --audit-level=high`: zero vulnerabilities after dependency updates. Scoped replacements: gRPC 1.14.5 and Next lint's sole globSync consumer uses tinyglobby 0.2.17. The real lint caller is tested. No audit exclusions or forced downgrade.
+- Static app isolation check passed: original Site Control HTML and JSON are byte-identical; original relative data/save paths remain.
+- Browser installation failed: permitted Playwright download produced invalid/empty ZIPs. No rendered phone/desktop or authenticated E2E claim.
+- Rules tests used Firebase CLI 14 with the available Java runtime; latest CLI requires Java 21. Repeat on Java 21/current CLI in CI before release.
+
+## QA findings that still block full acceptance
+
+1. Full owner workflow, real upload/CORS, second-device changes, restart/auth-expiry/reconnect and rendered accessibility need live/browser verification.
+2. Core task metadata now compares the original updatedAt and validates a freshly read dependency graph transactionally. Project metadata and QC editing still need comparable version-conflict coverage.
+3. Task edits have durable drafts; field records have durable queues/version conflicts/idempotency. Today execution commands, new-project creation and quality/work forms do not yet have a complete durable offline queue. Offline navigation currently shows a fallback, not a fully functional offline app.
+4. Scheduling is a conservative serial date plan. Persisted worker/helper availability, timed cure propagation through every entry point, resource/space validation and fully audited cancelled-prerequisite waivers remain incomplete. Legacy concurrency flags are deliberately shown as needing review.
+5. Task completion/photo/QC guards and override history exist. However, client-writable proof fields and all sensitive task transitions still need stronger authoritative enforcement or a trusted service boundary; a user with direct SDK access can bypass some client policy. This is release-critical.
+6. Backup restore checks IDs/counts/semantic parity into a new project, but rejects evidence-backed restores until private object backup/copy is implemented and verified. Actual provider backups and release rollback have not been rehearsed.
+7. Draft/queue failure paths and the new material/tool aggregate need additional mounted/integration coverage. Preserve legacy material requirements separately from structured required items.
+8. Existing app requirements include broader templates and daily records; the current bathroom template and printable lists are only basic implementations, not full I acceptance.
+
+## Security / release findings
+
+No Firebase web configuration, backend deployment credential or Render authorization was present in this environment. Connected-service discovery via Rube failed with a connection error. Repository permissions are admin/push, but they do not establish backend or hosting authority. No deployed-rule comparison, live IAM check, production smoke test, backup/restore rehearsal or rollback occurred. PR #5's genuine external/provider gates were not forged or bypassed.
+
+Site Control retains pre-existing public-JSON, GitHub-token, whole-file overwrite, unsafe text-rendering and offline limitations; these are not fixed by isolating it. Do not add private evidence there. No cross-app data migration occurred.
