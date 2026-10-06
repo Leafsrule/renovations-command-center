@@ -111,7 +111,7 @@ Use this unless there is a strong reason not to:
 - Database: Firebase Firestore
 - Auth: Firebase Auth
 - Photos/files: Firebase Storage
-- Hosting: Firebase Hosting or Render
+- Hosting: Render
 - Code storage: GitHub
 
 ## First Required Response

@@ -1,0 +1,29 @@
+# Workspace expectation: personal Hobby workspace.
+# Expected compute cost: approximately $7 USD/month for the Starter web service.
+services:
+  - type: web
+    name: renovations-command-center
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start -- -H 0.0.0.0 -p $PORT
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false

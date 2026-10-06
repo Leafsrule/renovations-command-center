@@ -2,7 +2,7 @@
 
 - App type: Next.js mobile-first PWA.
 - Auth: Firebase email/password only.
-- Deployment: run locally first; prepare for Firebase Hosting later.
+- Deployment: run locally first; production web hosting is Render only.
 - Users: Owner is the only authenticated user in Phase 1.
 - People: champions and helpers are lightweight records with optional future `linkedUserId`.
 - Projects: database supports multiple projects; UI can focus on one active project first.

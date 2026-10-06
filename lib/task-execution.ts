@@ -91,6 +91,15 @@ function statusPermits(status: TaskStatus, allowed: TaskStatus[]) {
   return allowed.includes(status);
 }
 
+function readyUpdates(readiness: ReturnType<typeof readinessFor>) {
+  return {
+    readinessState: "ready" as const,
+    readinessReasons: readiness.reasons.filter(
+      (reason) => reason !== "Task is ready for work."
+    )
+  };
+}
+
 export function evaluateTaskTransition(
   task: RenovationTask,
   action: TaskExecutionAction,
@@ -110,7 +119,10 @@ export function evaluateTaskTransition(
         return deny(action, readinessDenialReason(task, context));
       }
 
-      return allow(action, "Task started.", { status: "in_progress" });
+      return allow(action, "Task started.", {
+        status: "in_progress",
+        ...readyUpdates(readiness)
+      });
     }
 
     case "resume": {
@@ -123,24 +135,38 @@ export function evaluateTaskTransition(
         return deny(action, readinessDenialReason(task, context));
       }
 
-      return allow(action, "Task resumed.", { status: "in_progress" });
+      return allow(action, "Task resumed.", {
+        status: "in_progress",
+        ...readyUpdates(readiness)
+      });
     }
 
-    case "mark_waiting":
+    case "mark_waiting": {
       if (task.status !== "in_progress") {
         return deny(action, "Only an in-progress task can enter waiting or curing.");
       }
 
+      const readiness = readinessFor(task, context);
+
       return allow(action, "Task marked waiting or curing.", {
-        status: "waiting_curing"
+        status: "waiting_curing",
+        readinessState: readiness.state === "ready" ? "ready" : "not_ready",
+        readinessReasons: readiness.reasons.filter(
+          (reason) => reason !== "Task is ready for work."
+        )
       });
+    }
 
     case "complete":
       if (task.status !== "in_progress") {
         return deny(action, "Only an in-progress task can be completed.");
       }
 
-      return allow(action, "Task completed.", { status: "complete" });
+      return allow(action, "Task completed.", {
+        status: "complete",
+        readinessState: "ready",
+        readinessReasons: []
+      });
 
     case "block": {
       if (

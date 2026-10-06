@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import {
-  activeProjectAlias,
+  activeProjectChangedEvent,
+  getNavigationProjectId,
   getActiveProjectId,
   getProjectSectionHref,
   getProjectIdFromPathname,
-  resolveProjectRouteId
 } from "@/lib/project-routes";
 import { listOwnerProjects } from "@/lib/projects";
 import { bottomNavItems } from "@/lib/routes";
@@ -19,16 +19,12 @@ export function MobileBottomNav() {
   const { user } = useAuth();
   const routeProjectId = getProjectIdFromPathname(pathname);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const projectId = resolveProjectRouteId(routeProjectId, activeProjectId);
+  const projectId = getNavigationProjectId(routeProjectId, activeProjectId);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadActiveProject() {
-      if (routeProjectId && routeProjectId !== activeProjectAlias) {
-        return;
-      }
-
       if (!user) {
         setActiveProjectId(null);
         return;
@@ -48,10 +44,15 @@ export function MobileBottomNav() {
 
     loadActiveProject();
 
+    window.addEventListener(activeProjectChangedEvent, loadActiveProject);
+    window.addEventListener("focus", loadActiveProject);
+
     return () => {
       cancelled = true;
+      window.removeEventListener(activeProjectChangedEvent, loadActiveProject);
+      window.removeEventListener("focus", loadActiveProject);
     };
-  }, [routeProjectId, user]);
+  }, [user]);
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-white/95 px-2 pb-3 pt-2 backdrop-blur">

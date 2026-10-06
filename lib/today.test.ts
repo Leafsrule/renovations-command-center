@@ -101,6 +101,128 @@ describe("Today planning", () => {
     expect(plan.blockedOrNotToday[0].reasons.some((reason) => reason.toLowerCase().includes("dependency"))).toBe(true);
   });
 
+  it("evaluates primary recommendations against the full dependency map", () => {
+    const tasks = [
+      createTask({ id: "done", status: "complete" }),
+      createTask({ id: "successor", dependencyTaskIds: ["done"], status: "ready" })
+    ];
+
+    const plan = getTodayPlan({ tasks, today });
+
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["successor"]);
+    expect(plan.blockedOrNotToday.map((item) => item.task.id)).not.toContain(
+      "successor"
+    );
+  });
+
+  it("recognizes completed dependencies outside the primary candidate subset", () => {
+    const tasks = [
+      createTask({
+        id: "helper-dependency",
+        status: "complete",
+        helperRequired: true
+      }),
+      createTask({
+        id: "successor",
+        dependencyTaskIds: ["helper-dependency"],
+        status: "ready"
+      })
+    ];
+
+    const plan = getTodayPlan({ tasks, today });
+
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["successor"]);
+  });
+
+  it("keeps missing dependencies blocked even when other dependencies are complete", () => {
+    const tasks = [
+      createTask({ id: "done", status: "complete" }),
+      createTask({
+        id: "blocked",
+        dependencyTaskIds: ["done", "missing"],
+        status: "ready"
+      })
+    ];
+
+    const plan = getTodayPlan({ tasks, today });
+
+    expect(plan.startFirst).toHaveLength(0);
+    expect(plan.blockedOrNotToday[0].task.id).toBe("blocked");
+    expect(plan.blockedOrNotToday[0].reasons).toContain(
+      "1 dependency is incomplete."
+    );
+  });
+
+  it("skips an oversized recommended task and fills capacity with a later smaller task", () => {
+    const tasks = [
+      createTask({
+        id: "oversized",
+        priority: "urgent",
+        estimatedDurationMinutes: 240
+      }),
+      createTask({
+        id: "fits",
+        priority: "high",
+        estimatedDurationMinutes: 60
+      })
+    ];
+
+    const plan = getTodayPlan({
+      tasks,
+      today,
+      availableMinutes: 120,
+      bufferPercent: 0
+    });
+
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["fits"]);
+    expect(plan.blockedOrNotToday.map((item) => item.task.id)).toContain(
+      "oversized"
+    );
+  });
+
+  it("keeps multiple oversized tasks out of planned capacity", () => {
+    const tasks = [
+      createTask({ id: "too-big-a", estimatedDurationMinutes: 240 }),
+      createTask({ id: "too-big-b", estimatedDurationMinutes: 180 }),
+      createTask({ id: "fits", estimatedDurationMinutes: 60 })
+    ];
+
+    const plan = getTodayPlan({
+      tasks,
+      today,
+      availableMinutes: 120,
+      bufferPercent: 0
+    });
+
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["fits"]);
+    expect(plan.capacity.plannedMinutes).toBeLessThanOrEqual(
+      plan.capacity.schedulableMinutes
+    );
+    expect(plan.blockedOrNotToday.map((item) => item.task.id)).toEqual([
+      "too-big-a",
+      "too-big-b"
+    ]);
+  });
+
+  it("excludes waiting or curing tasks from Start First and Do Next", () => {
+    const tasks = [
+      createTask({
+        id: "curing",
+        status: "waiting_curing",
+        readinessState: "ready"
+      }),
+      createTask({ id: "ready", status: "ready", priority: "high" })
+    ];
+
+    const plan = getTodayPlan({ tasks, today });
+
+    expect(plan.startFirst.map((item) => item.task.id)).toEqual(["ready"]);
+    expect(plan.doNext.map((item) => item.task.id)).not.toContain("curing");
+    expect(plan.blockedOrNotToday.map((item) => item.task.id)).toContain(
+      "curing"
+    );
+  });
+
   it("respects earliest start restrictions", () => {
     const tasks = [
       createTask({ id: "future", earliestStartDate: "2026-06-20", status: "ready" })

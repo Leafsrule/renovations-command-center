@@ -71,6 +71,7 @@ export type RecommendationOptions = {
   helperAvailable?: boolean;
   passiveWaitActive?: boolean;
   maxRecommendations?: number;
+  taskUniverse?: RenovationTask[];
 };
 
 export type TaskRecommendation = {
@@ -474,7 +475,9 @@ export function getRecommendedNextTasks(
   options: RecommendationOptions = {}
 ): TaskRecommendation[] {
   const today = options.today ?? getTodayDateString();
-  const taskMap = new Map(tasks.map((task) => [task.id, task]));
+  const taskMap = new Map(
+    (options.taskUniverse ?? tasks).map((task) => [task.id, task])
+  );
 
   const candidates = tasks
     .map((task) => ({

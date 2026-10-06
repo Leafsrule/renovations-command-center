@@ -1,4 +1,5 @@
 export const activeProjectAlias = "active";
+export const activeProjectChangedEvent = "renovations:active-project-changed";
 
 type ProjectRouteCandidate = {
   id: string;
@@ -22,6 +23,13 @@ export function resolveProjectRouteId(
   }
 
   return routeProjectId;
+}
+
+export function getNavigationProjectId(
+  _routeProjectId: string | null,
+  activeProjectId: string | null
+) {
+  return activeProjectId;
 }
 
 export function getProjectSectionHref(

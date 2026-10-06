@@ -101,6 +101,7 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
   const primaryCandidates = input.tasks.filter(
     (task) =>
       !isCompletedOrCancelled(task) &&
+      task.status !== "waiting_curing" &&
       task.status !== "in_progress" &&
       !task.helperRequired &&
       !task.canRunConcurrent
@@ -110,7 +111,8 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     today,
     availableMinutes: recommendationCapacity,
     helperAvailable,
-    passiveWaitActive: false
+    passiveWaitActive: false,
+    taskUniverse: input.tasks
   });
 
   const scheduledTasks: TodayPlanTask[] = [];
@@ -121,7 +123,7 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     const duration = recommendation.task.estimatedDurationMinutes ?? 0;
 
     if (duration > remainingCapacity) {
-      break;
+      continue;
     }
 
     scheduledTasks.push({
@@ -195,7 +197,13 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
       finalReasons.push("Eligible to run while another task is waiting.");
     }
 
-    if (isReady && !isHelperTask && !isPassiveWaitTask && task.estimatedDurationMinutes !== null) {
+    if (
+      isReady &&
+      !isHelperTask &&
+      !isPassiveWaitTask &&
+      task.status !== "waiting_curing" &&
+      task.estimatedDurationMinutes !== null
+    ) {
       const duration = task.estimatedDurationMinutes;
       if (duration > remainingCapacity) {
         finalReasons.push("Does not fit today's remaining capacity.");
