@@ -38,3 +38,9 @@ Rev02 was reread and its discovery/validation phase rerun from the saved checkpo
 **No for certifying and releasing a completed app:** development gaps in authoritative task/evidence enforcement, complete offline actions, scheduling/resource handling and photo recovery remain. Separately, release requires verified access to the existing Firebase project (web configuration, isolated test account and rules/storage deployment capability), the existing hosting service and its app-root configuration, a working permitted browser test runtime, and actual external review/recovery evidence. Access alone does not finish the outstanding code.
 
 Status remains **IN PROGRESS / EXTERNALLY BLOCKED**. Next development task remains the authoritative-invariant boundary, then complete durable execution/form queues; follow the QA report and handoff for subsequent acceptance work.
+
+### Render alternative verified — 2026-10-08, 09:21 Toronto
+
+The owner confirmed the connected Render workspace. Direct Render service listing succeeded, including previews. The two returned web services belong to another repository; no service is linked to `Leafsrule/renovations-command-center`. No unrelated service was inspected further or modified.
+
+This supersedes the earlier statement that Render access was unverified: **Render read access works without Rube**, but an existing renovation-app hosting resource has not been found in the connected workspace. No hosting was created and no deployment occurred. Firebase CLI live project listing separately failed with an authentication error; emulator access is not production access. The next release prerequisite is an authorized app-specific hosting arrangement plus Firebase authentication and configuration, after development/review gates pass.
