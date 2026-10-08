@@ -15,6 +15,7 @@ import {
   validateCalendar,
 } from "../calendar";
 import { getTodayDateString } from "../scheduling";
+import { assignedWorkMinutes } from "../person-availability";
 
 export async function runTaskCommand(
   db: Firestore,
@@ -247,6 +248,8 @@ export async function runTaskCommand(
           );
         if (task.cureUntil && Date.parse(task.cureUntil) > Date.now())
           throw new CommandError(409, "The curing period has not ended.");
+        if (assignedWorkMinutes(task,people.docs.map(d=>({id:d.id,active:d.data().active===true,availability:d.data().availability})),today,calendar) <= 0)
+          throw new CommandError(409,"Assigned worker/helper availability is unknown or unavailable today. Update the person calendar before starting.");
         if (
           task.helperRequired &&
           (!command.helperAvailable ||

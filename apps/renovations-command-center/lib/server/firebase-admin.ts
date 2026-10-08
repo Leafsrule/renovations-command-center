@@ -4,10 +4,11 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { CommandError } from "../task-command";
+import { firebaseEnvironmentProblems } from "../firebase-config";
 export function adminServices() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const storageBucket = process.env.FIREBASE_ADMIN_STORAGE_BUCKET;
-  if (!projectId || !storageBucket)
+  if (firebaseEnvironmentProblems(process.env, process.env.NODE_ENV === "production").length || !projectId || !storageBucket)
     throw new CommandError(
       503,
       "Secure backend is not configured. No change was saved.",

@@ -4,6 +4,8 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { runTaskCommand } from "../lib/server/task-commands";
+import { createProject } from "../lib/server/project-create";
+import { getTodayDateString } from "../lib/scheduling";
 import { restoreProject } from "../lib/server/project-restore";
 import { taskRevision, type TaskCommand } from "../lib/task-command";
 const app = initializeApp(
@@ -302,4 +304,32 @@ test("server restore preserves history and timestamps in a separate copy without
     (await db.doc(`projects/${project}`).get()).data()?.ownerUserId,
     "owner",
   );
+});
+
+test("project creation is atomic, retryable and cannot overwrite another request",async()=>{
+  const projectId=`created-project-${Date.now()}`;
+  const input={name:"Demo ensuite",type:"bathroom_ensuite",scope:"Test",startDate:"2026-10-08",targetFinishDate:"2026-10-20"};
+  assert.equal(await createProject(db,"owner",{projectId,input}),projectId);
+  const original=(await db.doc(`projects/${projectId}`).get()).data();
+  assert.equal((await db.collection(`projects/${projectId}/tasks`).get()).size,6);
+  assert.equal(await createProject(db,"owner",{projectId,input}),projectId);
+  assert.deepEqual((await db.doc(`projects/${projectId}`).get()).data(),original);
+  await assert.rejects(createProject(db,"other",{projectId,input}),/different/);
+  await assert.rejects(createProject(db,"owner",{projectId,input:{...input,name:"Changed"}}),/different/);
+  await assert.rejects(createProject(db,"owner",{projectId:"bad-date",input:{...input,startDate:"2026-02-30"}}),/dates/);
+  assert.equal((await db.doc("projects/bad-date").get()).exists,false);
+});
+test("server cannot replace persisted helper availability with a browser assertion",async()=>{
+  const id=await seed({helperRequired:true,helperPersonIds:["assigned-helper"]});
+  const person=db.doc(`projects/${project}/people/assigned-helper`);
+  await person.set({active:true});
+  await assert.rejects(action(id,"start",{helperAvailable:true}),/availability/);
+  await person.set({active:true,availability:{workdays:[0,1,2,3,4,5,6],hoursPerDay:4,blackouts:[getTodayDateString()]}});
+  await assert.rejects(action(id,"start",{helperAvailable:true}),/availability/);
+  assert.equal((await db.doc(`projects/${project}/tasks/${id}`).get()).data()?.status,"ready");
+  const running=await db.collection(`projects/${project}/tasks`).where("status","==","in_progress").get();
+  for (const entry of running.docs) await entry.ref.update({status:"complete"});
+  await person.set({active:true,availability:{workdays:[0,1,2,3,4,5,6],hoursPerDay:4,blackouts:[]}});
+  await action(id,"start",{helperAvailable:true});
+  assert.equal((await db.doc(`projects/${project}/tasks/${id}`).get()).data()?.status,"in_progress");
 });

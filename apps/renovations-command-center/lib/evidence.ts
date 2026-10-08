@@ -2,9 +2,11 @@ import {
   collection,
   getDocs,
 } from "firebase/firestore";
-import { getBlob, ref, uploadBytes } from "firebase/storage";
+import { getBlob, getMetadata, ref, uploadBytes } from "firebase/storage";
 import { sendTaskCommand } from "./task-command-client";
 import { auth, db, storage } from "./firebase";
+import { saveQueuedPhoto, type QueuedPhoto } from "./photo-outbox";
+import { readQueuedCommands } from "./command-queue";
 export type Evidence = {
   id: string;
   taskId: string;
@@ -34,19 +36,48 @@ export async function uploadEvidence(
     throw new Error("Sign in to the configured project before uploading.");
   if (
     !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-    file.size >= 10 * 1024 * 1024
+    file.size <= 0 || file.size >= 10 * 1024 * 1024
   )
     throw new Error("Choose a JPG, PNG or WebP smaller than 10 MB.");
-  const uid = auth.currentUser.uid,
-    id = crypto.randomUUID(),
-    path = `projects/${projectId}/evidence-staging/${id}`;
-  const object = ref(storage, path);
-  await uploadBytes(object, file, { contentType: file.type, customMetadata:{taskId, uploadedBy:uid} });
-  try {
-    await sendTaskCommand(projectId, taskId, {kind:"evidence", evidenceId:id, caption, category}, id);
-  } catch (error) {
-    // Keep the uploaded object until the durable command confirms or is reviewed.
-    // Deleting after an uncertain response would destroy evidence needed by replay.
-    throw error;
-  }
+  const row:QueuedPhoto={id:crypto.randomUUID(),ownerId:auth.currentUser.uid,projectId,taskId,file,name:file.name,caption,category,uploaded:false,state:"pending",error:""};
+  await saveQueuedPhoto(row);
+  // Capture succeeds only after the IndexedDB transaction commits.
+  try {await retryQueuedPhoto(row);return true;} catch { return false; /* The visible durable outbox reports unsaved/error state. */ }
+}
+const runningPhotos=new Map<string,Promise<void>>();
+export function isPhotoSyncing(id:string) {return runningPhotos.has(id);}
+export async function retryQueuedPhoto(original:QueuedPhoto) {
+  const running=runningPhotos.get(original.id);
+  if (running) return running;
+  const attempt=async()=>{
+    let row={...original};
+    try {
+      if (!auth?.currentUser || auth.currentUser.uid!==row.ownerId || !storage) throw new Error("Use the original account to sync this photo.");
+      const command=readQueuedCommands(localStorage,row.ownerId).find(item=>item.command.commandId===row.id && item.projectId===row.projectId && item.taskId===row.taskId);
+      if (command?.state!=="saved") {
+        if (!navigator.onLine) throw new Error("Offline. Photo is retained on this device; project save is pending.");
+        if (!row.uploaded) {
+          const object=ref(storage,`projects/${row.projectId}/evidence-staging/${row.id}`);
+          let staged=false;
+          try {const metadata=await getMetadata(object);staged=metadata.customMetadata?.taskId===row.taskId && metadata.customMetadata?.uploadedBy===row.ownerId;if(!staged)throw new Error("Staged photo identity does not match.");}
+          catch(error) {if ((error as {code?:string}).code!=="storage/object-not-found")throw error;}
+          if (!staged) {
+            if (!row.file) throw new Error("Original photo is missing from device storage.");
+            await uploadBytes(object,row.file,{contentType:row.file.type,customMetadata:{taskId:row.taskId,uploadedBy:row.ownerId}});
+          }
+          row={...row,uploaded:true};
+          await saveQueuedPhoto(row);
+        }
+        if (auth.currentUser?.uid!==row.ownerId) throw new Error("Account changed before confirming the photo.");
+        await sendTaskCommand(row.projectId,row.taskId,{kind:"evidence",evidenceId:row.id,caption:row.caption,category:row.category},row.id);
+      }
+      await saveQueuedPhoto({...row,file:null,state:"saved",error:""});
+    } catch(error) {
+      const command=readQueuedCommands(localStorage,row.ownerId).find(item=>item.command.commandId===row.id);
+      await saveQueuedPhoto({...row,state:command?.state==="conflicting"?"conflicting":command?.state==="failed"?"failed":"pending",error:error instanceof Error?error.message:"Photo save is unconfirmed."});
+      throw error;
+    }
+  };
+  const promise=attempt();runningPhotos.set(original.id,promise);
+  try {await promise;} finally {runningPhotos.delete(original.id);}
 }

@@ -4,9 +4,11 @@ import {
   doc,
   getDocs,
   serverTimestamp,
-  updateDoc
+  runTransaction
 } from "firebase/firestore";
+import { taskRevision } from "./task-command";
 import { db } from "@/lib/firebase";
+import { validatePersonAvailability, type PersonAvailability } from "./person-availability";
 
 export type PersonRoleType =
   | "owner"
@@ -26,6 +28,7 @@ export type RenovationPerson = {
   };
   skillTags: string[];
   availabilityNotes: string;
+  availability?: PersonAvailability | null;
   active: boolean;
   linkedUserId: string | null;
   createdAt?: unknown;
@@ -33,12 +36,14 @@ export type RenovationPerson = {
 };
 
 export type PersonFormInput = {
+  expectedRevision?: string;
   name: string;
   roleType: PersonRoleType;
   email: string;
   phone: string;
   skillTagsText: string;
   availabilityNotes: string;
+  availability?: PersonAvailability | null;
   active: boolean;
 };
 
@@ -107,6 +112,7 @@ function toPerson(id: string, data: Record<string, unknown>): RenovationPerson {
       ? data.skillTags.map(String)
       : [],
     availabilityNotes: String(data.availabilityNotes || ""),
+    availability: data.availability as PersonAvailability | null ?? null,
     active: typeof data.active === "boolean" ? data.active : true,
     linkedUserId:
       typeof data.linkedUserId === "string" ? data.linkedUserId : null,
@@ -148,6 +154,7 @@ export async function createProjectPerson(
     },
     skillTags: parseSkillTags(input.skillTagsText),
     availabilityNotes: input.availabilityNotes.trim(),
+    availability: input.availability ? validatePersonAvailability(input.availability) : null,
     active: true,
     linkedUserId: null,
     createdAt: serverTimestamp(),
@@ -160,7 +167,11 @@ export async function updateProjectPerson(
   personId: string,
   input: PersonFormInput
 ) {
-  await updateDoc(personDocument(projectId, personId), {
+  const ref=personDocument(projectId,personId);
+  await runTransaction(requireDb(), async tx=>{
+    const current=await tx.get(ref);
+    if (!current.exists() || taskRevision(current.data().updatedAt)!==input.expectedRevision) throw new Error("Person changed on another device. Reload and compare availability before saving.");
+    tx.update(ref, {
     name: input.name.trim(),
     roleType: input.roleType,
     contact: {
@@ -169,7 +180,9 @@ export async function updateProjectPerson(
     },
     skillTags: parseSkillTags(input.skillTagsText),
     availabilityNotes: input.availabilityNotes.trim(),
+    availability: input.availability ? validatePersonAvailability(input.availability) : null,
     active: input.active,
     updatedAt: serverTimestamp()
+  });
   });
 }

@@ -31,6 +31,8 @@ vi.mock("@/lib/rooms", async (importOriginal) => ({
   listProjectRooms: dataMocks.listProjectRooms
 }));
 
+vi.mock("@/lib/people", () => ({listProjectPeople: async () => []}));
+
 vi.mock("@/lib/project-settings", () => ({ getProjectSettings: async () => ({calendar:{workdays:[0,1,2,3,4,5,6],hoursPerDay:8,bufferPercent:20,blackouts:[]},version:0}) }));
 
 function createTask(partial: Partial<RenovationTask> = {}): RenovationTask {

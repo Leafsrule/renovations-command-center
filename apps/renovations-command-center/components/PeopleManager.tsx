@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { taskRevision } from "@/lib/task-command";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   createProjectPerson,
@@ -47,12 +48,14 @@ function labelFromValue<T extends string>(
 
 function personToForm(person: RenovationPerson): PersonFormInput {
   return {
+    expectedRevision: taskRevision(person.updatedAt),
     name: person.name,
     roleType: person.roleType,
     email: person.contact.email,
     phone: person.contact.phone,
     skillTagsText: person.skillTags.join(", "),
     availabilityNotes: person.availabilityNotes,
+    availability: person.availability ?? null,
     active: person.active
   };
 }
@@ -181,6 +184,17 @@ function PersonForm({
           }
         />
       </label>
+
+      <fieldset className="space-y-3 rounded border p-3">
+        <legend className="font-semibold">Work availability</legend>
+        <p className="text-sm">Set days and hours before assigning work. Blank availability stays unknown.</p>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={Boolean(form.availability)} onChange={e=>setForm(current=>({...current,availability:e.target.checked?{workdays:[],hoursPerDay:0,blackouts:[]}:null}))}/>Availability confirmed</label>
+        {form.availability && <>
+          <div className="flex flex-wrap gap-3">{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day,index)=><label key={day} className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={form.availability!.workdays.includes(index)} onChange={e=>setForm(current=>({...current,availability:{...current.availability!,workdays:e.target.checked?[...current.availability!.workdays,index]:current.availability!.workdays.filter(d=>d!==index)}}))}/>{day}</label>)}</div>
+          <label className="block">Available hours per workday<input className="block w-full rounded border p-2" type="number" min="0" max="24" step="0.5" value={form.availability.hoursPerDay} onChange={e=>setForm(current=>({...current,availability:{...current.availability!,hoursPerDay:Number(e.target.value)}}))}/></label>
+          <label className="block">Unavailable dates (one YYYY-MM-DD per line)<textarea className="block w-full rounded border p-2" value={form.availability.blackouts.join("\n")} onChange={e=>setForm(current=>({...current,availability:{...current.availability!,blackouts:e.target.value.split("\n")}}))}/></label>
+        </>}
+      </fieldset>
 
       {isEditing ? (
         <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">

@@ -62,3 +62,15 @@ Remaining required development: full offline navigation, new-project/metadata qu
 Configuration change: server-only `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_STORAGE_BUCKET` and securely provisioned Application Default Credentials are required. Missing configuration fails closed. No credentials, paid resources, production writes, main merge or unrelated-service changes were made. See `apps/renovations-command-center/docs/TRUSTED_MUTATIONS.md` for operation and release coordination.
 
 Validation for the October 8 application increment: fresh install, lint, typecheck, build, 156 Vitest tests (25 files), 22 demo backend/rules/Storage tests, zero-vulnerability audit, whitespace and app isolation passed. The Firebase CLI 15/Java 21 GitHub job must be checked separately before any release.
+
+## Firebase and field-work continuation — October 8
+
+Live configuration is still blocked: the secure Google sign-in request was cancelled, no existing project/web configuration or server credential is available, and the configuration check correctly reports all eight required values missing. No provider changes occurred. See `apps/renovations-command-center/docs/FIREBASE_SETUP.md` for the prepared importer, fail-closed matching-project/bucket checks and read-only live verifier.
+
+The local Firebase alternative now includes real Auth plus private Next HTTP endpoints, not only direct Admin test calls. This verified atomic project/template creation, stable destination retry, rejected unsigned/invalid-token requests, a guarded start and a single receipt. It supplies local development access only, not live Firebase access.
+
+New-project drafts/request destinations survive reload and lost responses. Persisted worker/helper calendars limit schedules and block unavailable starts; recalculation detects changes to person availability. Timed waits use Toronto dates with conservative day-level release. Raw photos are retained in account-scoped IndexedDB before upload, with original-ID replay and pending versus saved states. These changes reduce the earlier offline and scheduling gaps but do not establish full offline navigation, every metadata/form queue, photo backup/recovery, resource/space scheduling or real field acceptance.
+
+No main merge, deployment, live data write, new paid resource, IAM expansion or external review approval occurred. PR #8 remains a draft.
+
+Validation for this increment: 169 app tests (30 files), 24 real demo backend/security tests, real Auth-to-HTTP smoke workflow, fresh npm ci, lint, typecheck, production build, zero-vulnerability audit, app isolation and whitespace checks passed locally. GitHub CI for the newly published increment must be verified separately.

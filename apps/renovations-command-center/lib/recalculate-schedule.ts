@@ -10,12 +10,14 @@ import { calculateCalendarPlan } from "./calendar";
 import { getProjectSettings } from "./project-settings";
 import { toTask } from "./tasks";
 import { getTodayDateString } from "./scheduling";
+import type { AvailablePerson } from "./person-availability";
 /** Optimistic whole-plan write: changes to settings or task documents abort the recalculation. */
 export async function recalculateSchedule(projectId: string) {
   if (!db) throw new Error("Firestore is not configured.");
-  const [settings, raw] = await Promise.all([
+  const [settings, raw, rawPeople] = await Promise.all([
     getProjectSettings(projectId),
     getDocs(collection(db, "projects", projectId, "tasks")),
+    getDocs(collection(db, "projects", projectId, "people")),
   ]);
   const tasks = raw.docs.map((d) => toTask(d.id, d.data()));
   if (tasks.length > 400)
@@ -30,6 +32,7 @@ export async function recalculateSchedule(projectId: string) {
     tasks,
     settings.calendar,
     getTodayDateString(),
+    rawPeople.docs.map(d=>({id:d.id,...d.data()}) as AvailablePerson),
   );
   await runTransaction(db, async (tx) => {
     const settingsRef = doc(db!, "projects", projectId, "settings", "planning");
@@ -39,6 +42,8 @@ export async function recalculateSchedule(projectId: string) {
     const snapshots = await Promise.all(
       tasks.map((t) => tx.get(doc(db!, "projects", projectId, "tasks", t.id))),
     );
+    const currentPeople = await Promise.all(rawPeople.docs.map(d=>tx.get(doc(db!,"projects",projectId,"people",d.id))));
+    for (let i=0;i<currentPeople.length;i++) if (!currentPeople[i].exists() || JSON.stringify(currentPeople[i].data()) !== JSON.stringify(rawPeople.docs[i].data())) throw new Error("Person availability changed. Reload and recalculate.");
     for (const snapshot of snapshots) {
       if (
         !snapshot.exists() ||

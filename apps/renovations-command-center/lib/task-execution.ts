@@ -74,7 +74,7 @@ function readinessFor(
 
   return getTaskReadinessEvaluation(task, taskMap, {
     today: context.today,
-    helperAvailable: context.helperAvailable
+    helperAvailable: context.helperAvailable, people: context.people
   });
 }
 

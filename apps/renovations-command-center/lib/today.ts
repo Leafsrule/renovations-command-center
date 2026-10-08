@@ -1,3 +1,4 @@
+import type { AvailablePerson } from "./person-availability";
 import type { RenovationTask } from "./tasks";
 import {
   getRecommendedNextTasks,
@@ -39,6 +40,7 @@ export type TodayPlanInput = {
   bufferPercent?: number;
   bufferMinutes?: number;
   helperAvailable?: boolean;
+  people?: AvailablePerson[];
 };
 
 const DEFAULT_AVAILABLE_MINUTES = 8 * 60;
@@ -111,6 +113,7 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     today,
     availableMinutes: recommendationCapacity,
     helperAvailable,
+    people: input.people,
     passiveWaitActive: false,
     taskUniverse: input.tasks
   });
@@ -156,6 +159,7 @@ export function getTodayPlan(input: TodayPlanInput): TodayPlan {
     const readiness = getTaskReadinessEvaluation(task, taskMap, {
       today,
       helperAvailable,
+    people: input.people,
       availableMinutes: schedulableMinutes
     });
 

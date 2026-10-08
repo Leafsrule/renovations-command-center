@@ -1,5 +1,7 @@
 import { addDaysToDateString } from "./scheduling";
 import type { RenovationTask } from "./tasks";
+import { assignedPeople, assignedWorkMinutes, personHasWorkdays, type AvailablePerson } from "./person-availability";
+import { getTodayDateString } from "./scheduling";
 
 export type WorkCalendar = {
   workdays: number[];
@@ -68,6 +70,7 @@ export function calculateCalendarPlan(
   tasks: RenovationTask[],
   calendar: WorkCalendar,
   startDate: string,
+  people: AvailablePerson[] = [],
 ): CalendarPlan {
   validateCalendar(calendar);
   if (!validDate(startDate))
@@ -103,6 +106,8 @@ export function calculateCalendarPlan(
           ? "Active blocker"
           : task.helperRequired && task.helperPersonIds.length === 0
             ? "Required helper is unassigned"
+            : assignedPeople(task).some(id=>!personHasWorkdays(people.find(person=>person.id===id),calendar))
+              ? "Assigned person has no verified workdays in the project calendar"
             : task.requiredItemsReady === false ||
                 !["not_required", "ready"].includes(task.materialStatus)
               ? "Materials are unavailable"
@@ -120,7 +125,8 @@ export function calculateCalendarPlan(
         cursor,
         task.earliestStartDate ?? cursor,
         task.blockedUntilDate ?? cursor,
-        task.cureUntil?.slice(0, 10) ?? cursor,
+        // Day-only plans conservatively reserve the full release day for a timed wait.
+        task.cureUntil ? addDaysToDateString(getTodayDateString(new Date(task.cureUntil)),1) : cursor,
         ...task.dependencyTaskIds.map((id) => endById.get(id) ?? cursor),
       ]
         .sort()
@@ -137,7 +143,7 @@ export function calculateCalendarPlan(
           throw new Error(
             "Schedule exceeds ten years. Review work calendar and estimates.",
           );
-        const capacity = calendarMinutes(cursor, calendar) - used;
+        const capacity = Math.min(calendarMinutes(cursor, calendar),assignedWorkMinutes(task,people,cursor,calendar)) - used;
         if (capacity <= 0) {
           cursor = addDaysToDateString(cursor, 1);
           used = 0;

@@ -3,8 +3,10 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { useBrowserDraft } from "@/lib/browser-draft";
 import {
   createOwnerProject,
+  recoverProjectCreationInput,
   type CreateProjectInput,
   type ProjectType
 } from "@/lib/projects";
@@ -23,7 +25,7 @@ function friendlyProjectError(error: unknown) {
 export function ProjectCreateForm() {
   const { user } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState<CreateProjectInput>({
+  const [form, setForm, clearDraft, draftError] = useBrowserDraft<CreateProjectInput>(`rcc:new-project:${user?.uid ?? "signed-out"}`, {
     name: "",
     type: "custom",
     scope: "",
@@ -51,6 +53,7 @@ export function ProjectCreateForm() {
 
     try {
       const projectId = await createOwnerProject(user.uid, form);
+      clearDraft();
       router.replace(`/projects/${projectId}`);
     } catch (projectError) {
       setError(friendlyProjectError(projectError));
@@ -61,6 +64,9 @@ export function ProjectCreateForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      <p className="text-sm" role="status">{draftError || "Project draft is kept on this device until saved online."}</p>
+      <button type="button" className="touch-target rounded border px-3" onClick={()=>{const original=user?recoverProjectCreationInput(user.uid):null;if(original)setForm(original);else setError("No unconfirmed creation draft was found.");}}>Recover unconfirmed creation</button>
+      <button type="button" className="touch-target rounded border px-3" onClick={()=>{if(window.confirm("Discard this unsaved project draft?"))clearDraft();}}>Discard draft</button>
       {error ? (
         <div className="rounded-md border border-[#e4bbbb] bg-[#fae8e8] p-3 text-sm leading-6 text-danger">
           {error}

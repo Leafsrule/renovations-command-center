@@ -85,9 +85,9 @@ function EvidenceWorkspaceContent({ projectId }: { projectId: string }) {
     setBusy(true);
     setMessage("Uploading…");
     try {
-      await uploadEvidence(projectId, taskId, file, caption, category);
-      setItems(await listEvidence(projectId));
-      setMessage("Saved to this project.");
+      const saved=await uploadEvidence(projectId, taskId, file, caption, category);
+      if(saved) setItems(await listEvidence(projectId));
+      setMessage(saved?"Saved to this project.":"Photo retained on this device. Project save is pending; use Photo sync to retry.");
       setFile(null);
       setCaption("");
     } catch (e) {

@@ -20,6 +20,7 @@ import {
   type TaskExecutionAction
 } from "@/lib/task-execution";
 import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
+import { listProjectPeople, type RenovationPerson } from "@/lib/people";
 import { StatusBadge } from "@/components/StatusBadge";
 
 function formatMinutes(minutes: number) {
@@ -78,6 +79,7 @@ export function TodayPlanner() {
   const params = useParams<{ projectId: string }>();
   const projectId = params.projectId;
   const [tasks, setTasks] = useState<RenovationTask[]>([]);
+  const [people,setPeople]=useState<RenovationPerson[]>([]);
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -106,13 +108,15 @@ export function TodayPlanner() {
       setActionError("");
 
       try {
-        const [projectTasks, projectRooms] = await Promise.all([
+        const [projectTasks, projectRooms, projectPeople] = await Promise.all([
           listProjectTasks(projectId),
-          listProjectRooms(projectId)
+          listProjectRooms(projectId),
+          listProjectPeople(projectId)
         ]);
 
         if (!cancelled) {
           setTasks(projectTasks);
+          setPeople(projectPeople);
           void getProjectSettings(projectId).then(settings=>{if(!cancelled){setCalendar(settings.calendar);setCalendarVerified(true)}}).catch(()=>{if(!cancelled){setCalendarVerified(false);setActionError("Work calendar could not be verified. Reload before starting work.")}});
           setRooms(projectRooms);
         }
@@ -147,9 +151,9 @@ export function TodayPlanner() {
         today,
         availableMinutes: workdayAvailable ? Math.round(availableHours * 60) : 0,
         bufferPercent,
-        helperAvailable
+        helperAvailable, people
       }),
-    [tasks, today, availableHours, bufferPercent, helperAvailable,workdayAvailable]
+    [tasks, people, today, availableHours, bufferPercent, helperAvailable,workdayAvailable]
   );
 
   async function refreshTasks() {

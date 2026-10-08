@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/AuthProvider";
 import { CommandSync } from "@/components/CommandSync";
+import { PhotoSync } from "@/components/PhotoSync";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider><PwaRegistration /><CommandSync />{children}</AuthProvider>
+        <AuthProvider><PwaRegistration /><CommandSync /><PhotoSync />{children}</AuthProvider>
       </body>
     </html>
   );

@@ -50,3 +50,7 @@ Built-server HTTP smoke checks passed: login 200, health 200, unauthenticated co
 No main merge, production deployment, data migration or real-task completion occurred. Preserve all rescue and source branches. Current progress is retained on the feature branch/draft PR. The session does not keep running after its final response.
 
 October 8 candidate requires Firebase Admin project/bucket settings and securely supplied Application Default Credentials. See `apps/renovations-command-center/docs/TRUSTED_MUTATIONS.md`. Do not commit secrets or deploy the stronger rules independently of a validated server-capable app. No live deployment or migration occurred.
+
+## Next retained increment
+
+October 8 Firebase setup tooling, local Auth-to-HTTP smoke workflow, atomic project creation/retry, worker/helper calendars and durable raw-photo outbox are the new increment. Live Firebase sign-in was cancelled; do not equate emulator success with live access. Resume from the current feature-branch HEAD, `FIREBASE_SETUP.md` and the tracker. Continue complete metadata queues/offline navigation and photo recovery alongside the still-required live setup and review gates.

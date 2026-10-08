@@ -15,14 +15,14 @@ service cloud.firestore {
     match /projects/{projectId} {
       allow create: if request.auth != null
         && request.resource.data.ownerUserId == request.auth.uid
-        && !request.resource.data.keys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest']);
+        && !request.resource.data.keys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest', 'creationDigest']);
 
       allow read, delete: if request.auth != null
         && resource.data.ownerUserId == request.auth.uid;
       allow update: if request.auth != null
         && resource.data.ownerUserId == request.auth.uid
         && request.resource.data.ownerUserId == resource.data.ownerUserId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest', 'creationDigest']);
 
       match /rooms/{roomId} {
         allow read: if isProjectOwner(projectId);

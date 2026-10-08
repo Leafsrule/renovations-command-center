@@ -1,3 +1,4 @@
+import { assignedPeople, personAvailabilityMinutes, type AvailablePerson } from "./person-availability";
 import type { RenovationTask, TaskPhase } from "./tasks";
 
 export type TaskSchedulingCategory =
@@ -69,6 +70,7 @@ export type RecommendationOptions = {
   today?: string;
   availableMinutes?: number;
   helperAvailable?: boolean;
+  people?: AvailablePerson[];
   passiveWaitActive?: boolean;
   maxRecommendations?: number;
   taskUniverse?: RenovationTask[];
@@ -239,7 +241,7 @@ function evaluateTaskReadiness(
   const invalidDuration = taskHasInvalidDuration(task);
   const earliestStartBlocked = isDateAfter(task.earliestStartDate, today);
   const helperRequiredAndUnavailable =
-    task.helperRequired === true && (options.helperAvailable === false || task.helperPersonIds.length === 0);
+    (task.helperRequired === true && (options.helperAvailable === false || task.helperPersonIds.length === 0)) || (options.people !== undefined && assignedPeople(task).some(id=>personAvailabilityMinutes(options.people!.find(p=>p.id===id),today)<=0));
   const reasons: string[] = [];
 
   if (isCompletedOrCancelled) {
@@ -479,7 +481,7 @@ export function getRecommendedNextTasks(
       task,
       readiness: getTaskReadinessEvaluation(task, taskMap, {
         today,
-        helperAvailable: options.helperAvailable
+        helperAvailable: options.helperAvailable, people: options.people
       })
     }))
     .filter(({ readiness }) => readiness.state === "ready")

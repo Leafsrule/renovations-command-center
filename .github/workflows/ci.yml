@@ -61,6 +61,8 @@ jobs:
       - run: npm ci
       - name: Test trusted commands and client authorization rules
         run: npx --yes firebase-tools@15 emulators:exec --project demo-renovations-racp --only firestore,storage 'npm run test:backend'
+      - name: Verify real emulator tokens through app HTTP endpoints
+        run: npm run test:firebase-http
 
   site-control-isolation:
     runs-on: ubuntu-latest
