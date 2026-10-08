@@ -32,3 +32,23 @@ DO NOT RELEASE. This is an in-progress development candidate. Required A–I sco
 No Firebase web configuration, backend deployment credential or Render authorization was present in this environment. Connected-service discovery via Rube failed with a connection error. Repository permissions are admin/push, but they do not establish backend or hosting authority. No deployed-rule comparison, live IAM check, production smoke test, backup/restore rehearsal or rollback occurred. PR #5's genuine external/provider gates were not forged or bypassed.
 
 Site Control retains pre-existing public-JSON, GitHub-token, whole-file overwrite, unsafe text-rendering and offline limitations; these are not fixed by isolating it. Do not add private evidence there. No cross-app data migration occurred.
+
+## October 8 interim QA review
+
+Separate review pass after implementation; same work session, no independent-agent or external-model approval. The bounded command/queue increment is reviewable, but this is not the final A–I acceptance review.
+
+The previous stale QC/project edit findings now have persisted original-revision checks. Execution/QC replay and restore destination reuse have rejection/reload tests. Device sync has mounted startup/reconnect/conflict/acknowledgment coverage. Toronto midnight/DST report grouping excludes undated events and never infers hours. Pause and terminal blocker-clearing regressions have coverage.
+
+Meaningful migration of coverage: the old mocked client transaction suite was replaced by server-backed transport tests and real Admin SDK/demo-emulator command tests; test counts must not imply dropped policy coverage.
+
+Remaining QA blockers: rendered phone/desktop/authenticated workflow, live upload/CORS/private-file access, actual browser restart and second-device exercise; complete offline navigation/capture/new-project workflows; all scheduling/helper/cure/resource/waiver acceptance; photo recovery and provider rollback. The new daily report has logic tests, not rendered print acceptance.
+
+## October 8 interim Security & Release review
+
+Separate review pass focused on the privileged mutation boundary. Firestore now denies direct SDK execution/proof/history/receipt forgery and restored-project bypass. Storage permits only scoped temporary uploads and owner reads; final writes are server-only. Tests exercise other-owner rejection, fresh prerequisites, concurrent starts, forged counters, actual file/task/owner verification, audited exceptions, immutable command IDs, replay without doubled work, and separate-copy restore. API authentication rejects absent/revoked identity, takes the actor only from the verified token and hides private internal errors. Body limits measure streamed bytes instead of trusting Content-Length. Server secrets are not public environment variables.
+
+Review/test findings corrected: emulator token revocation did not work via metadata patch; verified uploads now copy to token-free final storage and delete the temporary path. Historical restore originally allowed a client status bypass; it is now server-only. Clear-blocker could reopen terminal work; the policy now rejects it.
+
+Release is still denied. Verify the server credential's least privilege and app-specific project/bucket on real infrastructure; configure existing Firebase resources securely; verify final-object privacy and temporary cleanup against the live provider; audit abandoned upload cleanup; add photo-object backup/restore and validate rollback. No production security or external Claude review is claimed. Direct Render read access works, but the connected workspace has no renovation-app service.
+
+Validation for the October 8 application increment: fresh install, lint, typecheck, build, 156 Vitest tests (25 files), 22 demo backend/rules/Storage tests, zero-vulnerability audit, whitespace and app isolation passed. The Firebase CLI 15/Java 21 GitHub job must be checked separately before any release.

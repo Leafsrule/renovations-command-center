@@ -226,3 +226,9 @@ it("denies completion while required QC has not passed", () => {
  const task = createTask({status:"in_progress",qcRequired:true,qcPassed:false});
  expect(evaluateTaskTransition(task,"complete",{tasks:[task]}).allowed).toBe(false);
 });
+
+describe("pause and terminal-state guards",()=>{
+ it("pauses without labelling ordinary stopped work as curing",()=>{expect(evaluate(createTask({status:"in_progress"}),"pause")).toMatchObject({allowed:true,updates:{status:"ready"}});});
+ it("never reopens completed or cancelled work through blocker clearing",()=>{for(const status of ["complete","cancelled"] as const)expect(evaluate(createTask({status,blockerType:"material"}),"clear_blocker").allowed).toBe(false);});
+ it("rejects premature completion while still permitting entering a recorded curing wait",()=>{const task=createTask({status:"in_progress",cureUntil:new Date(Date.now()+86400000).toISOString()});expect(evaluate(task,"complete").allowed).toBe(false);expect(evaluate(task,"mark_waiting").allowed).toBe(true);});
+});

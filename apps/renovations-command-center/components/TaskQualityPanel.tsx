@@ -1,7 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { useBrowserDraft } from "@/lib/browser-draft";
+import { useAuth } from "./AuthProvider";
+import type { QualityInput } from "@/lib/task-command";
 import { saveTaskQuality, type QualityItem } from "@/lib/task-quality";
+import { taskRevision } from "@/lib/task-command";
 import type { RenovationTask } from "@/lib/tasks";
 export function TaskQualityPanel({
   projectId,
@@ -12,30 +16,64 @@ export function TaskQualityPanel({
   task: RenovationTask;
   onSaved: () => void;
 }) {
-  const [items, setItems] = useState<QualityItem[]>(task.qcChecklist ?? []),
-    [required, setRequired] = useState(Boolean(task.qcRequired)),
-    [cure, setCure] = useState(task.cureUntil ?? ""),
-    [override, setOverride] = useState(""),
-    [minutes, setMinutes] = useState(0),
-    [note, setNote] = useState(""),
-    [rework, setRework] = useState(false),
-    [busy, setBusy] = useState(false),
+  const { user } = useAuth();
+  const initial = {
+    items: task.qcChecklist ?? [],
+    required: Boolean(task.qcRequired),
+    cureUntil: task.cureUntil ?? null,
+    overrideReason: "",
+    workMinutes: 0,
+    workNote: "",
+    rework: false,
+    expectedRevision: taskRevision(task.updatedAt),
+  };
+  const [draft, setDraft, clearDraft, storageError] = useBrowserDraft<
+    QualityInput & { expectedRevision: string }
+  >(
+    `rcc:quality:${user?.uid ?? "signed-out"}:${projectId}:${task.id}`,
+    initial,
+  );
+  const {
+    items,
+    required,
+    cureUntil: cure,
+    overrideReason: override,
+    workMinutes: minutes,
+    workNote: note,
+    rework,
+  } = draft;
+  const setItems = (items: QualityItem[]) => setDraft((d) => ({ ...d, items }));
+  const setRequired = (required: boolean) =>
+    setDraft((d) => ({ ...d, required }));
+  const setCure = (cureUntil: string) =>
+    setDraft((d) => ({ ...d, cureUntil: cureUntil || null }));
+  const setOverride = (overrideReason: string) =>
+    setDraft((d) => ({ ...d, overrideReason }));
+  const setMinutes = (workMinutes: number) =>
+    setDraft((d) => ({ ...d, workMinutes }));
+  const setNote = (workNote: string) => setDraft((d) => ({ ...d, workNote }));
+  const setRework = (rework: boolean) => setDraft((d) => ({ ...d, rework }));
+  const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      await saveTaskQuality(projectId, task.id, {
-        items,
-        required,
-        cureUntil: cure || null,
-        overrideReason: override,
-        workMinutes: minutes,
-        workNote: note,
-        rework,
-      });
-      setMinutes(0);
-      setNote("");
+      await saveTaskQuality(
+        projectId,
+        task.id,
+        {
+          items,
+          required,
+          cureUntil: cure || null,
+          overrideReason: override,
+          workMinutes: minutes,
+          workNote: note,
+          rework,
+        },
+        draft.expectedRevision,
+      );
+      clearDraft();
       setMessage("Review and actual work saved.");
       onSaved();
     } catch (e) {
@@ -46,6 +84,7 @@ export function TaskQualityPanel({
   }
   return (
     <form className="space-y-3 rounded border bg-white p-4" onSubmit={submit}>
+      {storageError && <p role="alert">{storageError}</p>}
       <h2 className="font-semibold">Quality review and work record</h2>
       <Link className="underline" href={`/projects/${projectId}/photos`}>
         Upload required photos / receipts
@@ -119,7 +158,7 @@ export function TaskQualityPanel({
         Curing release time (include timezone, e.g. 2026-10-07T10:00:00-04:00)
         <input
           className="block w-full rounded border p-2"
-          value={cure}
+          value={cure ?? ""}
           onChange={(e) => setCure(e.target.value)}
           placeholder="Leave blank if not a timed cure"
         />
@@ -172,6 +211,20 @@ export function TaskQualityPanel({
         {busy ? "Saving…" : "Save review / work record"}
       </button>
       <p role="status">{message}</p>
+      <button
+        type="button"
+        className="touch-target underline"
+        onClick={() => {
+          if (
+            window.confirm(
+              "Discard this local quality/work draft? Submitted device changes remain in the sync list.",
+            )
+          )
+            clearDraft();
+        }}
+      >
+        Discard local draft
+      </button>
     </form>
   );
 }

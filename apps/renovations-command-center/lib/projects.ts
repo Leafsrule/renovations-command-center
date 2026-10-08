@@ -7,9 +7,11 @@ import {
   query,
   serverTimestamp,
   where,
-  updateDoc,
+  runTransaction,
   writeBatch
 } from "firebase/firestore";
+import { taskRevision } from "./task-command";
+import { validDate } from "./calendar";
 import { db } from "@/lib/firebase";
 
 export type ProjectType = "custom" | "bathroom_ensuite";
@@ -160,9 +162,15 @@ export async function setActiveOwnerProject(
   await batch.commit();
 }
 
-export async function updateOwnerProject(projectId: string, ownerUserId: string, input: CreateProjectInput & {status: ProjectStatus}) {
+export async function updateOwnerProject(projectId: string, ownerUserId: string, input: CreateProjectInput & {status: ProjectStatus}, expectedRevision: string) {
   if (!input.name.trim()) throw new Error("Project name is required.");
   if (input.startDate && input.targetFinishDate && input.targetFinishDate < input.startDate) throw new Error("Target finish must not precede project start.");
-  if (!await getOwnerProject(projectId, ownerUserId)) throw new Error("Project is unavailable.");
-  await updateDoc(doc(requireDb(), "projects", projectId), { name: input.name.trim(), scope: input.scope.trim(), type: input.type, startDate: input.startDate, targetFinishDate: input.targetFinishDate, status: input.status, updatedAt: serverTimestamp() });
+  if ([input.startDate,input.targetFinishDate].some(date=>date && !validDate(date))) throw new Error("Choose valid project dates.");
+  const ref=doc(requireDb(),"projects",projectId);
+  await runTransaction(requireDb(),async tx=>{
+    const current=await tx.get(ref);
+    if (!current.exists() || current.data().ownerUserId !== ownerUserId) throw new Error("Project is unavailable.");
+    if (taskRevision(current.data().updatedAt) !== expectedRevision) throw new Error("CONFLICT: Project changed on another device. Reload and compare your draft before saving.");
+    tx.update(ref,{name:input.name.trim(),scope:input.scope.trim(),type:input.type,startDate:input.startDate,targetFinishDate:input.targetFinishDate,status:input.status,updatedAt:serverTimestamp()});
+  });
 }

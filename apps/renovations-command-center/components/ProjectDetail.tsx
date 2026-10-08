@@ -105,7 +105,7 @@ export function ProjectDetail() {
 
   return (
     <section className="space-y-4">
-      <nav className="flex flex-wrap gap-3">{["tools","measurements","decisions"].map(section=><Link key={section} className="touch-target underline" href={`/projects/${project.id}/${section}`}>{section}</Link>)}</nav>
+      <nav className="flex flex-wrap gap-3">{["tools","measurements","decisions","reports"].map(section=><Link key={section} className="touch-target underline" href={`/projects/${project.id}/${section}`}>{section}</Link>)}</nav>
       <ProjectRecovery projectId={project.id} />
       <ProjectEditor key={project.id} project={project} onSaved={() => { if(user) void getOwnerProject(project.id,user.uid).then(setProject); }} />
       <Link className="touch-target block underline" href={`/projects/${project.id}/blackouts`}>Work calendar and blackout dates</Link>

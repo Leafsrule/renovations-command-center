@@ -17,7 +17,7 @@ Branch: `racp/rev02-completion`. Original main: `37a83fb`.
 | H | Project/account drafts; durable record queues; conflict/idempotent retries; Firestore cache; PWA fallback | Full execution/form queue and offline app workflow |
 | I | Basic bathroom draft template; print styles/lists; private structured export; validated restore copy | Photo-object backups, full recovery/rollback rehearsal and daily-report acceptance |
 
-Latest evidence: 139 Vitest + 9 emulator tests passed; lint/typecheck/build and zero-vulnerability audit passed. See `RACP_QA_SECURITY_REVIEW.md` for limitations and exact findings.
+Latest evidence is recorded in the October 8 implementation update below. October 6 baseline: 139 Vitest + 9 emulator tests passed; lint/typecheck/build and zero-vulnerability audit passed. See `RACP_QA_SECURITY_REVIEW.md` for limitations and exact findings.
 
 Next: close release-critical authoritative-invariant and offline coverage gaps, run real browser/E2E with authorized Firebase test data, verify existing host/backend access, then distinct final QA/security reviews and deployment of the tested commit.
 
@@ -44,3 +44,21 @@ Status remains **IN PROGRESS / EXTERNALLY BLOCKED**. Next development task remai
 The owner confirmed the connected Render workspace. Direct Render service listing succeeded, including previews. The two returned web services belong to another repository; no service is linked to `Leafsrule/renovations-command-center`. No unrelated service was inspected further or modified.
 
 This supersedes the earlier statement that Render access was unverified: **Render read access works without Rube**, but an existing renovation-app hosting resource has not been found in the connected workspace. No hosting was created and no deployment occurred. Firebase CLI live project listing separately failed with an authentication error; emulator access is not production access. The next release prerequisite is an authorized app-specific hosting arrangement plus Firebase authentication and configuration, after development/review gates pass.
+
+## Implementation continuation — 2026-10-08
+
+Status remains **IN PROGRESS / EXTERNALLY BLOCKED**, not development complete or released.
+
+- Sensitive execution, QC/actual work, evidence linkage and historical restore now use bearer-authenticated Next server endpoints. Firebase Admin verifies ID tokens with revocation checks; every command checks project ownership, reads current task/dependency/project data, and applies the shared transition policy. Browser writes cannot forge protected proof, audit or receipt fields.
+- Commands have immutable server receipts keyed by request ID and payload fingerprint. Interrupted task/QC requests are stored before dispatch, survive reload, retry under the original account, and visibly distinguish pending/conflicting/failed/saved. Conflicts require review; past-day starts are not auto-replayed. A device sync panel retries on startup/reconnect. This does not establish a fully navigable offline app.
+- Final evidence objects are server-only writes. Uploaded bytes must match the owner/task and image limits. The server copies verified temporary uploads without download tokens, removes the temporary path, and checks the actual object/generation again for completion. SDK writes cannot replace/delete final evidence. Live bucket/CORS/token behavior is still unverified.
+- Project and QC drafts retain their original revisions; stale changes are rejected instead of overwriting newer edits. Work receipts prevent duplicate actual minutes. Ordinary pause is separate from a curing wait, and blocker clearing cannot reopen terminal work.
+- Structured restore is server-only, creates a separate project, preserves child IDs/statuses/timestamps, rejects cycles, and retains a retry destination until count/semantic readback succeeds. Evidence-backed restoration remains explicitly blocked.
+- Daily work records now have a printable report grouped by Toronto date, using saved work minutes and reasons without invented hours.
+- Backend/rules CI was added with Node 22, Java 21 and Firebase CLI 15; local demo integration uses CLI 14/Java 17. See the latest CI for its actual result.
+
+Remaining required development: full offline navigation, new-project/metadata queues, offline raw-photo capture and photo backup/restore; persisted worker/helper calendars and complete timed wait/resource/space/dependency-waiver handling; broader template and field workflow integration verification. The existing live/backend/browser/external review and rollback gates remain.
+
+Configuration change: server-only `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_STORAGE_BUCKET` and securely provisioned Application Default Credentials are required. Missing configuration fails closed. No credentials, paid resources, production writes, main merge or unrelated-service changes were made. See `apps/renovations-command-center/docs/TRUSTED_MUTATIONS.md` for operation and release coordination.
+
+Validation for the October 8 application increment: fresh install, lint, typecheck, build, 156 Vitest tests (25 files), 22 demo backend/rules/Storage tests, zero-vulnerability audit, whitespace and app isolation passed. The Firebase CLI 15/Java 21 GitHub job must be checked separately before any release.

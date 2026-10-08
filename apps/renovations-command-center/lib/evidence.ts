@@ -1,11 +1,9 @@
 import {
   collection,
-  doc,
   getDocs,
-  runTransaction,
-  serverTimestamp,
 } from "firebase/firestore";
-import { deleteObject, getBlob, ref, uploadBytes } from "firebase/storage";
+import { getBlob, ref, uploadBytes } from "firebase/storage";
+import { sendTaskCommand } from "./task-command-client";
 import { auth, db, storage } from "./firebase";
 export type Evidence = {
   id: string;
@@ -41,31 +39,14 @@ export async function uploadEvidence(
     throw new Error("Choose a JPG, PNG or WebP smaller than 10 MB.");
   const uid = auth.currentUser.uid,
     id = crypto.randomUUID(),
-    path = `projects/${projectId}/evidence/${id}`;
+    path = `projects/${projectId}/evidence-staging/${id}`;
   const object = ref(storage, path);
-  await uploadBytes(object, file, { contentType: file.type });
+  await uploadBytes(object, file, { contentType: file.type, customMetadata:{taskId, uploadedBy:uid} });
   try {
-    await runTransaction(db, async (tx) => {
-      const taskRef = doc(db!, "projects", projectId, "tasks", taskId);
-      const task = await tx.get(taskRef);
-      if (!task.exists()) throw new Error("The linked task no longer exists.");
-      if (auth?.currentUser?.uid !== uid)
-        throw new Error("Account changed during upload. Please try again.");
-      tx.set(doc(db!, "projects", projectId, "evidence", id), {
-        taskId,
-        caption: caption.trim(),
-        category,
-        path,
-        uploadedBy: uid,
-        createdAt: serverTimestamp(),
-      });
-      tx.update(taskRef, {
-        evidenceCount: Number(task.data().evidenceCount || 0) + 1,
-        updatedAt: serverTimestamp(),
-      });
-    });
+    await sendTaskCommand(projectId, taskId, {kind:"evidence", evidenceId:id, caption, category}, id);
   } catch (error) {
-    await deleteObject(object).catch(() => undefined);
+    // Keep the uploaded object until the durable command confirms or is reviewed.
+    // Deleting after an uncertain response would destroy evidence needed by replay.
     throw error;
   }
 }

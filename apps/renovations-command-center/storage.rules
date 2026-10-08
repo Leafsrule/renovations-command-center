@@ -4,11 +4,19 @@ service firebase.storage {
   function owner(projectId) {
    return request.auth != null && firestore.get(/databases/(default)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid;
   }
-  match /projects/{projectId}/evidence/{fileId} {
-   allow read, delete: if owner(projectId);
+  match /projects/{projectId}/evidence-staging/{fileId} {
+   allow read: if owner(projectId);
+   allow delete: if owner(projectId) && !firestore.exists(/databases/(default)/documents/projects/$(projectId)/evidence/$(fileId));
    allow create: if resource == null && owner(projectId) && request.resource.size < 10 * 1024 * 1024
-     && request.resource.contentType.matches('image/(jpeg|png|webp)');
+     && request.resource.contentType.matches('image/(jpeg|png|webp)')
+     && request.resource.metadata.uploadedBy == request.auth.uid
+     && request.resource.metadata.taskId is string
+     && firestore.exists(/databases/(default)/documents/projects/$(projectId)/tasks/$(request.resource.metadata.taskId));
    allow update: if false;
+  }
+  match /projects/{projectId}/evidence/{fileId} {
+   allow read: if owner(projectId);
+   allow write: if false;
   }
   match /{allPaths=**} { allow read, write: if false; }
  }

@@ -69,7 +69,7 @@ test("direct creation of completed work without restore is rejected", async () =
     }),
   );
 });
-test("atomic owner-scoped restored project and historical task are supported", async () => {
+test("browser-created restored projects cannot bypass guarded historical task creation", async () => {
   const db = env.authenticatedContext("owner").firestore();
   const batch = writeBatch(db);
   batch.set(doc(db, "projects", "restore-test"), {
@@ -79,5 +79,18 @@ test("atomic owner-scoped restored project and historical task are supported", a
   batch.set(doc(db, "projects", "restore-test", "tasks", "historical"), {
     status: "complete",
   });
-  await assertSucceeds(batch.commit());
+  await assertFails(batch.commit());
+});
+
+test("direct SDK cannot forge evidence, QC, work or execution proof", async () => {
+ const db=env.authenticatedContext("owner").firestore();
+ const task=doc(db,"projects","owned","tasks","photo-required");
+ for(const fields of [{evidenceCount:99},{qcPassed:true},{qcChecklist:[{label:"Fake",required:true,passed:true}]},{actualDurationMinutes:100},{completionOverrideReason:"Fake",overrideAuditId:"pretend"},{status:"ready"},{photosRequired:false}]) await assertFails(updateDoc(task,fields));
+ await assertFails(setDoc(doc(db,"projects","owned","evidence","fake"),{taskId:"photo-required"}));
+ await assertFails(setDoc(doc(db,"projects","owned","taskHistory","pretend"),{action:"owner_exception",actor:"owner"}));
+ await assertFails(setDoc(doc(db,"projects","owned","commandReceipts","pretend"),{result:{allowed:true}}));
+});
+test("ordinary owner metadata edits remain possible", async () => {
+ const db=env.authenticatedContext("owner").firestore();
+ await assertSucceeds(updateDoc(doc(db,"projects","owned","tasks","draft"),{name:"Edited",status:"ready"}));
 });

@@ -1,6 +1,8 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
+import { taskRevision } from "@/lib/task-command";
+import { useBrowserDraft } from "@/lib/browser-draft";
 import { updateOwnerProject, type RenovationProject } from "@/lib/projects";
 export function ProjectEditor({
   project,
@@ -10,12 +12,25 @@ export function ProjectEditor({
   onSaved: () => void;
 }) {
   const { user } = useAuth();
-  const [name, setName] = useState(project.name),
-    [scope, setScope] = useState(project.scope),
-    [start, setStart] = useState(project.startDate),
-    [finish, setFinish] = useState(project.targetFinishDate),
-    [status, setStatus] = useState(project.status),
-    [busy, setBusy] = useState(false),
+  const [draft, setDraft, clearDraft, storageError] = useBrowserDraft(
+    `rcc:project-edit:${user?.uid ?? "signed-out"}:${project.id}`,
+    {
+      name: project.name,
+      scope: project.scope,
+      start: project.startDate,
+      finish: project.targetFinishDate,
+      status: project.status,
+      revision: taskRevision(project.updatedAt),
+    },
+  );
+  const { name, scope, start, finish, status } = draft;
+  const setName = (name: string) => setDraft((d) => ({ ...d, name }));
+  const setScope = (scope: string) => setDraft((d) => ({ ...d, scope }));
+  const setStart = (start: string) => setDraft((d) => ({ ...d, start }));
+  const setFinish = (finish: string) => setDraft((d) => ({ ...d, finish }));
+  const setStatus = (status: RenovationProject["status"]) =>
+    setDraft((d) => ({ ...d, status }));
+  const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -23,14 +38,20 @@ export function ProjectEditor({
     setBusy(true);
     setError("");
     try {
-      await updateOwnerProject(project.id, user.uid, {
-        name,
-        scope,
-        startDate: start,
-        targetFinishDate: finish,
-        status,
-        type: project.type,
-      });
+      await updateOwnerProject(
+        project.id,
+        user.uid,
+        {
+          name,
+          scope,
+          startDate: start,
+          targetFinishDate: finish,
+          status,
+          type: project.type,
+        },
+        draft.revision,
+      );
+      clearDraft();
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -44,6 +65,7 @@ export function ProjectEditor({
         Edit / archive / reopen project
       </summary>
       <form className="mt-4 space-y-3" onSubmit={submit}>
+        {storageError && <p role="alert">{storageError}</p>}
         <label className="block">
           Name
           <input
@@ -110,6 +132,16 @@ export function ProjectEditor({
           {busy ? "Saving…" : "Save project"}
         </button>
         <p role="alert">{error}</p>
+        <button
+          type="button"
+          className="touch-target underline"
+          onClick={() => {
+            if (window.confirm("Discard this local project draft?"))
+              clearDraft();
+          }}
+        >
+          Discard local draft
+        </button>
       </form>
     </details>
   );

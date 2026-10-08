@@ -45,4 +45,8 @@ describe("app-scoped backup validation", () => {
     }));
     expect(() => validateProjectBackup(value, "owner")).toThrow(/limit/);
   });
+  it("rejects circular dependencies before a restore begins",()=>{
+    const value=backup();value.collections.tasks[0].data.dependencyTaskIds=["tile"];
+    expect(()=>validateProjectBackup(value,"owner")).toThrow(/circular/);
+  });
 });

@@ -12,6 +12,7 @@ export type TaskExecutionAction =
   | "start"
   | "resume"
   | "mark_waiting"
+  | "pause"
   | "complete"
   | "block"
   | "clear_blocker";
@@ -145,6 +146,10 @@ export function evaluateTaskTransition(
       });
     }
 
+    case "pause": {
+      if (task.status !== "in_progress") return deny(action, "Only in-progress work can be paused.");
+      return allow(action, "Work paused; start it again when ready.", {status:"ready", readinessState:"ready", readinessReasons:[]});
+    }
     case "mark_waiting": {
       if (task.status !== "in_progress") {
         return deny(action, "Only an in-progress task can enter waiting or curing.");
@@ -166,6 +171,7 @@ export function evaluateTaskTransition(
         return deny(action, "Only an in-progress task can be completed.");
       }
 
+      if (task.cureUntil && Date.parse(task.cureUntil) > Date.now()) return deny(action, "The recorded curing period has not ended.");
       if (task.photosRequired && !task.completionOverrideReason?.trim() && !(task.evidenceCount && task.evidenceCount > 0)) return deny(action, "Upload required task evidence before completion.");
       if (task.qcRequired && !task.completionOverrideReason?.trim() && !task.qcPassed) return deny(action, "Required quality review must pass before completion.");
 
@@ -205,6 +211,7 @@ export function evaluateTaskTransition(
     }
 
     case "clear_blocker": {
+      if (["complete", "cancelled", "in_progress", "waiting_curing", "qc_review", "rework_required"].includes(task.status)) return deny(action, "Use the appropriate guarded action for this task's current state.");
       if (
         task.status !== "blocked" &&
         task.readinessState !== "blocked" &&

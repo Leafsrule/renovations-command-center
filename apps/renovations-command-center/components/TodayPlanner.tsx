@@ -371,9 +371,10 @@ export function TodayPlanner() {
               onClick={() => applyTaskAction(task, "mark_waiting")}
               type="button"
             >
-              Pause / wait
+              Wait / cure
             </button>
           ) : null}
+          {task.status === "in_progress" ? <button className="touch-target rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink" disabled={saving} onClick={()=>applyTaskAction(task,"pause")} type="button">Pause work</button> : null}
           {canBlock ? (
             <button
               className="touch-target rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink"

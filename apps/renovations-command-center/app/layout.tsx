@@ -2,6 +2,7 @@ import {PwaRegistration} from "@/components/PwaRegistration";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/AuthProvider";
+import { CommandSync } from "@/components/CommandSync";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider><PwaRegistration />{children}</AuthProvider>
+        <AuthProvider><PwaRegistration /><CommandSync />{children}</AuthProvider>
       </body>
     </html>
   );
