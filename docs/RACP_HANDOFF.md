@@ -7,10 +7,10 @@ Branch: racp/rev02-completion
 Base: 37a83fb9ada89a05a43b0a01acdcccce3dd9a787
 Local isolation checkpoint: cb92f5e (retained in racp/local-checkpoint-20261006).
 Original October 6 application candidate: 4a7177772fb71998b7629d3ff0e5f744f4ec0e34
-Latest application increment: October 8 trusted mutations/queues; inspect branch HEAD and tracker for the published commit.
+Latest application increment: 08c646aca3124ab8eb7416bbf390aaeca4876bc7 (October 8 trusted mutations/queues).
 Draft PR: https://github.com/Leafsrule/renovations-command-center/pull/8
-Published tree: a555f0098687aca5414e1ff0a01ee36a035fd023 (identical to locally tested tree).
-October 8 includes material application changes; the October 6 tree above is historical, not the current candidate.
+Published application tree: 61502455272a9c59cc54215f2daef6343d4a68b8 (identical to locally tested tree).
+Local October 8 checkpoint: racp/local-checkpoint-20261008.
 
 CLI git push had no HTTPS credentials. The authorized GitHub connector published the identical tree; remote content was fetched and compared successfully. Continue via the connector or an already authorized git credential. Do not force-push to reconcile local/remote author metadata.
 
@@ -36,13 +36,15 @@ node scripts/check-app-isolation.mjs
 git diff --check
 ```
 
-Use current Firebase CLI with Java 21 for the final CI/provider review. CLI14 is the tested local Java-compatible route, not a claim about current production rules.
+Verified October 8: 156 app tests and 22 demo backend/security tests passed locally; lint, typecheck, production build, audit (zero vulnerabilities), isolation and whitespace checks passed. GitHub CI run 37788495866 for application commit 08c646aca3124ab8eb7416bbf390aaeca4876bc7 completed successfully in all three jobs: validate, backend-security and site-control-isolation. Backend CI used Firebase CLI15 and Java21; local CLI14 was the Java-compatible route. Neither validates the live provider deployment.
+
+Built-server HTTP smoke checks passed: login 200, health 200, unauthenticated command 401, and unconfigured secure backend 503 with an explicit unsaved response. Health success is not proof of live Firebase operation. The temporary server was stopped after testing.
 
 ## External blockers and smallest remaining access
 
 - Existing Firebase project/web configuration, authorized test account, rules/storage deployment capability and existing web-host service/root-directory configuration need verification. No new paid service or merged database is authorized. Do not commit secrets.
 - Connected-service discovery failed (Rube connection error). Direct Render read access was later verified; its confirmed workspace has no renovation-app service. Firebase live authentication remains unavailable.
-- Playwright browser installation failed (invalid/empty downloaded ZIP). A working permitted browser runtime is required for rendered/mobile/E2E verification.
+- Playwright browser installation failed (invalid/empty downloaded ZIP). The alternate cloud browser also could not reach the private localhost preview (ERR_CONNECTION_REFUSED). Rendered/mobile/print/E2E acceptance remains unverified; successful HTTP checks do not substitute for it.
 - Genuine external review gates associated with existing PR #5 remain unperformed.
 
 No main merge, production deployment, data migration or real-task completion occurred. Preserve all rescue and source branches. Current progress is retained on the feature branch/draft PR. The session does not keep running after its final response.
