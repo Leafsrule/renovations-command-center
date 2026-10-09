@@ -12,6 +12,7 @@ import {
   saveFieldRecord,
   storePending,
   validateFieldRecord,
+  clearConfirmedPending,
   type FieldRecord,
   type FieldKind,
   type PendingFieldChange,
@@ -70,7 +71,10 @@ function FieldRecordsContent({
           ownerId,
           change.changeId,
         );
-        localStorage.removeItem(pendingKey(ownerId, projectId, kind));
+        if (!clearConfirmedPending(change)) {
+          setMessage("Server confirmed the submitted change. A newer device draft was preserved; reload to review it.");
+          return;
+        }
         setPending(null);
         setForm(null);
         setMessage("Saved.");
@@ -159,7 +163,7 @@ function FieldRecordsContent({
       window.removeEventListener("online", reconnect);
     };
   }, [kind, ownerId, projectId, sync]);
-  function edit(next: FieldRecord) {
+  function edit(next: FieldRecord, replaceReviewedConflict = false) {
     const draft: PendingFieldChange = {
       changeId: crypto.randomUUID(),
       kind,
@@ -170,12 +174,12 @@ function FieldRecordsContent({
       error: "",
     };
     try {
-      storePending(draft);
+      storePending(draft, replaceReviewedConflict);
       setForm(next);
       setPending(draft);
       setMessage("Draft saved on this device.");
-    } catch {
-      setMessage("Could not save a durable draft. Check browser storage.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save a durable draft. Check browser storage.");
     }
   }
   async function submit(event: FormEvent) {
@@ -370,6 +374,7 @@ function FieldRecordsContent({
             disabled={busy}
             className="touch-target ml-3 rounded border px-4"
             onClick={() => {
+              if (pending?.state !== "draft" && !window.confirm("Discard this unconfirmed local change? It may already be saved on the server. Review current records before submitting a replacement.")) return;
               localStorage.removeItem(pendingKey(ownerId, projectId, kind));
               setForm(null);
               setPending(null);
@@ -451,7 +456,7 @@ function FieldRecordsContent({
                       "Have you compared your draft with the current record? Apply your reviewed draft to the current version?",
                     )
                   )
-                    edit({ ...form!, version: r.version });
+                    edit({ ...form!, version: r.version }, true);
                 }}
               >
                 Use current version after review

@@ -180,11 +180,24 @@ export function pendingKey(
 ) {
   return `rcc:field-draft:${ownerId}:${projectId}:${kind}`;
 }
-export function storePending(change: PendingFieldChange) {
+export function storePending(change: PendingFieldChange, replaceReviewedConflict = false) {
+  const current = readPending(change.ownerId, change.projectId, change.kind);
+  if (current && change.state !== "draft" && current.changeId !== change.changeId)
+    throw new Error("A newer device draft was preserved. Reload before retrying this change.");
+  if (current && current.state !== "draft"
+    && !(replaceReviewedConflict && current.state === "conflicting" && change.state === "draft")
+    && (current.changeId !== change.changeId || JSON.stringify(current.record) !== JSON.stringify(change.record)))
+    throw new Error("An earlier change is unconfirmed. Retry or review it before changing this draft.");
   localStorage.setItem(
     pendingKey(change.ownerId, change.projectId, change.kind),
     JSON.stringify(change),
   );
+}
+export function clearConfirmedPending(change: PendingFieldChange): boolean {
+  const current = readPending(change.ownerId, change.projectId, change.kind);
+  if (!current || current.changeId !== change.changeId || JSON.stringify(current.record) !== JSON.stringify(change.record)) return false;
+  localStorage.removeItem(pendingKey(change.ownerId, change.projectId, change.kind));
+  return true;
 }
 export function readPending(
   ownerId: string,

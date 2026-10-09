@@ -7,6 +7,7 @@ import { runTaskCommand } from "../lib/server/task-commands";
 import { createProject } from "../lib/server/project-create";
 import { getTodayDateString } from "../lib/scheduling";
 import { restoreProject } from "../lib/server/project-restore";
+import { exportProjectArchive } from "../lib/server/project-archive";
 import { taskRevision, type TaskCommand } from "../lib/task-command";
 const app = initializeApp(
   {
@@ -332,4 +333,76 @@ test("server cannot replace persisted helper availability with a browser asserti
   await person.set({active:true,availability:{workdays:[0,1,2,3,4,5,6],hoursPerDay:4,blackouts:[]}});
   await action(id,"start",{helperAvailable:true});
   assert.equal((await db.doc(`projects/${project}/tasks/${id}`).get()).data()?.status,"in_progress");
+});
+
+test("portable photo backup survives source deletion and restores private bytes with safe retries", async () => {
+  const source = `archive-source-${Date.now()}`, destination = `archive-copy-${Date.now()}`;
+  await db.doc(`projects/${source}`).set({ ownerUserId: "owner", name: "Photo recovery demo" });
+  await db.doc(`projects/${source}/tasks/tile`).set({ ...base, status: "complete", photosRequired: true, evidenceCount: 1 });
+  const bytes = Buffer.from([255, 216, 255, 1, 2, 3]);
+  const sourceFile = bucket.file(`projects/${source}/evidence/photo`);
+  await sourceFile.save(bytes, { metadata: { contentType: "image/jpeg", metadata: { uploadedBy: "owner", taskId: "tile" } } });
+  const [metadata] = await sourceFile.getMetadata();
+  await db.doc(`projects/${source}/evidence/photo`).set({ taskId: "tile", caption: "After", category: "After", uploadedBy: "owner",
+    path: sourceFile.name, generation: String(metadata.generation), size: bytes.length, contentType: "image/jpeg" });
+  await assert.rejects(exportProjectArchive(db, bucket, "other", source), /unavailable/);
+  const backup = await exportProjectArchive(db, bucket, "owner", source);
+  assert.equal(backup.schemaVersion, 2);
+  assert.equal(backup.photoObjects?.length, 1);
+  const corrupt = structuredClone(backup);
+  corrupt.photoObjects![0].sha256 = "0".repeat(64);
+  await assert.rejects(restoreProject(db, "owner", "invalid-archive", corrupt, bucket), /checksum/);
+  assert.equal((await db.doc("projectRestores/invalid-archive").get()).exists, false);
+  assert.equal((await db.doc("projects/invalid-archive").get()).exists, false);
+  // Only isolated disposable emulator data is removed here.
+  await sourceFile.delete();
+  await db.recursiveDelete(db.doc(`projects/${source}`));
+  const results = await Promise.allSettled([
+    restoreProject(db, "owner", destination, backup, bucket),
+    restoreProject(db, "owner", destination, backup, bucket),
+  ]);
+  assert.equal(results.filter(row => row.status === "fulfilled").length, 2);
+  const copy = bucket.file(`projects/${destination}/evidence/photo`);
+  assert.deepEqual((await copy.download())[0], bytes);
+  const [privateMetadata] = await copy.getMetadata();
+  assert.ok(!privateMetadata.metadata?.firebaseStorageDownloadTokens);
+  const record = (await db.doc(`projects/${destination}/evidence/photo`).get()).data()!;
+  assert.equal(record.path, copy.name);
+  assert.equal(record.generation, String(privateMetadata.generation));
+  assert.equal((await db.doc(`projects/${destination}/tasks/tile`).get()).data()?.status, "complete");
+  const secondBackup = await exportProjectArchive(db, bucket, "owner", destination);
+  assert.equal(secondBackup.photoObjects![0].sha256, backup.photoObjects![0].sha256);
+  await assert.rejects(restoreProject(db, "other", destination, backup, bucket), /account/);
+  await assert.rejects(restoreProject(db, "owner", destination, { ...backup, project: { ...backup.project, name: "Changed" } }, bucket), /already exists/);
+});
+
+test("portable restore resumes after interrupted file save without publishing partial records", async () => {
+  const source = `interrupted-source-${Date.now()}`, destination = `interrupted-copy-${Date.now()}`;
+  await db.doc(`projects/${source}`).set({ ownerUserId: "owner", name: "Interrupted" });
+  await db.doc(`projects/${source}/tasks/tile`).set({ ...base });
+  for (const id of ["one", "two"]) {
+    const path = `projects/${source}/evidence/${id}`;
+    await bucket.file(path).save(Buffer.from([255, 216, 255]), { metadata: { contentType: "image/jpeg", metadata: { uploadedBy: "owner", taskId: "tile" } } });
+    const [metadata] = await bucket.file(path).getMetadata();
+    await db.doc(`projects/${source}/evidence/${id}`).set({ taskId: "tile", uploadedBy: "owner", path, generation: String(metadata.generation) });
+  }
+  const backup = await exportProjectArchive(db, bucket, "owner", source);
+  const interruptedBucket = { file: (path: string, options?: object) => {
+    if (path === `projects/${destination}/evidence/two`) throw new Error("Interrupted transfer");
+    return bucket.file(path, options);
+  } } as typeof bucket;
+  await assert.rejects(restoreProject(db, "owner", destination, backup, interruptedBucket), /Interrupted/);
+  assert.equal((await db.doc(`projects/${destination}`).get()).exists, false);
+  assert.equal((await bucket.file(`projects/${destination}/evidence/one`).exists())[0], true);
+  await assert.rejects(restoreProject(db, "owner", destination, { ...backup, project: { ...backup.project, name: "Different" } }, bucket), /reserved/);
+  assert.equal(await restoreProject(db, "owner", destination, backup, bucket), destination);
+  assert.equal((await db.collection(`projects/${destination}/evidence`).get()).size, 2);
+});
+
+test("portable export refuses a missing linked photo rather than making an incomplete backup", async () => {
+  const id = `missing-archive-${Date.now()}`;
+  await db.doc(`projects/${id}`).set({ ownerUserId: "owner", name: "Missing photo" });
+  await db.doc(`projects/${id}/tasks/tile`).set({ ...base });
+  await db.doc(`projects/${id}/evidence/missing`).set({ taskId: "tile", path: `projects/${id}/evidence/missing`, generation: "1" });
+  await assert.rejects(exportProjectArchive(db, bucket, "owner", id));
 });

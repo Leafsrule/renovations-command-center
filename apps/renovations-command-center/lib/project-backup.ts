@@ -6,6 +6,17 @@ import {
   type ProjectBackup,
 } from "./backup-format";
 export * from "./backup-format";
+export async function exportPortableProjectBackup(projectId: string): Promise<ProjectBackup> {
+  const user = auth?.currentUser;
+  if (!user) throw new Error("Sign in before exporting.");
+  const token = await user.getIdToken();
+  if (auth?.currentUser?.uid !== user.uid) throw new Error("Account changed before exporting.");
+  const response = await fetch("/api/projects/backup", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ projectId }) });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Backup was not confirmed.");
+  if (auth?.currentUser?.uid !== user.uid) throw new Error("Account changed. Backup was not downloaded.");
+  return validateProjectBackup(result, user.uid);
+}
 export async function exportProjectBackup(
   projectId: string,
 ): Promise<ProjectBackup> {
@@ -62,7 +73,9 @@ export async function restoreProjectBackup(value: unknown) {
   const result = await response.json();
   if (!response.ok)
     throw new Error(result.error || "Restore was not confirmed.");
-  const ref = { id: result.projectId as string };
+  if (result.projectId !== projectId || auth?.currentUser?.uid !== user.uid)
+    throw new Error("Restore acknowledgment did not match this account and destination. Keep the backup.");
+  const ref = { id: projectId };
   const restored = await exportProjectBackup(ref.id);
   for (const [kind, rows] of Object.entries(backup.collections))
     if ((restored.collections[kind]?.length ?? 0) !== rows.length)
@@ -87,11 +100,32 @@ export async function restoreProjectBackup(value: unknown) {
     const actual = new Map(
       restored.collections[kind].map((row) => [row.id, row.data]),
     );
-    for (const row of rows)
-      if (canonical(actual.get(row.id)) !== canonical(row.data))
+    for (const row of rows) {
+      const value = actual.get(row.id);
+      const expected = row.data;
+      // Restored private objects have destination-specific paths and generations.
+      const comparable = (data: Record<string, unknown> | undefined) => {
+        if (kind !== "evidence" || backup.schemaVersion !== 2 || !data) return data;
+        const { path, generation, size, contentType, ...rest } = data;
+        void path; void generation; void size; void contentType;
+        return rest;
+      };
+      if (canonical(comparable(value)) !== canonical(comparable(expected)))
         throw new Error(
           `Restored copy ${ref.id} needs review: ${kind}/${row.id} semantic parity failed. Original remains intact.`,
         );
+      if (kind === "evidence" && backup.schemaVersion === 2) {
+        const photo = backup.photoObjects!.find(photo => photo.id === row.id)!;
+        if (value?.path !== `projects/${projectId}/evidence/${row.id}` || !value.generation)
+          throw new Error("Restored photo linkage failed. Keep the backup.");
+        const { evidenceBlob } = await import("./evidence");
+        const blob = await evidenceBlob(String(value.path));
+        const bytes = await blob.arrayBuffer();
+        const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map(byte => byte.toString(16).padStart(2, "0")).join("");
+        if (bytes.byteLength !== photo.size || hash !== photo.sha256)
+          throw new Error("Restored photo readback failed. Keep the backup and retry the same destination.");
+      }
+    }
   }
   localStorage.removeItem(recoveryKey);
   return ref.id;

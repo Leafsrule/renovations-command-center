@@ -15,7 +15,7 @@ Branch: `racp/rev02-completion`. Original main: `37a83fb`.
 | F | Private image upload/gallery; receipts; QC/checklists/rework; recorded owner exceptions | Stronger trusted enforcement, live upload and field verification |
 | G | Feet/inches/tolerance/derived inches; unknown/recheck/verified; decision approvals/history | Mounted/revision integration verification |
 | H | Project/account drafts; durable record queues; conflict/idempotent retries; Firestore cache; PWA fallback | Full execution/form queue and offline app workflow |
-| I | Basic bathroom draft template; print styles/lists; private structured export; validated restore copy | Photo-object backups, full recovery/rollback rehearsal and daily-report acceptance |
+| I | Basic bathroom draft template; print styles/lists; private portable records/photo export; checksum-verified restore copy | Large-project storage backups, provider recovery/rollback rehearsal and daily-report acceptance |
 
 Latest evidence is recorded in the October 8 implementation update below. October 6 baseline: 139 Vitest + 9 emulator tests passed; lint/typecheck/build and zero-vulnerability audit passed. See `RACP_QA_SECURITY_REVIEW.md` for limitations and exact findings.
 
@@ -74,3 +74,15 @@ New-project drafts/request destinations survive reload and lost responses. Persi
 No main merge, deployment, live data write, new paid resource, IAM expansion or external review approval occurred. PR #8 remains a draft.
 
 Validation for this increment: 169 app tests (30 files), 24 real demo backend/security tests, real Auth-to-HTTP smoke workflow, fresh npm ci, lint, typecheck, production build, zero-vulnerability audit, app isolation and whitespace checks passed locally. GitHub CI for the newly published increment must be verified separately.
+
+## Portable photo recovery continuation — October 8, evening Toronto
+
+The previous Firebase/field increment at `403f58f` has successful GitHub CI run `37822185218`. Continued from that exact checkpoint without redoing discovery or reinstalling dependencies.
+
+- The app now exports a format-2 portable backup containing a consistent Firestore snapshot and every linked private photo, pinned to its recorded Storage generation. SHA-256 checksums cover the bytes. Export rejects missing, mismatched or token-bearing objects; it never silently leaves out files. The portable limit is 20 MB total photo bytes, 32 MB JSON and 450 records. Larger projects still require a separate provider/storage backup workflow.
+- Restore validates all checksums before writing, reserves an owner/backup-specific destination, creates token-free final objects and verifies byte readback before atomically publishing the separate project and records. Interrupted transfers keep an inaccessible reservation and private objects for retry at the same destination. Original projects are not overwritten. Historical format-1 record-only backups remain supported; format-1 evidence restores remain rejected.
+- The browser retains its recovery ID until record parity and authenticated photo-byte readback both pass. Field-record changes keep their submitted payload immutable while unconfirmed; late successes/failures cannot erase or replace a newer reviewed draft.
+- Local validation passed: 175 app tests, 27 backend/security emulator tests, authenticated Auth-to-HTTP backup/restore replay, lint, typecheck, build, audit with zero vulnerabilities, app isolation and whitespace checks. No rendered-browser or live-provider acceptance is claimed. Inspect the new increment's CI separately.
+- Live Google sign-in was blocked by automatic approval review because the prior secure sign-in was cancelled and renewed authorization was not explicit. The site was not reached. No live project configuration, credentials, rules, hosting or IAM were changed.
+
+Still required: full offline navigation and metadata/form queues; full resource/space scheduling and audited dependency waivers; abandoned upload/restore cleanup and large-project photo archives; rendered mobile/desktop/print, multi-device and shared-device acceptance; live Firebase configuration, app-specific hosting, genuine external review and provider recovery/rollback. Status remains **IN PROGRESS / EXTERNALLY BLOCKED**. Main and production are unchanged.

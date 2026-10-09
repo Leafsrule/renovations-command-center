@@ -5,6 +5,7 @@ import {
   validateFieldRecord,
   readPending,
   storePending,
+  clearConfirmedPending,
   type PendingFieldChange,
 } from "./field-records";
 describe("field records and durable drafts", () => {
@@ -67,5 +68,24 @@ describe("field records and durable drafts", () => {
     expect(readPending("two", "ensuite", "decisions")).toBeNull();
     expect(readPending("one", "garage", "decisions")).toBeNull();
     expect(readPending("one", "ensuite", "materials")).toBeNull();
+  });
+  it("keeps submitted payloads immutable while a save is unconfirmed", () => {
+    const change: PendingFieldChange = { kind: "materials", record: { ...emptyFieldRecord(), name: "Thinset", taskId: "tile" },
+      ownerId: "owner", projectId: "ensuite", state: "pending", error: "", changeId: "once" };
+    storePending(change);
+    expect(() => storePending({ ...change, state: "draft", changeId: "replacement" })).toThrow(/unconfirmed/);
+    expect(() => storePending({ ...change, record: { ...change.record, quantity: 5 } })).toThrow(/unconfirmed/);
+    storePending({ ...change, state: "failed", error: "Lost response" });
+    expect(readPending("owner", "ensuite", "materials")?.record).toEqual(change.record);
+  });
+  it("does not clear a newer draft after an older network response", () => {
+    const change: PendingFieldChange = { kind: "tools", record: emptyFieldRecord(), ownerId: "owner", projectId: "ensuite", state: "conflicting", error: "Conflict", changeId: "old" };
+    storePending(change);
+    const reviewed = { ...change, changeId: "reviewed", state: "draft" as const, record: { ...change.record, version: 5 } };
+    storePending(reviewed, true);
+    expect(clearConfirmedPending(change)).toBe(false);
+    expect(() => storePending({ ...change, state: "failed" })).toThrow(/newer/);
+    expect(readPending("owner", "ensuite", "tools")).toEqual(reviewed);
+    expect(clearConfirmedPending(reviewed)).toBe(true);
   });
 });

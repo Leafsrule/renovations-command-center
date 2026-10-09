@@ -15,12 +15,16 @@ export const collections = [
 type Row = { id: string; data: Record<string, unknown> };
 export type ProjectBackup = {
   application: "Renovations Command Center";
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   projectId: string;
   createdAt: string;
   project: Record<string, unknown>;
   collections: Record<string, Row[]>;
+  photoObjects?: BackupPhoto[];
 };
+export type BackupPhoto = { id: string; contentType: string; size: number; sha256: string; base64: string };
+export const MAX_BACKUP_PHOTO_BYTES = 20 * 1024 * 1024;
+export const MAX_BACKUP_JSON_BYTES = 32 * 1024 * 1024;
 export function validateProjectBackup(
   value: unknown,
   ownerId: string,
@@ -29,7 +33,7 @@ export function validateProjectBackup(
   if (
     !backup ||
     backup.application !== "Renovations Command Center" ||
-    backup.schemaVersion !== 1 ||
+    ![1, 2].includes(backup.schemaVersion) ||
     backup.project?.ownerUserId !== ownerId
   )
     throw new Error("Choose a backup from this app and your account.");
@@ -113,5 +117,25 @@ export function validateProjectBackup(
     visited.add(id);
   }
   for (const id of graph.keys()) visit(id);
+  if (backup.schemaVersion === 2) {
+    const photos = backup.photoObjects;
+    const evidence = backup.collections.evidence ?? [];
+    if (!Array.isArray(photos) || photos.length !== evidence.length)
+      throw new Error("Backup must contain every evidence photo.");
+    const ids = new Set<string>();
+    let total = 0;
+    for (const photo of photos) {
+      if (!photo || typeof photo.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(photo.id) || !evidence.some(row => row.id === photo.id) || ids.has(photo.id)
+        || !["image/jpeg", "image/png", "image/webp"].includes(photo.contentType)
+        || !Number.isInteger(photo.size) || photo.size <= 0 || photo.size >= 10 * 1024 * 1024
+        || typeof photo.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(photo.sha256)
+        || typeof photo.base64 !== "string" || photo.base64.length !== 4 * Math.ceil(photo.size / 3)
+        || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(photo.base64))
+        throw new Error("Invalid or duplicate backup photo.");
+      ids.add(photo.id);
+      total += photo.size;
+    }
+    if (total > MAX_BACKUP_PHOTO_BYTES) throw new Error("Photo backup exceeds the 20 MB portable limit. No files were omitted.");
+  } else if (backup.photoObjects !== undefined) throw new Error("Photo files require backup format 2.");
   return backup;
 }

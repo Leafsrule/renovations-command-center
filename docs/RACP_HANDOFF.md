@@ -7,9 +7,9 @@ Branch: racp/rev02-completion
 Base: 37a83fb9ada89a05a43b0a01acdcccce3dd9a787
 Local isolation checkpoint: cb92f5e (retained in racp/local-checkpoint-20261006).
 Original October 6 application candidate: 4a7177772fb71998b7629d3ff0e5f744f4ec0e34
-Latest application increment: 08c646aca3124ab8eb7416bbf390aaeca4876bc7 (October 8 trusted mutations/queues).
+Trusted mutations/queues increment: 08c646aca3124ab8eb7416bbf390aaeca4876bc7. Latest application increment is the current feature-branch HEAD; see the final continuation section below.
 Draft PR: https://github.com/Leafsrule/renovations-command-center/pull/8
-Published application tree: 61502455272a9c59cc54215f2daef6343d4a68b8 (identical to locally tested tree).
+Published trusted-mutations application tree: 61502455272a9c59cc54215f2daef6343d4a68b8 (identical to its locally tested tree).
 Local October 8 checkpoint: racp/local-checkpoint-20261008.
 
 CLI git push had no HTTPS credentials. The authorized GitHub connector published the identical tree; remote content was fetched and compared successfully. Continue via the connector or an already authorized git credential. Do not force-push to reconcile local/remote author metadata.
@@ -54,3 +54,11 @@ October 8 candidate requires Firebase Admin project/bucket settings and securely
 ## Next retained increment
 
 October 8 Firebase setup tooling, local Auth-to-HTTP smoke workflow, atomic project creation/retry, worker/helper calendars and durable raw-photo outbox are the new increment. Live Firebase sign-in was cancelled; do not equate emulator success with live access. Resume from the current feature-branch HEAD, `FIREBASE_SETUP.md` and the tracker. Continue complete metadata queues/offline navigation and photo recovery alongside the still-required live setup and review gates.
+
+## Latest continuation: portable photo recovery
+
+Resume from current `racp/rev02-completion` HEAD. Previous application commit `403f58f` has successful CI run `37822185218`. This increment adds `/api/projects/backup`, format-2 records/photo archives, pinned-generation export, checksum/readback verification, token-free separate-project photo restore and server-only `projectRestores` reservations for interrupted transfers. Local browser recovery IDs survive readback failure; field-record retries preserve newer drafts. Limits: 20 MB photo bytes, 32 MB JSON, 450 records. These are portable backups, not provider-wide backups.
+
+Validated locally: 175 app tests, 27 backend/rules/Storage tests, actual demo Auth-to-HTTP backup/restore replay, lint/typecheck/build, zero-vulnerability audit and isolation/whitespace. No new npm dependency or rule relaxation. Verify this increment's remote CI after publication. Interrupted restore files are intentionally retained for retry; abandon/expiry cleanup and larger-project archive support remain open.
+
+Automatic approval review rejected navigation to Google sign-in because the previous secure sign-in was cancelled without explicit renewed authorization. No browser authentication or live provider action was attempted after rejection. The next live-access step needs renewed user authorization for secure Google/Firebase sign-in, then browserAuth; do not request passwords or codes in chat. Browser sign-in still does not provision server credentials. Continue remaining offline/form queues, resource/space/waiver acceptance and recovery cleanup while access is unavailable. Do not repeat provider discovery or the already-passed baseline checks absent new changes.

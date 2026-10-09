@@ -49,4 +49,22 @@ describe("app-scoped backup validation", () => {
     const value=backup();value.collections.tasks[0].data.dependencyTaskIds=["tile"];
     expect(()=>validateProjectBackup(value,"owner")).toThrow(/circular/);
   });
+  it("requires a complete one-to-one portable photo manifest", () => {
+    const value: ProjectBackup = { ...backup(), schemaVersion: 2, photoObjects: [], collections: { ...backup().collections,
+      evidence: [{ id: "photo", data: { taskId: "tile" } }] } };
+    expect(() => validateProjectBackup(value, "owner")).toThrow(/every evidence/);
+    value.photoObjects = [{ id: "photo", contentType: "image/jpeg", size: 3, sha256: "a".repeat(64), base64: "/9j/" }];
+    expect(validateProjectBackup(value, "owner")).toBe(value);
+    value.photoObjects.push(value.photoObjects[0]);
+    expect(() => validateProjectBackup(value, "owner")).toThrow();
+  });
+  it("rejects malformed photo lengths, content types and paths", () => {
+    const value: ProjectBackup = { ...backup(), schemaVersion: 2, collections: { ...backup().collections,
+      evidence: [{ id: "photo", data: { taskId: "tile" } }] },
+      photoObjects: [{ id: "photo", contentType: "image/jpeg", size: 3, sha256: "a".repeat(64), base64: "/9j/" }] };
+    for (const patch of [{ size: 4 }, { contentType: "text/html" }, { base64: "!!!!" }, { id: "../photo" }, { sha256: "bad" }]) {
+      expect(() => validateProjectBackup({ ...value, photoObjects: [{ ...value.photoObjects![0], ...patch }] }, "owner")).toThrow(/photo/);
+    }
+    expect(() => validateProjectBackup({ ...value, schemaVersion: 1 }, "owner")).toThrow(/format 2/);
+  });
 });

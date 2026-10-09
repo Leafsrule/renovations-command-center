@@ -2,9 +2,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  exportProjectBackup,
+  exportPortableProjectBackup,
   restoreProjectBackup,
   validateProjectBackup,
+  MAX_BACKUP_JSON_BYTES,
 } from "@/lib/project-backup";
 import { useAuth } from "./AuthProvider";
 export function ProjectRecovery({ projectId }: { projectId: string }) {
@@ -16,8 +17,8 @@ export function ProjectRecovery({ projectId }: { projectId: string }) {
   async function backup() {
     setBusy(true);
     try {
-      const data = await exportProjectBackup(projectId),
-        blob = new Blob([JSON.stringify(data, null, 2)], {
+      const data = await exportPortableProjectBackup(projectId),
+        blob = new Blob([JSON.stringify(data)], {
           type: "application/json",
         }),
         url = URL.createObjectURL(blob),
@@ -27,7 +28,7 @@ export function ProjectRecovery({ projectId }: { projectId: string }) {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setMessage(
-        "Backup exported. Keep this file private. Photo objects need a separate storage backup.",
+        `Backup exported with ${data.photoObjects?.length ?? 0} verified photos. Keep this file private.`,
       );
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Export failed");
@@ -39,8 +40,8 @@ export function ProjectRecovery({ projectId }: { projectId: string }) {
     if (!file || !user) return;
     setBusy(true);
     try {
-      if (file.size > 10 * 1024 * 1024)
-        throw new Error("Choose a backup smaller than 10 MB.");
+      if (file.size > MAX_BACKUP_JSON_BYTES)
+        throw new Error("Choose a portable backup smaller than 32 MB.");
       const value = JSON.parse(await file.text());
       const dryRun = validateProjectBackup(value, user.uid);
       setMessage(
@@ -66,11 +67,12 @@ export function ProjectRecovery({ projectId }: { projectId: string }) {
           className="touch-target rounded bg-brand px-4 text-white"
           onClick={() => void backup()}
         >
-          Export project backup
+          Export project and photos
         </button>
         <p className="text-sm">
-          Restore makes a separate copy and preserves record IDs. Restoring
-          private photo files requires additional verified storage access.
+          Portable backups include up to 20 MB of private photos. Larger projects
+          need a separate storage backup; export will report this without omitting files.
+          Restore makes a separate copy, verifies photos and preserves record IDs.
           Existing projects are never overwritten.
         </p>
         <label className="block">
