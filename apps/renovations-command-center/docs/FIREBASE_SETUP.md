@@ -1,6 +1,8 @@
 # Firebase configuration and local verification
 
-Live status: not configured or verified. The October 8 secure Google sign-in request was cancelled; project ID, web app settings and authorized server credentials are still unavailable. No live Firebase resource, rules deployment or IAM change occurred.
+Current status (October 9, Toronto): browser console sign-in succeeded and the existing `renovations-command-center` project/web app were verified. Its six public web values and matching Admin project/bucket values were imported into the ignored, mode-0600 `.env.local`; configuration validation and the production build pass. Email/Password is enabled. Firestore `(default)` exists in `nam5`; deployed rules still date from June 9 and do not contain this candidate's trusted-command protections. No live rules or records were changed.
+
+Live runtime remains blocked. The project is on Spark; the Storage console explicitly requires a Blaze billing account, so the SDK bucket name is not proof of a usable provisioned bucket. Scheduled provider backups/PITR also show an upgrade requirement. Server credentials/ADC remain absent and the read-only Admin connectivity check fails. Browser console sign-in does not authenticate the Node server. Do not create keys, expand IAM, enable billing or release rules separately from the validated app without the applicable authorization and release gates. Hosting and remaining implementation/acceptance work remain unresolved.
 
 ## Existing live project only
 
