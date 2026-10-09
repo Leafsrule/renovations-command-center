@@ -406,3 +406,48 @@ test("portable export refuses a missing linked photo rather than making an incom
   await db.doc(`projects/${id}/evidence/missing`).set({ taskId: "tile", path: `projects/${id}/evidence/missing`, generation: "1" });
   await assert.rejects(exportProjectArchive(db, bucket, "owner", id));
 });
+
+test("free-photo adapter preserves trusted evidence, byte-verified archives and concurrent separate-copy restore", async () => {
+  const { supabasePhotoStore } = await import("../lib/server/supabase-photo-store");
+  const { fakePrivateStorage } = await import("./supabase-fixture");
+  const { client, objects } = fakePrivateStorage();
+  const store = supabasePhotoStore(db,client,"private-demo");
+  await db.doc("photoStorage/capacity").set({reservedBytes:0});
+  const source=`free-source-${Date.now()}`,destination=`free-copy-${Date.now()}`;
+  await db.doc(`projects/${source}`).set({ownerUserId:"owner",name:"Free private photos"});
+  await db.doc(`projects/${source}/tasks/tile`).set({...base,status:"in_progress",photosRequired:true,helperPersonIds:[]});
+  const staging=`projects/${source}/evidence-staging/photo`;
+  const bytes=Buffer.from([255,216,255]);
+  await Promise.all([store.create(staging,bytes,"image/jpeg",{uploadedBy:"owner",taskId:"tile"}),store.create(staging,bytes,"image/jpeg",{uploadedBy:"owner",taskId:"tile"})]);
+  assert.equal((await db.doc("photoStorage/capacity").get()).data()?.reservedBytes,bytes.length);
+  await assert.rejects(runTaskCommand(db,store,"other",source,"tile",{kind:"evidence",evidenceId:"photo",caption:"Proof",category:"After",commandId:"free-link"}),/unavailable/);
+  const command={kind:"evidence",evidenceId:"photo",caption:"Proof",category:"After",commandId:"free-link"};
+  await runTaskCommand(db,store,"owner",source,"tile",command);
+  await runTaskCommand(db,store,"owner",source,"tile",command);
+  assert.equal(objects.has(staging),false);
+  assert.equal((await db.doc("photoStorage/capacity").get()).data()?.reservedBytes,bytes.length);
+  const backup=await exportProjectArchive(db,store,"owner",source);
+  assert.match(backup.collections.evidence[0].data.generation as string,/^supabase:/);
+  await Promise.all([restoreProject(db,"owner",destination,backup,store),restoreProject(db,"owner",destination,backup,store)]);
+  assert.equal((await db.collection(`projects/${destination}/evidence`).get()).size,1);
+  const info=await store.info(`projects/${destination}/evidence/photo`);
+  assert.deepEqual(await store.read(`projects/${destination}/evidence/photo`,info.version),bytes);
+  assert.equal((await db.doc("photoStorage/capacity").get()).data()?.reservedBytes,bytes.length*2);
+  objects.get(`projects/${source}/evidence/photo`)!.bytes=Buffer.from([1,2,3]);
+  await assert.rejects(exportProjectArchive(db,store,"owner",source),/checksum/);
+  const current=await db.doc(`projects/${source}/tasks/tile`).get();
+  await assert.rejects(runTaskCommand(db,store,"owner",source,"tile",{kind:"action",action:"complete",expectedRevision:taskRevision(current.data()?.updatedAt),helperAvailable:false,commandId:"free-complete"}),/photo|evidence/i);
+});
+
+test("concurrent free-capacity reservations cannot exceed the app's storage ceiling", async () => {
+  const { supabasePhotoStore,FREE_PHOTO_CAPACITY }=await import("../lib/server/supabase-photo-store");
+  const { fakePrivateStorage }=await import("./supabase-fixture");
+  const {client,objects}=fakePrivateStorage();const store=supabasePhotoStore(db,client,"private-demo");
+  const bytes=Buffer.from("image");await db.doc("photoStorage/capacity").set({reservedBytes:FREE_PHOTO_CAPACITY-bytes.length});
+  const unique=`capacity-${Date.now()}`;
+  const results=await Promise.allSettled(["one","two"].map(id=>store.create(`projects/${unique}/evidence-staging/${id}`,bytes,"image/png",{uploadedBy:"owner",taskId:"tile"})));
+  assert.equal(results.filter(r=>r.status==="fulfilled").length,1);
+  assert.equal(objects.size,1);
+  assert.equal((await db.doc("photoStorage/capacity").get()).data()?.reservedBytes,FREE_PHOTO_CAPACITY);
+  assert.equal((results.find(r=>r.status==="rejected") as PromiseRejectedResult).reason.status,507);
+});

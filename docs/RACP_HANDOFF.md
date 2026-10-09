@@ -1,8 +1,8 @@
 # RACP continuation handoff
 
-Status: IN PROGRESS / FREE-SERVICE ADAPTATION REQUIRED. No production app completion is claimed.
+Status: IN PROGRESS / FREE-PROVIDER SETUP / ACCEPTANCE BLOCKED. No production app completion is claimed.
 
-Owner correction on October 9: all services must be free. Do not request a Blaze upgrade. `FREE_SERVICE_PLAN.md` supersedes the earlier Storage/billing prerequisite. Existing application code still uses Firebase Storage; no replacement or release is claimed.
+Owner correction on October 9: all services must be free. Do not request a Blaze upgrade. `FREE_SERVICE_PLAN.md` supersedes the earlier Storage/billing prerequisite. The October 9 candidate now contains the free-storage adapter and authenticated photo routes; live provider setup and release remain unverified.
 
 Repository: Leafsrule/renovations-command-center
 Branch: racp/rev02-completion
@@ -72,3 +72,11 @@ The previous sign-in blocker is resolved: renewed authorization and the owner's 
 Verified live: Email/Password enabled; Firestore `(default)` in `nam5` with old June 9 owner-based rules and existing test records. No rules/data changes. Storage is not operationally verified and the console requires Blaze billing on the current Spark plan; provider backups/PITR also show an upgrade prerequisite. Server credential/ADC remains missing, so the Node Admin read-only live check failed despite successful browser access. Do not extract browser tokens or generate new keys as an implicit workaround.
 
 Superseded by the October 9 no-paid-services correction: a billing upgrade is prohibited. Next dependent steps: implement the free private-storage adapter, verify a free hosting arrangement and securely provision server identity; coordinated release of tested server and stricter rules only after remaining development, browser, independent review and provider recovery/rollback gates. No paid resource, IAM change, service-account key, provider deployment or production mutation has been authorized or performed. Continue offline/form queues and resource/space/waiver/cleanup work from this checkpoint. Application commit `e8a458d` CI `37871933283` passed all three jobs. Browser access must be freshly verified when resuming; prior handoff is not proof of ongoing sign-in.
+
+## Latest implementation — free private photos, October 9
+
+Resume from the current feature-branch HEAD, `FREE_SERVICE_PLAN.md` and the app's `FREE_PHOTO_SETUP.md`. Production now requires `RCC_PHOTO_PROVIDER=supabase`, server-only `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PHOTO_BUCKET`, Firebase Auth/Firestore settings and authorized server ADC. Supabase values/ADC remain unavailable. The ignored local environment selects Supabase but contains no invented provider value/credential; the production checker reports the three missing settings. Do not request Blaze, extract browser credentials or create new security-sensitive access implicitly.
+
+The candidate has create-only photos, tagged object versions, server-only checksum manifests, 800 MiB transactional capacity reservations, resumable staging cleanup, private authenticated byte reads and matching browser readback before dropping original copies. Archives/restores use the same provider boundary; numeric GCS generations remain supported only for existing regression/development data. No live storage migration is claimed. Supabase unit tests use fake transport; adapter concurrency/recovery tests use real demo Firestore plus fake transport. Actual provider policies/IAM, inactivity/egress, no-charge hosting, larger archives/abandoned cleanup, remaining offline/resource features and browser/external review/recovery gates are still required.
+
+Validation for the October 9 free-photo candidate: npm ci, lint, typecheck, production build, 188 Vitest tests, 30 demo backend/security tests, actual demo Auth-to-Next HTTP photo staging/link/read and backup/restore replay, audit with zero vulnerabilities, Site Control isolation and whitespace checks passed locally. Supabase transport is faked in its unit/integration tests; the HTTP smoke uses the actual Firebase Storage emulator adapter. Remote CI must be verified for the published commit. No live provider acceptance or independent external review is claimed.

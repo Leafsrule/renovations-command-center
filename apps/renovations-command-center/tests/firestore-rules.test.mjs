@@ -94,3 +94,13 @@ test("ordinary owner metadata edits remain possible", async () => {
  const db=env.authenticatedContext("owner").firestore();
  await assertSucceeds(updateDoc(doc(db,"projects","owned","tasks","draft"),{name:"Edited",status:"ready"}));
 });
+
+test("browser identities cannot read or forge private photo manifests or free-capacity reservations", async () => {
+  for (const context of [env.authenticatedContext("owner"),env.authenticatedContext("other"),env.unauthenticatedContext()]) {
+    const db=context.firestore();
+    for (const path of ["photoStorage/capacity","photoStorageObjects/forged"]) {
+      await assertFails(getDoc(doc(db,path)));
+      await assertFails(setDoc(doc(db,path),{reservedBytes:0,sha256:"forged",state:"ready"}));
+    }
+  }
+});

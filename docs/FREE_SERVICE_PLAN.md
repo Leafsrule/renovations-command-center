@@ -1,6 +1,6 @@
 # No-paid-services implementation plan
 
-Decision: October 9, 2026, following the owner's explicit correction. This plan supersedes every instruction to activate Blaze or treat billing as a completion prerequisite. Status: architecture revised; storage adaptation and hosting verification not yet implemented. No paid service was enabled.
+Decision: October 9, 2026, following the owner's explicit correction. This plan supersedes every instruction to activate Blaze or treat billing as a completion prerequisite. Status: free-storage candidate implemented and locally tested; live provider and hosting verification remain blocked. No paid service was enabled.
 
 ## Non-negotiable cost boundary
 
@@ -12,7 +12,7 @@ Use actual Free plans only. No billing activation, payment-method entry, automat
 | --- | --- | --- |
 | Sign-in | Existing Firebase Email/Password on Spark | Verified enabled; retain current user identities |
 | Project/task records | Existing Firestore on Spark | Preserve records; free quotas must be checked against expected use; no billing upgrade |
-| Private photo files | Supabase Free, separate private bucket dedicated to this app | Proposed; not provisioned or integrated. Published allowance: 1 GB storage, 5 GB uncached egress and 5 GB cached egress; pause after one week of inactivity; at most two active free projects |
+| Private photo files | Supabase Free, separate private bucket dedicated to this app | Adapter and authenticated routes implemented; not provisioned or live-verified. Published allowance: 1 GB storage, 5 GB uncached egress and 5 GB cached egress; pause after one week of inactivity; at most two active free projects |
 | Trusted API and UI | Existing Next.js server on a verified no-charge host | Host not selected/certified. Keep authoritative server mutations; do not replace them with unguarded browser writes |
 | Device/offline copies | Existing account-scoped IndexedDB, expanded offline navigation/queues | Already partial; device copies do not substitute for independent backups or cross-device photo storage |
 | Recovery | Portable project/photo archives saved by the owner | Retain checksum/readback and separate-copy restore; adapt to new storage; larger archives/cleanup remain required |
@@ -30,7 +30,7 @@ Render Free is a Node hosting candidate, not the current release decision. Offic
 
 ## Current state
 
-Application code still depends on Firebase Cloud Storage, including numeric GCS generations and server credentials. The hybrid free target is a planned change, not a functioning deployment. Previously passed 175 app tests, 27 backend/security tests and CI apply to that prior implementation only. No rule change, main merge, billing upgrade, migration or deployment was made. Existing Firestore data and Firebase settings remain intact. Do not ask the owner to continue the Storage Upgrade project workflow.
+The candidate now selects Supabase for production photos, with no mandatory GCS bucket. Firebase Storage remains the isolated demo regression backend. Photo records retain the legacy `generation` field name but hold explicitly tagged `supabase:object-id:version-id` identities for the new provider, plus server-only SHA-256 manifests. New tests exercise the adapter using a fake Storage transport and real demo Firestore transactions; this is not a live Supabase or hosting verification. The local production check correctly reports the three missing Supabase settings. Authorized Firebase server credentials also remain absent. The app is not deployed. No rule change, main merge, billing upgrade, migration or deployment was made. Existing Firestore data and Firebase settings remain intact. Do not ask the owner to continue the Storage Upgrade project workflow.
 
 ## Official references checked October 9
 
@@ -42,3 +42,13 @@ Application code still depends on Firebase Cloud Storage, including numeric GCS 
 - Render Free limitations/overages: https://render.com/docs/free
 
 These are current provider terms, not a guarantee of unchanged future pricing or indefinite free availability.
+
+## October 9 implementation checkpoint
+
+Private server routes now stage/download photos after revocation-checked identity, project/task ownership and body-limit checks. Final bytes are create-only and read back before evidence linking. The browser uploads through these routes, keeps original bytes through lost responses/account changes, and requires matching authenticated SHA-256 readback before releasing the device copy. No public download URL or Supabase credential enters the browser.
+
+App-specific server manifests and capacity reservations are protected by Firestore default-deny rules. The 800 MiB ceiling includes staging, final files, pending uploads and restored copies; concurrent reservations cannot oversubscribe it. Confirmed staging removal uses a deletion state to block recreation and releases capacity only after provider confirmation. Interrupted/abandoned uploads and restore copies retain capacity until a reviewed cleanup workflow exists. This app counter is not a measurement of other buckets or account-wide provider egress. Dedicated Free account/project/bucket and actual plan/quotas/RLS must still be verified. A paid plan with this counter remains disallowed.
+
+Production rejects Firebase Storage selection and emulator settings; the local demo launcher explicitly selects the Firebase emulator backend. Supabase adapter checks the bucket is explicitly private on every operation, verifies actual object IDs/versions/size/type, and hashes readback. Live SDK behavior, private access policies, inactivity recovery, free egress handling, actual credentials and free hosting remain release gates.
+
+Validation for the October 9 free-photo candidate: npm ci, lint, typecheck, production build, 188 Vitest tests, 30 demo backend/security tests, actual demo Auth-to-Next HTTP photo staging/link/read and backup/restore replay, audit with zero vulnerabilities, Site Control isolation and whitespace checks passed locally. Supabase transport is faked in its unit/integration tests; the HTTP smoke uses the actual Firebase Storage emulator adapter. Remote CI must be verified for the published commit. No live provider acceptance or independent external review is claimed.

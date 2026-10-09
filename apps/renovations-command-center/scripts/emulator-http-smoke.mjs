@@ -44,10 +44,20 @@ try {
   assert.equal((await taskRef.get()).data().status,"in_progress");
   assert.equal((await db.collection(`projects/${id}/taskHistory`).get()).size,1);
   const bucket=getStorage(app).bucket();
-  const photo=bucket.file(`projects/${id}/evidence/photo`);
-  await photo.save(Buffer.from([255,216,255]),{metadata:{contentType:"image/jpeg",metadata:{uploadedBy:localId,taskId:"work"}}});
-  const [metadata]=await photo.getMetadata();
-  await db.doc(`projects/${id}/evidence/photo`).set({taskId:"work",uploadedBy:localId,path:photo.name,generation:String(metadata.generation),caption:"Demo photo",category:"After"});
+    const photoEndpoint=`${base}/api/projects/${id}/photos/photo`;
+  const bytes=Buffer.from([255,216,255]);
+  const photoHeaders={Authorization:`Bearer ${idToken}`,"Content-Type":"image/jpeg","x-task-id":"work"};
+  assert.equal((await fetch(photoEndpoint,{method:"POST",headers:{"Content-Type":"image/jpeg","x-task-id":"work"},body:bytes})).status,401);
+  for(let retry=0;retry<2;retry++)assert.equal((await fetch(photoEndpoint,{method:"POST",headers:photoHeaders,body:bytes})).status,200);
+  const link={kind:"evidence",commandId:"http-photo-link",evidenceId:"photo",caption:"Demo photo",category:"After"};
+  for(let retry=0;retry<2;retry++)assert.equal((await fetch(endpoint,{method:"POST",headers,body:JSON.stringify(link)})).status,200);
+  assert.equal((await fetch(photoEndpoint)).status,401);
+  const download=await fetch(photoEndpoint,{headers});
+  assert.equal(download.status,200);assert.equal(download.headers.get("cache-control"),"private, no-store");
+  assert.deepEqual(Buffer.from(await download.arrayBuffer()),bytes);
+  assert.equal((await bucket.file(`projects/${id}/evidence-staging/photo`).exists())[0],false);
+  assert.equal((await fetch(photoEndpoint,{method:"POST",headers:photoHeaders,body:bytes})).status,200,"Saved upload retries must not recreate staging.");
+  assert.equal((await bucket.file(`projects/${id}/evidence-staging/photo`).exists())[0],false);
   const backupEndpoint=`${base}/api/projects/backup`;
   assert.equal((await fetch(backupEndpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:id})})).status,401);
   const exported=await fetch(backupEndpoint,{method:"POST",headers,body:JSON.stringify({projectId:id})});
@@ -62,7 +72,7 @@ try {
   for (let attempt=0;attempt<2;attempt++) assert.equal((await fetch(restoreEndpoint,{method:"POST",headers,body:restoreBody})).status,200);
   assert.equal((await db.collection(`projects/${destination}/evidence`).get()).size,1);
   assert.deepEqual((await bucket.file(`projects/${destination}/evidence/photo`).download())[0],Buffer.from([255,216,255]));
-  console.log("PASS: real demo Auth token → private Next HTTP routes → Firestore/Storage; project/template creation, guarded task replay, unsigned/invalid-token rejection and verified portable photo backup/restore replay.");
+  console.log("PASS: real demo Auth token → private Next HTTP routes → Firestore/Storage; project/template creation, guarded task replay, unsigned/invalid-token rejection and private upload/download and verified portable photo backup/restore replay.");
 } finally {
   process.kill(-child.pid,"SIGTERM");
   await deleteApp(app);

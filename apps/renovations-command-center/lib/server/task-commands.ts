@@ -1,5 +1,6 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
+import { privatePhotoStore, PHOTO_TYPES, PHOTO_LIMIT, photoHash, type PhotoStore } from "./photo-store";
 import { createHash } from "node:crypto";
 import {
   CommandError,
@@ -19,7 +20,7 @@ import { assignedWorkMinutes } from "../person-availability";
 
 export async function runTaskCommand(
   db: Firestore,
-  bucket: Bucket,
+  bucket: Bucket | PhotoStore,
   owner: string,
   projectId: string,
   taskId: string,
@@ -28,6 +29,7 @@ export async function runTaskCommand(
   if (!validId(projectId) || !validId(taskId))
     throw new CommandError(400, "Invalid project or task.");
   const command = parseTaskCommand(value);
+  const photos = privatePhotoStore(bucket);
   const projectRef = db.doc(`projects/${projectId}`);
   const taskRef = projectRef.collection("tasks").doc(taskId);
   const receiptRef = projectRef
@@ -68,13 +70,16 @@ export async function runTaskCommand(
       const path = `projects/${projectId}/evidence/${entry.id}`;
       if (entry.data().path !== path) continue;
       try {
-        const [metadata] = await bucket.file(path).getMetadata();
+        const metadata = await photos.info(path);
         if (
           metadata.metadata?.taskId === taskId &&
           metadata.metadata?.uploadedBy === owner &&
-          String(metadata.generation) === entry.data().generation
+          metadata.version === entry.data().generation &&
+          !metadata.metadata.firebaseStorageDownloadTokens &&
+          PHOTO_TYPES.includes(metadata.contentType) &&
+          metadata.size > 0 && metadata.size < PHOTO_LIMIT
         )
-          verifiedEvidence.set(entry.id, String(metadata.generation));
+          { await photos.read(path, metadata.version); verifiedEvidence.set(entry.id, metadata.version); }
       } catch {
         /* Missing/unreadable evidence is not completion proof. */
       }
@@ -86,66 +91,30 @@ export async function runTaskCommand(
   if (command.kind === "evidence") {
     const path = `projects/${projectId}/evidence/${command.evidenceId}`;
     const temporary = `projects/${projectId}/evidence-staging/${command.evidenceId}`;
-    const destination = bucket.file(path);
     let metadata;
-    try {
-      [metadata] = await destination.getMetadata();
-    } catch (e) {
+    try { metadata = await photos.info(path); }
+    catch (e) {
       if ((e as { code?: number }).code !== 404) throw e;
-      const [source] = await bucket
-        .file(temporary)
-        .getMetadata()
-        .catch(() => {
-          throw new CommandError(
-            400,
-            "Uploaded evidence is unavailable. Retry after upload finishes.",
-          );
-        });
-      if (
-        !source.generation ||
-        source.metadata?.taskId !== taskId ||
-        source.metadata?.uploadedBy !== owner ||
-        !["image/jpeg", "image/png", "image/webp"].includes(
-          source.contentType ?? "",
-        ) ||
-        Number(source.size) <= 0 ||
-        Number(source.size) >= 10 * 1024 * 1024
-      )
-        throw new CommandError(
-          400,
-          "Evidence failed private-object verification.",
-        );
-      // Final objects are created only by the server, without reusable download tokens.
-      await bucket
-        .file(temporary, { generation: source.generation })
-        .copy(destination, {
-          preconditionOpts: { ifGenerationMatch: 0 },
-          metadata: {
-            taskId,
-            uploadedBy: owner,
-            sourceGeneration: String(source.generation),
-            firebaseStorageDownloadTokens: "",
-          },
-        });
-      [metadata] = await destination.getMetadata();
+      const source = await photos.info(temporary).catch(() => {
+        throw new CommandError(400, "Uploaded evidence is unavailable. Retry after upload finishes.");
+      });
+      if (!source.version || source.metadata.taskId !== taskId || source.metadata.uploadedBy !== owner
+        || !PHOTO_TYPES.includes(source.contentType) || source.size <= 0 || source.size >= PHOTO_LIMIT)
+        throw new CommandError(400, "Evidence failed private-object verification.");
+      const bytes = await photos.read(temporary, source.version);
+      try { await photos.create(path, bytes, source.contentType, { taskId, uploadedBy: owner, sourceGeneration: source.version, sha256: photoHash(bytes) }); }
+      catch (error) { if ((error as {code?: number}).code !== 412) throw error; }
+      metadata = await photos.info(path);
     }
-    if (
-      !metadata.generation ||
-      metadata.metadata?.taskId !== taskId ||
-      metadata.metadata?.uploadedBy !== owner ||
-      metadata.metadata?.firebaseStorageDownloadTokens ||
-      !["image/jpeg", "image/png", "image/webp"].includes(
-        metadata.contentType ?? "",
-      ) ||
-      Number(metadata.size) <= 0 ||
-      Number(metadata.size) >= 10 * 1024 * 1024
-    )
+    if (!metadata.version || metadata.metadata.taskId !== taskId || metadata.metadata.uploadedBy !== owner
+      || metadata.metadata.firebaseStorageDownloadTokens || !PHOTO_TYPES.includes(metadata.contentType)
+      || metadata.size <= 0 || metadata.size >= PHOTO_LIMIT)
       throw new CommandError(400, "Private evidence verification failed.");
-    // Deleting the temporary path invalidates any bearer tokens produced during upload.
-    await bucket.file(temporary).delete({ ignoreNotFound: true });
+    await photos.read(path, metadata.version);
+    await photos.removeStaging(temporary);
     upload = {
       path,
-      generation: String(metadata.generation),
+      generation: metadata.version,
       size: Number(metadata.size),
       contentType: metadata.contentType!,
     };

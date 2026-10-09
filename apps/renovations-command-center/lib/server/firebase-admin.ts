@@ -3,12 +3,14 @@ import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { StorageClient } from "@supabase/storage-js";
+import { supabasePhotoStore } from "./supabase-photo-store";
 import { CommandError } from "../task-command";
 import { firebaseEnvironmentProblems } from "../firebase-config";
 export function adminServices() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const storageBucket = process.env.FIREBASE_ADMIN_STORAGE_BUCKET;
-  if (firebaseEnvironmentProblems(process.env, process.env.NODE_ENV === "production").length || !projectId || !storageBucket)
+  if (firebaseEnvironmentProblems(process.env, process.env.NODE_ENV === "production").length || !projectId)
     throw new CommandError(
       503,
       "Secure backend is not configured. No change was saved.",
@@ -29,9 +31,12 @@ export function adminServices() {
       { projectId, storageBucket, credential: applicationDefault() },
       "renovations-server",
     );
+  const db = getFirestore(app);
   return {
-    db: getFirestore(app),
+    db,
     auth: getAuth(app),
-    bucket: getStorage(app).bucket(),
+    bucket: process.env.RCC_PHOTO_PROVIDER === "supabase"
+      ? supabasePhotoStore(db, new StorageClient(`${process.env.SUPABASE_URL}/storage/v1`, { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}` }), process.env.SUPABASE_PHOTO_BUCKET!)
+      : getStorage(app).bucket(),
   };
 }

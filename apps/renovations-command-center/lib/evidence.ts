@@ -2,9 +2,8 @@ import {
   collection,
   getDocs,
 } from "firebase/firestore";
-import { getBlob, getMetadata, ref, uploadBytes } from "firebase/storage";
 import { sendTaskCommand } from "./task-command-client";
-import { auth, db, storage } from "./firebase";
+import { auth, db } from "./firebase";
 import { saveQueuedPhoto, type QueuedPhoto } from "./photo-outbox";
 import { readQueuedCommands } from "./command-queue";
 export type Evidence = {
@@ -21,9 +20,23 @@ export async function listEvidence(projectId: string): Promise<Evidence[]> {
   );
   return result.docs.map((d) => ({ id: d.id, ...d.data() }) as Evidence);
 }
+async function photoRequest(projectId: string, photoId: string, options: RequestInit = {}) {
+  const user = auth?.currentUser;
+  if (!user) throw new Error("Sign in before accessing photos.");
+  const token = await user.getIdToken();
+  if (auth?.currentUser?.uid !== user.uid) throw new Error("Account changed before accessing photos.");
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/photos/${encodeURIComponent(photoId)}`, { ...options, cache: "no-store", headers: { ...options.headers, Authorization: `Bearer ${token}` } });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ?? "Photo access failed. Keep the device copy.");
+  }
+  if (auth?.currentUser?.uid !== user.uid) throw new Error("Account changed while accessing photos.");
+  return response;
+}
 export async function evidenceBlob(path: string) {
-  if (!storage) throw new Error("Storage is not configured.");
-  return getBlob(ref(storage, path));
+  const match = /^projects\/([^/]+)\/evidence\/([^/]+)$/.exec(path);
+  if (!match) throw new Error("Invalid photo path.");
+  return (await photoRequest(match[1], match[2])).blob();
 }
 export async function uploadEvidence(
   projectId: string,
@@ -32,7 +45,7 @@ export async function uploadEvidence(
   caption: string,
   category: string,
 ) {
-  if (!db || !storage || !auth?.currentUser)
+  if (!db || !auth?.currentUser)
     throw new Error("Sign in to the configured project before uploading.");
   if (
     !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -52,25 +65,27 @@ export async function retryQueuedPhoto(original:QueuedPhoto) {
   const attempt=async()=>{
     let row={...original};
     try {
-      if (!auth?.currentUser || auth.currentUser.uid!==row.ownerId || !storage) throw new Error("Use the original account to sync this photo.");
+      if (!auth?.currentUser || auth.currentUser.uid!==row.ownerId) throw new Error("Use the original account to sync this photo.");
       const command=readQueuedCommands(localStorage,row.ownerId).find(item=>item.command.commandId===row.id && item.projectId===row.projectId && item.taskId===row.taskId);
       if (command?.state!=="saved") {
         if (!navigator.onLine) throw new Error("Offline. Photo is retained on this device; project save is pending.");
         if (!row.uploaded) {
-          const object=ref(storage,`projects/${row.projectId}/evidence-staging/${row.id}`);
-          let staged=false;
-          try {const metadata=await getMetadata(object);staged=metadata.customMetadata?.taskId===row.taskId && metadata.customMetadata?.uploadedBy===row.ownerId;if(!staged)throw new Error("Staged photo identity does not match.");}
-          catch(error) {if ((error as {code?:string}).code!=="storage/object-not-found")throw error;}
-          if (!staged) {
-            if (!row.file) throw new Error("Original photo is missing from device storage.");
-            await uploadBytes(object,row.file,{contentType:row.file.type,customMetadata:{taskId:row.taskId,uploadedBy:row.ownerId}});
-          }
+          if (!row.file) throw new Error("Original photo is missing from device storage.");
+          await photoRequest(row.projectId,row.id,{method:"POST", headers:{"Content-Type":row.file.type,"x-task-id":row.taskId},body:row.file});
           row={...row,uploaded:true};
           await saveQueuedPhoto(row);
         }
         if (auth.currentUser?.uid!==row.ownerId) throw new Error("Account changed before confirming the photo.");
         await sendTaskCommand(row.projectId,row.taskId,{kind:"evidence",evidenceId:row.id,caption:row.caption,category:row.category},row.id);
       }
+      const final = await evidenceBlob(`projects/${row.projectId}/evidence/${row.id}`);
+      if (row.file) {
+        const originalBytes = await row.file.arrayBuffer(), finalBytes = await final.arrayBuffer();
+        const hash = async (bytes: ArrayBuffer) => new Uint8Array(await crypto.subtle.digest("SHA-256",bytes));
+        const [a,b] = await Promise.all([hash(originalBytes),hash(finalBytes)]);
+        if (a.some((value,index)=>value!==b[index])) throw new Error("Photo readback failed. Original stays on this device.");
+      }
+      if (auth?.currentUser?.uid!==row.ownerId) throw new Error("Account changed before confirming the photo.");
       await saveQueuedPhoto({...row,file:null,state:"saved",error:""});
     } catch(error) {
       const command=readQueuedCommands(localStorage,row.ownerId).find(item=>item.command.commandId===row.id);

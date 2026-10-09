@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 const project="demo-renovations-racp";
 const env={...process.env,
+  RCC_PHOTO_PROVIDER:"firebase",
   NEXT_PUBLIC_FIREBASE_USE_EMULATORS:"true",
   NEXT_PUBLIC_FIREBASE_API_KEY:"demo-local-only",
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:`${project}.firebaseapp.com`,

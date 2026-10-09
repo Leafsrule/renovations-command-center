@@ -5,6 +5,7 @@ import {
 } from "firebase-admin/firestore";
 import { createHash } from "node:crypto";
 import type { Bucket } from "@google-cloud/storage";
+import { privatePhotoStore, type PhotoStore } from "./photo-store";
 import { decodeBackupPhotos } from "./project-archive";
 import { validateProjectBackup } from "../backup-format";
 import { CommandError, validId } from "../task-command";
@@ -29,7 +30,7 @@ export async function restoreProject(
   owner: string,
   projectId: string,
   value: unknown,
-  bucket?: Bucket,
+  bucket?: Bucket | PhotoStore,
 ) {
   if (!validId(projectId)) throw new CommandError(400, "Invalid restore ID.");
   let backup;
@@ -61,34 +62,29 @@ export async function restoreProject(
       throw new CommandError(409, "Restore destination is reserved for a different backup.");
     if (!pending.exists) tx.create(reservation, { owner, digest, createdAt: FieldValue.serverTimestamp() });
   });
+  const store = bucket ? privatePhotoStore(bucket) : undefined;
   const restoredEvidence = new Map<string, Record<string, unknown>>();
   for (const row of backup.collections.evidence ?? []) {
     const { photo, bytes } = photos.get(row.id)!;
     const path = `projects/${projectId}/evidence/${row.id}`;
-    const file = bucket!.file(path);
     let metadata;
-    try { [metadata] = await file.getMetadata(); }
+    try { metadata = await store!.info(path); }
     catch (error) {
       if ((error as { code?: number }).code !== 404) throw error;
       try {
-        await file.save(bytes, { resumable: false, preconditionOpts: { ifGenerationMatch: 0 },
-          metadata: { contentType: photo.contentType, metadata: { uploadedBy: owner, taskId: String(row.data.taskId),
-            restoreDigest: digest, sha256: photo.sha256, firebaseStorageDownloadTokens: "" } } });
-      } catch (saveError) {
-        // Concurrent retries may have created the exact destination; verify it below.
-        if ((saveError as { code?: number }).code !== 412) throw saveError;
-      }
-      [metadata] = await file.getMetadata();
+        await store!.create(path, bytes, photo.contentType, { uploadedBy: owner, taskId: String(row.data.taskId), restoreDigest: digest, sha256: photo.sha256 });
+      } catch (saveError) { if ((saveError as { code?: number }).code !== 412) throw saveError; }
+      metadata = await store!.info(path);
     }
-    if (!metadata.generation || metadata.metadata?.uploadedBy !== owner || metadata.metadata?.taskId !== row.data.taskId
+    if (!metadata.version || metadata.metadata?.uploadedBy !== owner || metadata.metadata?.taskId !== row.data.taskId
       || metadata.metadata?.restoreDigest !== digest || metadata.metadata?.sha256 !== photo.sha256
       || metadata.metadata?.firebaseStorageDownloadTokens || metadata.contentType !== photo.contentType
       || Number(metadata.size) !== photo.size)
       throw new CommandError(409, "Restored photo conflicts with this backup. Keep the backup and original project.");
-    const [readback] = await bucket!.file(path, { generation: String(metadata.generation) }).download();
+    const readback = await store!.read(path, metadata.version);
     if (createHash("sha256").update(readback).digest("hex") !== photo.sha256)
       throw new CommandError(409, "Restored photo checksum failed. Project was not published.");
-    restoredEvidence.set(row.id, { ...row.data, path, generation: String(metadata.generation), size: photo.size, contentType: photo.contentType });
+    restoredEvidence.set(row.id, { ...row.data, path, generation: metadata.version, size: photo.size, contentType: photo.contentType });
   }
   await db.runTransaction(async (tx) => {
     const [existing, pending] = await Promise.all([tx.get(ref), tx.get(reservation)]);

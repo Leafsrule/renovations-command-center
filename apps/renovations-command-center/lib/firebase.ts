@@ -17,7 +17,7 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 export const missingFirebaseEnvVars = Object.entries(firebaseConfig)
-  .filter(([, value]) => !value)
+  .filter(([key, value]) => key !== "storageBucket" && !value)
   .map(([key]) => key);
 
 export const isFirebaseConfigured = missingFirebaseEnvVars.length === 0;
