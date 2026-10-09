@@ -10,7 +10,9 @@ Device drafts and pending field changes are labelled separately from saved cloud
 
 ## Backup
 
-Use Backup / restore in project details to export private JSON. Keep the download private. It contains record metadata, not a private storage-object backup. Evidence-backed restore is currently blocked pending a verified storage backup/copy workflow. Do not assume exporting JSON alone protects photos.
+Use Backup / restore in project details to export a private portable JSON archive containing records and every verified linked photo. Keep the download private: it contains the actual photo bytes. Limits are 20 MB total photo bytes, 32 MB JSON and 450 records. Export fails when a photo is missing or the limit is exceeded; it never silently omits files. Larger projects need a separate storage archive, which remains unfinished.
+
+Restore validates photo checksums, copies files to a separate project's private paths and verifies readback before publishing the records. Original projects remain intact. An interrupted transfer retains its destination and private objects for retry; keep the backup and retry the same request. The browser clears its recovery ID only after record and photo readback passes. Older record-only format-1 backups remain supported, but format-1 backups with photo references cannot restore the missing bytes. Provider recovery/rollback and abandoned-transfer cleanup are still unverified.
 
 ## Hosting and rollback
 
@@ -18,4 +20,4 @@ Before deployment, verify an existing authorized host, set its app root to `apps
 
 ## Trusted saves and device changes
 
-Execution, QC/work, evidence confirmation and restore require the authenticated server described in `TRUSTED_MUTATIONS.md`. Pending task/QC changes appear in Device changes and replay on reconnect/reload under the original account. A conflict preserves the submitted change for comparison; it does not silently overwrite. Dismiss confirmed changes after reviewing the task. Do not clear browser storage to resolve a pending change. Quality and project forms preserve drafts; storage failure is shown explicitly. Offline photo capture and full offline navigation remain unfinished.
+Execution, QC/work, evidence confirmation, portable backup and restore require the authenticated server described in `TRUSTED_MUTATIONS.md`. Pending task/QC changes appear in Device changes and replay on reconnect/reload under the original account. A conflict preserves the submitted change for comparison; it does not silently overwrite. Dismiss confirmed changes after reviewing the task. Do not clear browser storage to resolve a pending change. Quality and project forms preserve drafts; storage failure is shown explicitly. Raw photos are retained on the original account's device until confirmed. Unconfirmed field submissions cannot be edited until retried or reviewed; late responses preserve newer drafts. Full offline navigation and every metadata/form queue remain unfinished.
