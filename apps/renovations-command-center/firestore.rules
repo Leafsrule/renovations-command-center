@@ -38,14 +38,14 @@ service cloud.firestore {
         allow read: if isProjectOwner(projectId);
         // Historical imports and sensitive execution/proof are server-only.
         allow create: if isProjectOwnerAfter(projectId)
-          && request.resource.data.status in ['draft', 'not_ready', 'ready', 'cancelled']
+          && request.resource.data.status in ['design', 'draft', 'not_ready', 'ready', 'cancelled']
           && request.resource.data.get('actualDurationMinutes', null) == null
           && !request.resource.data.keys().hasAny(['evidenceCount', 'qcPassed', 'qcChecklist', 'qcRequired', 'cureUntil', 'completionOverrideReason', 'overrideAuditId']);
         allow update: if isProjectOwner(projectId)
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['evidenceCount', 'qcPassed', 'qcChecklist', 'qcRequired', 'cureUntil', 'completionOverrideReason', 'overrideAuditId', 'actualDurationMinutes'])
           && (request.resource.data.status == resource.data.status
-            || (resource.data.status in ['draft', 'not_ready', 'ready'] && request.resource.data.status in ['draft', 'not_ready', 'ready', 'cancelled']))
-          && (resource.data.status in ['draft', 'not_ready', 'ready']
+            || (resource.data.status in ['design', 'draft', 'not_ready', 'ready'] && request.resource.data.status in ['design', 'draft', 'not_ready', 'ready', 'cancelled']))
+          && (resource.data.status in ['design', 'draft', 'not_ready', 'ready']
             || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['photosRequired', 'dependencyTaskIds', 'helperRequired', 'helperPersonIds']));
         allow delete: if isProjectOwner(projectId) && resource.data.status == 'draft' && resource.data.get('evidenceCount', 0) == 0;
       }

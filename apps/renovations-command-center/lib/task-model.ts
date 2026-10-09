@@ -1,4 +1,5 @@
 export type TaskStatus =
+  | "design"
   | "draft"
   | "not_ready"
   | "ready"
@@ -13,6 +14,7 @@ export type TaskStatus =
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export type TaskPhase =
+  | "design"
   | "setup"
   | "demolition"
   | "prep"
@@ -28,7 +30,7 @@ export type TaskPhase =
   | "other";
 
 export type TaskReadinessState =
-  "not_ready" | "ready" | "blocked" | "needs_review";
+  "design" | "not_ready" | "ready" | "blocked" | "needs_review";
 
 export type TaskBlockerType =
   | "none"
@@ -44,7 +46,7 @@ export type TaskBlockerType =
   | "other";
 
 export type TaskMaterialStatus =
-  "not_required" | "needed" | "ordered" | "partial" | "ready" | "blocked";
+  "design" | "not_required" | "needed" | "ordered" | "partial" | "received" | "stock" | "ready" | "blocked";
 
 export type TaskCriticalPathRisk = "none" | "low" | "medium" | "high";
 
@@ -177,6 +179,7 @@ function statusFromValue(value: unknown): TaskStatus {
   const status = String(value || "draft");
 
   if (
+    status === "design" ||
     status === "draft" ||
     status === "not_ready" ||
     status === "ready" ||
@@ -213,6 +216,7 @@ function phaseFromValue(value: unknown): TaskPhase {
   const phase = String(value || "setup");
 
   if (
+    phase === "design" ||
     phase === "setup" ||
     phase === "demolition" ||
     phase === "prep" ||
@@ -237,6 +241,7 @@ function readinessFromValue(value: unknown): TaskReadinessState {
   const readinessState = String(value || "not_ready");
 
   if (
+    readinessState === "design" ||
     readinessState === "not_ready" ||
     readinessState === "ready" ||
     readinessState === "blocked" ||
@@ -272,6 +277,9 @@ function blockerTypeFromValue(value: unknown): TaskBlockerType {
 
 function materialStatusFromValue(value: unknown): TaskMaterialStatus {
   if (
+    value === "design" ||
+    value === "received" ||
+    value === "stock" ||
     value === "not_required" ||
     value === "needed" ||
     value === "ordered" ||

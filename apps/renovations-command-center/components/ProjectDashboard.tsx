@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel } from "@/lib/terminology";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -139,8 +140,8 @@ export function ProjectDashboard() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <StatusBadge label={project.status.replace("_", " ")} />
-                <StatusBadge label={`Phase: ${project.currentPhase}`} />
+                <StatusBadge label={displayLabel(project.status)} />
+                <StatusBadge label={`Phase: ${displayLabel(project.currentPhase)}`} />
                 {project.criticalPathWarning ? (
                   <CriticalPathRiskBadge risk="high" />
                 ) : null}

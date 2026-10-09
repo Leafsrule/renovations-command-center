@@ -152,7 +152,7 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
 
       <section className="grid grid-cols-2 gap-3" aria-label="Schedule summary">
         {[
-          ["Completed", `${summary.completedCount}/${summary.totalTasks}`],
+          ["Complete", `${summary.completedCount}/${summary.totalTasks}`],
           ["Ready now", summary.readyNowCount],
           ["Restricted", restricted],
           ["Late", summary.overdueCount]

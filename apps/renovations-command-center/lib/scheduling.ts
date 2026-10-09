@@ -83,6 +83,7 @@ export type TaskRecommendation = {
 };
 
 const phaseOrder: TaskPhase[] = [
+  "design",
   "setup",
   "demolition",
   "prep",
@@ -156,6 +157,7 @@ function taskHasIncompleteDependencies(
 function taskHasMissingMaterials(task: RenovationTask) {
   return (
     task.requiredItemsReady === false ||
+    task.materialStatus === "design" ||
     task.materialStatus === "needed" ||
     task.materialStatus === "ordered" ||
     task.materialStatus === "partial" ||
@@ -315,10 +317,12 @@ function evaluateTaskReadiness(
     !helperRequiredAndUnavailable &&
     (task.readinessState === "ready" || task.status === "ready")
   ) {
-    reasons.push("Task is ready for work.");
+    if (task.status !== "design" && task.readinessState !== "design") reasons.push("Task is ready for work.");
   }
 
-  const state: TaskReadinessEvaluationState = isCompletedOrCancelled
+  if (task.status === "design" || task.readinessState === "design") reasons.push("Task is in Design. Mark it ready after design is complete.");
+
+  const state: TaskReadinessEvaluationState = task.status === "design" || task.readinessState === "design" ? "not_ready" : isCompletedOrCancelled
     ? "not_ready"
     : invalidDuration
     ? "invalid"

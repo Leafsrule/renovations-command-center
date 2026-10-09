@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel } from "@/lib/terminology";
 
 import {ProjectRecovery} from "./ProjectRecovery";
 import { ProjectEditor } from "./ProjectEditor";
@@ -111,8 +112,8 @@ export function ProjectDetail() {
       <Link className="touch-target block underline" href={`/projects/${project.id}/blackouts`}>Work calendar and blackout dates</Link>
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <div className="flex flex-wrap gap-2">
-          <StatusBadge label={project.status.replace("_", " ")} tone="ready" />
-          <StatusBadge label={`Phase: ${project.currentPhase}`} />
+          <StatusBadge label={displayLabel(project.status)} tone="ready" />
+          <StatusBadge label={`Phase: ${displayLabel(project.currentPhase)}`} />
           {project.activeProject ? <StatusBadge label="Active project" /> : null}
           {project.criticalPathWarning ? (
             <CriticalPathRiskBadge risk="high" />

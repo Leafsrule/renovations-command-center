@@ -11,6 +11,9 @@ export type MaterialOverviewItem = {
 };
 
 const severity: Record<TaskMaterialStatus, number> = {
+  design: 1,
+  received: 4,
+  stock: 4,
   blocked: 0,
   needed: 1,
   partial: 2,
@@ -81,6 +84,6 @@ export function getMaterialOverviewSummary(items: MaterialOverviewItem[]) {
     blocked: items.filter((item) => item.status === "blocked").length,
     needed: items.filter((item) => item.status === "needed").length,
     ordered: items.filter((item) => item.status === "ordered").length,
-    ready: items.filter((item) => item.status === "ready").length
+    ready: items.filter((item) => ["ready", "received", "stock"].includes(item.status)).length
   };
 }

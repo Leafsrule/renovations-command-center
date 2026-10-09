@@ -7,21 +7,21 @@ export function validateTaskEdit(
   if (!input.name.trim()) throw new Error("Task name is required.");
   if (
     input.status !== current?.status &&
-    !["draft", "not_ready", "ready", "cancelled"].includes(input.status)
+    !["design", "draft", "not_ready", "ready", "cancelled"].includes(input.status)
   )
     throw new Error(
       "Use Today actions to start, wait, block or complete work.",
     );
   if (
     current &&
-    !["draft", "not_ready", "ready"].includes(current.status) &&
+    !["design", "draft", "not_ready", "ready"].includes(current.status) &&
     input.status !== current.status
   )
     throw new Error("Use guarded task actions for execution changes.");
   if (
     current?.photosRequired &&
     !input.photosRequired &&
-    !["draft", "not_ready", "ready"].includes(current.status)
+    !["design", "draft", "not_ready", "ready"].includes(current.status)
   )
     throw new Error(
       "Record an owner exception through quality review; required evidence cannot be removed during execution.",

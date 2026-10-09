@@ -1,3 +1,4 @@
+import { displayLabel } from "@/lib/terminology";
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { ScheduleBoardItem, ScheduleVisualState } from "@/lib/schedule-board";
@@ -6,7 +7,7 @@ const stateMap: Record<
   ScheduleVisualState,
   { label: string; tone: "neutral" | "ready" | "blocked" | "warning"; border: string }
 > = {
-  completed: { label: "Completed", tone: "ready", border: "border-l-[#6cae9f]" },
+  completed: { label: "Complete", tone: "ready", border: "border-l-[#6cae9f]" },
   overdue: { label: "Late", tone: "blocked", border: "border-l-danger" },
   blocked: { label: "Blocked", tone: "blocked", border: "border-l-danger" },
   waiting: { label: "Waiting", tone: "warning", border: "border-l-caution" },
@@ -54,7 +55,7 @@ export function ScheduleTaskCard({
         ) : null}
         {item.task.materialStatus !== "not_required" ? (
           <span className="rounded-md bg-panel px-2 py-1">
-            Materials: {item.task.materialStatus.replaceAll("_", " ")}
+            Materials: {displayLabel(item.task.materialStatus)}
           </span>
         ) : null}
       </div>

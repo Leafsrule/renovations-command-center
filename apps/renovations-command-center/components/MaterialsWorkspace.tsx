@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel } from "@/lib/terminology";
 
 import {FieldRecordsWorkspace} from "./FieldRecordsWorkspace";
 import Link from "next/link";
@@ -12,6 +13,9 @@ import {
 import { listProjectTasks, type RenovationTask } from "@/lib/tasks";
 
 const tones = {
+  design: "neutral",
+  received: "ready",
+  stock: "ready",
   blocked: "blocked",
   needed: "warning",
   partial: "warning",
@@ -92,7 +96,7 @@ export function MaterialsWorkspace() {
                   </p>
                 </div>
                 <StatusBadge
-                  label={material.status.replaceAll("_", " ")}
+                  label={displayLabel(material.status)}
                   tone={tones[material.status]}
                 />
               </div>

@@ -1,4 +1,5 @@
 "use client";
+import { statusLabels } from "@/lib/terminology";
 import Link from "next/link";
 
 import { calendarMinutes, DEFAULT_CALENDAR, type WorkCalendar } from "@/lib/calendar";
@@ -51,26 +52,15 @@ const blockerOptions: Array<{
 ];
 
 function getStatusLabel(status: RenovationTask["status"]) {
-  const labels: Record<RenovationTask["status"], string> = {
-    draft: "Draft",
-    not_ready: "Not ready",
-    ready: "Ready",
-    in_progress: "In progress",
-    blocked: "Blocked",
-    waiting_curing: "Waiting / curing",
-    qc_review: "QC review",
-    complete: "Complete",
-    rework_required: "Rework required",
-    cancelled: "Cancelled"
-  };
 
-  return labels[status] ?? status;
+
+  return statusLabels[status] ?? status;
 }
 
 function getTaskDetails(task: RenovationTask, rooms: RenovationRoom[]) {
   const room = task.roomId
-    ? rooms.find((item) => item.id === task.roomId)?.name || "Unknown area"
-    : "No area";
+    ? rooms.find((item) => item.id === task.roomId)?.name || "Unknown room"
+    : "No room selected";
 
   return room;
 }

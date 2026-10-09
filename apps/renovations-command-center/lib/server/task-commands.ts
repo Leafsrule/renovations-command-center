@@ -1,3 +1,4 @@
+import { materialIsAvailable } from "../terminology";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import type { Bucket } from "@google-cloud/storage";
 import { privatePhotoStore, PHOTO_TYPES, PHOTO_LIMIT, photoHash, type PhotoStore } from "./photo-store";
@@ -183,7 +184,7 @@ export async function runTaskCommand(
       const linkedTools = tools.docs.filter((d) => d.data().taskId === taskId);
       task.requiredItemsReady =
         linkedMaterials.every((d) =>
-          ["on_site", "used"].includes(d.data().status),
+          materialIsAvailable(d.data().status),
         ) && linkedTools.every((d) => d.data().status === "available");
       task.evidenceCount = evidence.docs.filter(
         (d) => verifiedEvidence.get(d.id) === d.data().generation,

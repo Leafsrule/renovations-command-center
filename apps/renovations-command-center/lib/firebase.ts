@@ -40,7 +40,7 @@ export const storage: FirebaseStorage | null = firebaseApp
   : null;
 if (useEmulators && typeof window !== "undefined" && !existingApp && auth && db && storage) {
   if (!["127.0.0.1","localhost","[::1]"].includes(window.location.hostname)) throw new Error("Local emulators cannot be used on a hosted app.");
-  connectAuthEmulator(auth,"http://127.0.0.1:9099");
+  connectAuthEmulator(auth,"http://127.0.0.1:9099", { disableWarnings: true });
   connectFirestoreEmulator(db,"127.0.0.1",8080);
   connectStorageEmulator(storage,"127.0.0.1",9199);
 }

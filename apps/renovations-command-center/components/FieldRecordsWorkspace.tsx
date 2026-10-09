@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel, materialIsAvailable } from "@/lib/terminology";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
@@ -19,17 +20,19 @@ import {
 } from "@/lib/field-records";
 const options: Record<FieldKind, string[]> = {
   materials: [
+    "design",
+    "partial",
+    "received",
+    "stock",
     "needed",
     "ordered",
     "purchased",
-    "delivered",
-    "on_site",
     "used",
     "missing",
   ],
-  tools: ["unknown", "available", "unavailable", "needs_repair"],
-  measurements: ["not_measured", "to_verify", "verified", "recheck"],
-  decisions: ["proposed", "approved", "rejected", "superseded"],
+  tools: ["design", "unknown", "available", "unavailable", "needs_repair"],
+  measurements: ["design", "not_measured", "to_verify", "verified", "recheck"],
+  decisions: ["design", "proposed", "approved", "rejected", "superseded"],
 };
 export function FieldRecordsWorkspace({ kind }: { kind: FieldKind }) {
   const { projectId } = useParams<{ projectId: string }>();
@@ -209,7 +212,7 @@ function FieldRecordsContent({
   };
   const shopping =
     kind === "materials"
-      ? records.filter((r) => !["on_site", "used"].includes(r.status))
+      ? records.filter((r) => !materialIsAvailable(r.status))
       : [];
   return (
     <section className="space-y-4">
@@ -276,9 +279,10 @@ function FieldRecordsContent({
               value={form.status}
               onChange={(e) => update("status", e.target.value)}
             >
+              {!options[kind].includes(form.status) ? <option value={form.status}>{displayLabel(form.status)}</option> : null}
               {options[kind].map((status) => (
                 <option key={status} value={status}>
-                  {status.replaceAll("_", " ")}
+                  {displayLabel(status)}
                 </option>
               ))}
             </select>
@@ -426,7 +430,7 @@ function FieldRecordsContent({
           <li key={r.id} className="rounded border p-4">
             <h2 className="font-semibold">{r.name}</h2>
             <p>
-              {r.status.replaceAll("_", " ")}
+              {displayLabel(r.status)}
               {kind === "materials"
                 ? ` · ${r.quantity} ${r.unit}`
                 : kind === "measurements"

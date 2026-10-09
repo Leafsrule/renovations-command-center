@@ -39,3 +39,9 @@ describe("metadata editor execution integrity", () => {
       validateTaskEdit({ ...input, helperRequired: true }, []),
     ).toThrow(/helper/));
 });
+
+it("allows Design planning edits but cannot reset execution into Design", () => {
+  expect(() => validateTaskEdit({...input,status:"design"},[])).not.toThrow();
+  expect(() => validateTaskEdit({...input,status:"ready"},[],{id:"door",status:"design"} as RenovationTask)).not.toThrow();
+  expect(() => validateTaskEdit({...input,status:"design"},[],{id:"door",status:"in_progress"} as RenovationTask)).toThrow(/guarded/);
+});

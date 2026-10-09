@@ -102,14 +102,16 @@ export function calculateCalendarPlan(
       pending.splice(i--, 1);
       changed = true;
       const reason =
-        task.blockerType !== "none" || task.status === "blocked"
+        task.status === "design" || task.readinessState === "design"
+          ? "Task is in Design"
+          : task.blockerType !== "none" || task.status === "blocked"
           ? "Active blocker"
           : task.helperRequired && task.helperPersonIds.length === 0
             ? "Required helper is unassigned"
             : assignedPeople(task).some(id=>!personHasWorkdays(people.find(person=>person.id===id),calendar))
               ? "Assigned person has no verified workdays in the project calendar"
             : task.requiredItemsReady === false ||
-                !["not_required", "ready"].includes(task.materialStatus)
+                !["not_required", "ready", "received", "stock"].includes(task.materialStatus)
               ? "Materials are unavailable"
               : !task.estimatedDurationMinutes ||
                   task.estimatedDurationMinutes <= 0

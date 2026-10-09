@@ -55,7 +55,7 @@ export function MobileBottomNav() {
   }, [user]);
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-white/95 px-2 pb-3 pt-2 backdrop-blur">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-white/95 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
       <div className="grid grid-cols-5 gap-1">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;

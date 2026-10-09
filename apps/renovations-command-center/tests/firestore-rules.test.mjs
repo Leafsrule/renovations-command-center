@@ -104,3 +104,15 @@ test("browser identities cannot read or forge private photo manifests or free-ca
     }
   }
 });
+
+test("Design remains an owner-only planning state and cannot bypass execution proof", async () => {
+  const owner = env.authenticatedContext("owner").firestore();
+  const ref = doc(owner,"projects","owned","tasks","design");
+  await assertSucceeds(setDoc(ref,{status:"design",phase:"design",readinessState:"design",materialStatus:"stock"}));
+  await assertSucceeds(updateDoc(ref,{status:"ready",materialStatus:"received"}));
+  await assertSucceeds(updateDoc(ref,{status:"design"}));
+  await assertFails(updateDoc(ref,{status:"complete"}));
+  await assertFails(updateDoc(ref,{qcPassed:true}));
+  await assertFails(setDoc(doc(env.authenticatedContext("other").firestore(),"projects","owned","tasks","other-design"),{status:"design"}));
+  await assertFails(updateDoc(doc(owner,"projects","owned","tasks","photo-required"),{status:"design",photosRequired:false}));
+});

@@ -1,4 +1,5 @@
 "use client";
+import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
 
 import {TaskQualityPanel} from "./TaskQualityPanel";
 import { useEffect, useMemo, useState } from "react";
@@ -19,40 +20,11 @@ import {
   type RenovationTask,
   type TaskBlockerType,
   type TaskMaterialStatus,
-  type TaskPhase,
   type TaskPriority,
   type TaskReadinessState,
-  type TaskStatus
 } from "@/lib/tasks";
 
-const phaseLabels: Record<TaskPhase, string> = {
-  setup: "Setup",
-  demolition: "Demolition",
-  prep: "Prep",
-  rough_in: "Rough-in",
-  waterproofing: "Waterproofing",
-  tile: "Tile",
-  flooring: "Flooring",
-  drywall: "Drywall",
-  paint: "Paint",
-  trim: "Trim",
-  fixtures: "Fixtures",
-  cleanup: "Cleanup",
-  other: "Other"
-};
 
-const statusLabels: Record<TaskStatus, string> = {
-  draft: "Draft",
-  not_ready: "Not ready",
-  ready: "Ready",
-  in_progress: "In progress",
-  blocked: "Blocked",
-  waiting_curing: "Waiting / curing",
-  qc_review: "QC review",
-  complete: "Complete",
-  rework_required: "Rework required",
-  cancelled: "Cancelled"
-};
 
 const priorityLabels: Record<TaskPriority, string> = {
   low: "Low",
@@ -61,12 +33,6 @@ const priorityLabels: Record<TaskPriority, string> = {
   urgent: "Urgent"
 };
 
-const readinessLabels: Record<TaskReadinessState, string> = {
-  not_ready: "Not ready",
-  ready: "Ready",
-  blocked: "Blocked",
-  needs_review: "Needs review"
-};
 
 const blockerLabels: Record<TaskBlockerType, string> = {
   none: "None",
@@ -95,24 +61,16 @@ const readinessReasonLabels: Record<string, string> = {
   other: "Other"
 };
 
-const materialLabels: Record<TaskMaterialStatus, string> = {
-  not_required: "Not required",
-  needed: "Needed",
-  ordered: "Ordered",
-  partial: "Partially ready",
-  ready: "Ready",
-  blocked: "Blocked"
-};
 
 const schedulingLabels: Record<TaskSchedulingCategory, string> = {
-  completed: "Completed",
+  completed: "Complete",
   recommended_next: "Recommended next",
   ready_now: "Ready now",
   overdue: "Overdue",
   due_soon: "Due soon",
   blocked: "Blocked",
-  waiting_on_dependencies: "Waiting - deps",
-  waiting_on_materials: "Waiting - materials",
+  waiting_on_dependencies: "Waiting on dependencies",
+  waiting_on_materials: "Waiting on materials",
   needs_review: "Needs review",
   scheduled_later: "Scheduled later",
   not_ready: "Not ready"
@@ -162,7 +120,7 @@ function readinessTone(
 function materialTone(
   materialStatus: TaskMaterialStatus
 ): "neutral" | "ready" | "blocked" | "warning" {
-  if (materialStatus === "ready") {
+  if (["ready", "received", "stock"].includes(materialStatus)) {
     return "ready";
   }
 

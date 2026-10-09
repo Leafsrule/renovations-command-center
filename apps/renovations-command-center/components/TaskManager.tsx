@@ -1,4 +1,5 @@
 "use client";
+import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
 import {auth} from "@/lib/firebase";
 import {useBrowserDraft} from "@/lib/browser-draft";
 
@@ -32,34 +33,9 @@ import {
   type TaskStatus
 } from "@/lib/tasks";
 
-const phaseOptions: Array<{ label: string; value: TaskPhase }> = [
-  { label: "Setup", value: "setup" },
-  { label: "Demolition", value: "demolition" },
-  { label: "Prep", value: "prep" },
-  { label: "Rough-in", value: "rough_in" },
-  { label: "Waterproofing", value: "waterproofing" },
-  { label: "Tile", value: "tile" },
-  { label: "Flooring", value: "flooring" },
-  { label: "Drywall", value: "drywall" },
-  { label: "Paint", value: "paint" },
-  { label: "Trim", value: "trim" },
-  { label: "Fixtures", value: "fixtures" },
-  { label: "Cleanup", value: "cleanup" },
-  { label: "Other", value: "other" }
-];
+const phaseOptions = Object.entries(phaseLabels).map(([value, label]) => ({value: value as TaskPhase, label}));
 
-const statusOptions: Array<{ label: string; value: TaskStatus }> = [
-  { label: "Draft", value: "draft" },
-  { label: "Not ready", value: "not_ready" },
-  { label: "Ready", value: "ready" },
-  { label: "In progress", value: "in_progress" },
-  { label: "Blocked", value: "blocked" },
-  { label: "Waiting / curing", value: "waiting_curing" },
-  { label: "QC review", value: "qc_review" },
-  { label: "Complete", value: "complete" },
-  { label: "Rework required", value: "rework_required" },
-  { label: "Cancelled", value: "cancelled" }
-];
+const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({value: value as TaskStatus, label}));
 
 const priorityOptions: Array<{ label: string; value: TaskPriority }> = [
   { label: "Low", value: "low" },
@@ -75,12 +51,7 @@ const riskOptions: Array<{ label: string; value: TaskCriticalPathRisk }> = [
   { label: "High", value: "high" }
 ];
 
-const readinessOptions: Array<{ label: string; value: TaskReadinessState }> = [
-  { label: "Not ready", value: "not_ready" },
-  { label: "Ready", value: "ready" },
-  { label: "Blocked", value: "blocked" },
-  { label: "Needs review", value: "needs_review" }
-];
+const readinessOptions = Object.entries(readinessLabels).map(([value, label]) => ({value: value as TaskReadinessState, label}));
 
 const readinessReasonOptions: Array<{ label: string; value: string }> = [
   { label: "Dependency not complete", value: "dependency_not_complete" },
@@ -109,24 +80,17 @@ const blockerOptions: Array<{ label: string; value: TaskBlockerType }> = [
   { label: "Other", value: "other" }
 ];
 
-const materialOptions: Array<{ label: string; value: TaskMaterialStatus }> = [
-  { label: "Not required", value: "not_required" },
-  { label: "Needed", value: "needed" },
-  { label: "Ordered", value: "ordered" },
-  { label: "Partially ready", value: "partial" },
-  { label: "Ready", value: "ready" },
-  { label: "Blocked", value: "blocked" }
-];
+const materialOptions = Object.entries(materialLabels).map(([value, label]) => ({value: value as TaskMaterialStatus, label}));
 
 const schedulingLabels: Record<TaskSchedulingCategory, string> = {
-  completed: "Completed",
+  completed: "Complete",
   recommended_next: "Recommended next",
   ready_now: "Ready now",
   overdue: "Overdue",
   due_soon: "Due soon",
   blocked: "Blocked",
-  waiting_on_dependencies: "Waiting - deps",
-  waiting_on_materials: "Waiting - materials",
+  waiting_on_dependencies: "Waiting on dependencies",
+  waiting_on_materials: "Waiting on materials",
   needs_review: "Needs review",
   scheduled_later: "Scheduled later",
   not_ready: "Not ready"
@@ -247,7 +211,7 @@ function dependencyCompletion(
 function materialTone(
   materialStatus: TaskMaterialStatus
 ): "neutral" | "ready" | "blocked" | "warning" {
-  if (materialStatus === "ready") {
+  if (["ready", "received", "stock"].includes(materialStatus)) {
     return "ready";
   }
 
@@ -438,6 +402,8 @@ function TaskForm({
         ) : null}
       </label>
 
+      <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/rooms`}>Add / manage rooms</Link>
+
       <label className="block text-sm font-semibold text-ink">
         Phase
         <select
@@ -538,6 +504,8 @@ function TaskForm({
           </p>
         ) : null}
       </label>
+
+      <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/people`}>Add / manage champions and helpers</Link>
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-ink">Helpers</legend>
@@ -1174,11 +1142,11 @@ export function TaskManager() {
             tone="blocked"
           />
           <StatusBadge
-            label={`Waiting - deps: ${schedulingSummary.waitingOnDependenciesCount}`}
+            label={`Waiting on dependencies: ${schedulingSummary.waitingOnDependenciesCount}`}
             tone="warning"
           />
           <StatusBadge
-            label={`Waiting - materials: ${schedulingSummary.waitingOnMaterialsCount}`}
+            label={`Waiting on materials: ${schedulingSummary.waitingOnMaterialsCount}`}
             tone="warning"
           />
           <StatusBadge

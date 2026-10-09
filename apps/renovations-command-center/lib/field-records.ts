@@ -1,3 +1,4 @@
+import { materialIsAvailable } from "./terminology";
 import {
   collection,
   doc,
@@ -127,7 +128,7 @@ export async function saveFieldRecord(
     if (["materials", "tools"].includes(kind)) {
       const isAvailable = (itemKind: string, status: unknown) =>
         itemKind === "materials"
-          ? ["on_site", "used"].includes(String(status))
+          ? materialIsAvailable(String(status))
           : status === "available";
       const ready =
         isAvailable(kind, record.status) &&

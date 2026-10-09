@@ -17,6 +17,7 @@ export type FloorLevel =
   | "other";
 
 export type RoomStatus =
+  | "design"
   | "not_started"
   | "planning"
   | "active"
@@ -39,6 +40,7 @@ export type RenovationRoom = {
 };
 
 export type RoomFormInput = {
+  status?: RoomStatus;
   name: string;
   floorLevel: FloorLevel;
   dimensions: string;
@@ -101,7 +103,7 @@ export async function createProjectRoom(projectId: string, input: RoomFormInput)
     name: input.name.trim(),
     floorLevel: input.floorLevel,
     dimensions: input.dimensions.trim(),
-    status: "planning",
+    status: input.status ?? "planning",
     priority: input.priority,
     notes: input.notes.trim(),
     tradeCategories: [],
@@ -119,6 +121,7 @@ export async function updateProjectRoom(
     name: input.name.trim(),
     floorLevel: input.floorLevel,
     dimensions: input.dimensions.trim(),
+    ...(input.status ? {status: input.status} : {}),
     priority: input.priority,
     notes: input.notes.trim(),
     updatedAt: serverTimestamp()

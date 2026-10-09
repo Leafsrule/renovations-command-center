@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel } from "@/lib/terminology";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import {
   type FloorLevel,
   type RenovationRoom,
   type RoomFormInput,
+  type RoomStatus,
   type RoomPriority
 } from "@/lib/rooms";
 
@@ -30,6 +32,7 @@ const priorityOptions: Array<{ label: string; value: RoomPriority }> = [
 ];
 
 const emptyForm: RoomFormInput = {
+  status: "planning",
   name: "",
   floorLevel: "main_floor",
   dimensions: "",
@@ -134,6 +137,13 @@ function RoomForm({
       </label>
 
       <label className="block text-sm font-semibold text-ink">
+        Status
+        <select className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal" value={form.status ?? "planning"} onChange={event => setForm(current => ({...current, status: event.target.value as RoomStatus}))}>
+          {["design", "not_started", "planning", "active", "blocked", "complete"].map(status => <option key={status} value={status}>{displayLabel(status)}</option>)}
+        </select>
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
         Priority
         <select
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -193,6 +203,7 @@ function roomToForm(room: RenovationRoom): RoomFormInput {
     floorLevel: room.floorLevel,
     dimensions: room.dimensions,
     priority: room.priority,
+    status: room.status,
     notes: room.notes
   };
 }
@@ -358,7 +369,7 @@ export function RoomManager() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusBadge label={room.status.replace("_", " ")} />
+                  <StatusBadge label={displayLabel(room.status)} />
                   {room.dimensions ? (
                     <StatusBadge label={room.dimensions} />
                   ) : null}

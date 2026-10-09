@@ -1,4 +1,5 @@
 "use client";
+import { displayLabel, phaseLabels } from "@/lib/terminology";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
 import { taskRevision } from "@/lib/task-command";
@@ -20,6 +21,7 @@ export function ProjectEditor({
       start: project.startDate,
       finish: project.targetFinishDate,
       status: project.status,
+      phase: project.currentPhase,
       revision: taskRevision(project.updatedAt),
     },
   );
@@ -47,6 +49,7 @@ export function ProjectEditor({
           startDate: start,
           targetFinishDate: finish,
           status,
+          currentPhase: draft.phase ?? project.currentPhase,
           type: project.type,
         },
         draft.revision,
@@ -111,6 +114,7 @@ export function ProjectEditor({
             }
           >
             {[
+              "design",
               "planning",
               "active",
               "blocked",
@@ -120,9 +124,16 @@ export function ProjectEditor({
               "archived",
             ].map((s) => (
               <option key={s} value={s}>
-                {s.replaceAll("_", " ")}
+                {displayLabel(s)}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="block">
+          Phase
+          <select className="block w-full rounded border p-2" value={draft.phase ?? project.currentPhase} onChange={e => setDraft(d => ({...d, phase: e.target.value}))}>
+            {!Object.hasOwn(phaseLabels, draft.phase ?? project.currentPhase) ? <option value={draft.phase ?? project.currentPhase}>{displayLabel(draft.phase ?? project.currentPhase)}</option> : null}
+            {Object.entries(phaseLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
         <button
