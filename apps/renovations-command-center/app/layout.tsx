@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body data-local-test={process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true" ? "true" : undefined}>
         {process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true" ? <aside role="status" className="mx-auto max-w-md border-b border-caution bg-amber-50 px-4 py-2 text-sm text-ink">Local test mode. Test data clears when the emulators restart.</aside> : null}
         <AuthProvider><PwaRegistration /><CommandSync /><PhotoSync />{children}</AuthProvider>
       </body>

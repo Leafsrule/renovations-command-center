@@ -50,3 +50,9 @@ textarea {
  main { padding: 0 !important; }
  .max-w-md { max-width: none; }
 }
+
+/* A previously connected Auth instance can retain its SDK footer during hot reload.
+   The visible in-flow notice in layout replaces it only in isolated demo mode. */
+body[data-local-test="true"] .firebase-emulator-warning {
+  display: none !important;
+}

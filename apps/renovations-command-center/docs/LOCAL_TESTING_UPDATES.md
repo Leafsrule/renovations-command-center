@@ -21,3 +21,11 @@ git pull --ff-only
 Refresh the existing app page. No dependency installation is required for this increment. The emulator watches the rules file. Do not stop/restart the emulator to apply UI changes; restarting clears this demo's server data. Export a project backup before any intentional restart.
 
 Validation includes app tests covering serialization, legacy labels, Design/readiness, material availability and guarded planning transitions; real-emulator authorization tests verify Design cannot bypass execution or ownership checks. Chromebook visual acceptance remains a user test after pulling the update. No deployment, billing change, main merge or live rules/data mutation is part of this change.
+
+## Follow-up: old banner still visible
+
+The original service worker cached `/_next/static/` during local development, so a normal refresh could continue loading old development bundles. Hot reload could also retain an already-connected Auth instance and its fixed warning element. The follow-up disables development registration, makes an existing localhost worker stop serving cached files and retire itself, and suppresses the SDK footer via a demo-only body/CSS marker. The in-flow local-test notice remains visible.
+
+After pulling the follow-up, open `http://localhost:3000/refresh-test-app.html` in the existing app tab and click **Refresh test app**. This standalone page is fetched as a fresh navigation and removes only this origin's `/sw.js` registration and `rcc-public-shell-*` Cache Storage entries, then opens `/projects`. It does not clear cookies, IndexedDB, localStorage, saved drafts, Firebase emulator data or unrelated caches/workers. Keep the emulator Terminal running. Cleanup failures remain on the page and allow retry; non-local hosts are rejected.
+
+Follow-up validation: 197 app tests, lint, typecheck and production build passed. Cleanup tests cover selective cache/worker removal, retained data stores, failure/retry and hosted-page refusal. Prior 31 backend/security tests remain applicable: no rules, server storage or domain workflow changes in this follow-up. Actual Chromebook visual confirmation remains pending after applying the refresh.
