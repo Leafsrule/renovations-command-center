@@ -453,7 +453,7 @@ function FieldRecordsContent({
             >
               Edit
             </button>
-            <DeleteRecordButton projectId={projectId} kind={kind} id={r.id} name={r.name} />
+            <DeleteRecordButton key={String(r.version)} projectId={projectId} kind={kind} id={r.id} name={r.name} />
             {pending?.state === "conflicting" && r.id === form?.id ? (
               <button
                 className="touch-target block underline"

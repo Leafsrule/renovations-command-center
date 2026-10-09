@@ -387,7 +387,7 @@ export function RoomManager() {
                 >
                   Edit
                 </button>
-                <DeleteRecordButton projectId={projectId} kind="rooms" id={room.id} name={room.name} />
+                <DeleteRecordButton key={JSON.stringify(room.updatedAt ?? null)} projectId={projectId} kind="rooms" id={room.id} name={room.name} />
               </article>
             ))}
           </div>

@@ -47,8 +47,12 @@ export function DeleteRecordButton({
           return body;
         })(),
       );
-    void checks
-      .get(key)!
+    // Share only in-flight checks. A later screen/list refresh needs fresh links and history.
+    const pendingCheck = checks.get(key)!;
+    void pendingCheck.finally(() => {
+      if (checks.get(key) === pendingCheck) checks.delete(key);
+    }).catch(() => {});
+    void pendingCheck
       .then((result) => {
         if (!cancelled)
           setResult({

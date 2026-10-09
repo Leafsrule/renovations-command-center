@@ -291,7 +291,7 @@ export function TaskDetail() {
 
   return (
     <section className="space-y-5">
-      <DeleteRecordButton projectId={projectId} kind="tasks" id={task.id} name={task.name} />
+      <DeleteRecordButton key={JSON.stringify(task.updatedAt ?? null)} projectId={projectId} kind="tasks" id={task.id} name={task.name} />
       <TaskQualityPanel key={`${task.id}:${formatUnknownTimestamp(task.updatedAt)}`} projectId={projectId} task={task} onSaved={() => {void getProjectTask(projectId,taskId).then(setTask);}} />
       <div className="flex flex-wrap items-center gap-2">
         <Link

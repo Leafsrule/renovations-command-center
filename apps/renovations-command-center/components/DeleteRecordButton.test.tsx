@@ -129,3 +129,13 @@ it("does not submit deletion if the signed-in account changed", async () => {
   await screen.findByRole("alert");
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+
+it("refreshes eligibility when returning to a record after it gains closed entries", async()=>{
+ const fetch=vi.fn().mockResolvedValueOnce(Response.json({"rooms:room":{allowed:true,reason:"Unused",revision:"abc"}})).mockResolvedValueOnce(Response.json({"rooms:room":{allowed:false,reason:"Closed task entries are linked to this record."}}));
+ vi.stubGlobal("fetch",fetch);
+ const first=render(<DeleteRecordButton projectId="returning" kind="rooms" id="room" name="Kitchen"/>);
+ await waitFor(()=>expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(false));first.unmount();
+ render(<DeleteRecordButton projectId="returning" kind="rooms" id="room" name="Kitchen"/>);
+ await screen.findByText("Closed task entries are linked to this record.");
+ expect((screen.getByRole("button") as HTMLButtonElement).disabled).toBe(true);expect(fetch).toHaveBeenCalledTimes(2);
+});
