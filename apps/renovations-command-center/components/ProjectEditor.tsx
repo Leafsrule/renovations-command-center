@@ -1,4 +1,5 @@
 "use client";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { displayLabel, phaseLabels } from "@/lib/terminology";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthProvider";
@@ -106,7 +107,7 @@ export function ProjectEditor({
         </label>
         <label className="block">
           Status
-          <select
+          <AlphabeticalSelect
             className="block w-full rounded border p-2"
             value={status}
             onChange={(e) =>
@@ -127,14 +128,14 @@ export function ProjectEditor({
                 {displayLabel(s)}
               </option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
         <label className="block">
           Phase
-          <select className="block w-full rounded border p-2" value={draft.phase ?? project.currentPhase} onChange={e => setDraft(d => ({...d, phase: e.target.value}))}>
+          <AlphabeticalSelect className="block w-full rounded border p-2" value={draft.phase ?? project.currentPhase} onChange={e => setDraft(d => ({...d, phase: e.target.value}))}>
             {!Object.hasOwn(phaseLabels, draft.phase ?? project.currentPhase) ? <option value={draft.phase ?? project.currentPhase}>{displayLabel(draft.phase ?? project.currentPhase)}</option> : null}
             {Object.entries(phaseLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
+          </AlphabeticalSelect>
         </label>
         <button
           disabled={busy}

@@ -1,4 +1,5 @@
 "use client";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { statusLabels } from "@/lib/terminology";
 import Link from "next/link";
 
@@ -645,7 +646,7 @@ export function TodayPlanner() {
 
             <label className="grid gap-2 text-sm font-semibold text-ink">
               Blocker type
-              <select
+              <AlphabeticalSelect
                 className="rounded-md border border-line px-3 py-2 text-sm"
                 disabled={savingTaskId !== null}
                 onChange={(event) => {
@@ -661,7 +662,7 @@ export function TodayPlanner() {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </AlphabeticalSelect>
             </label>
 
             <label className="grid gap-2 text-sm font-semibold text-ink">

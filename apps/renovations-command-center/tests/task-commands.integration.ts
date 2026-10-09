@@ -162,7 +162,7 @@ test("forged evidence counts cannot complete work, but audited owner exception c
     photosRequired: true,
     evidenceCount: 99,
   });
-  await assert.rejects(action(id, "complete"), /evidence/);
+  await assert.rejects(action(id, "complete"), /media/);
   const snapshot = await db.doc(`projects/${project}/tasks/${id}`).get();
   await runTaskCommand(db, bucket, "owner", project, id, {
     kind: "quality",
@@ -436,7 +436,7 @@ test("free-photo adapter preserves trusted evidence, byte-verified archives and 
   objects.get(`projects/${source}/evidence/photo`)!.bytes=Buffer.from([1,2,3]);
   await assert.rejects(exportProjectArchive(db,store,"owner",source),/checksum/);
   const current=await db.doc(`projects/${source}/tasks/tile`).get();
-  await assert.rejects(runTaskCommand(db,store,"owner",source,"tile",{kind:"action",action:"complete",expectedRevision:taskRevision(current.data()?.updatedAt),helperAvailable:false,commandId:"free-complete"}),/photo|evidence/i);
+  await assert.rejects(runTaskCommand(db,store,"owner",source,"tile",{kind:"action",action:"complete",expectedRevision:taskRevision(current.data()?.updatedAt),helperAvailable:false,commandId:"free-complete"}),/photo|media/i);
 });
 
 test("concurrent free-capacity reservations cannot exceed the app's storage ceiling", async () => {
@@ -450,4 +450,60 @@ test("concurrent free-capacity reservations cannot exceed the app's storage ceil
   assert.equal(objects.size,1);
   assert.equal((await db.doc("photoStorage/capacity").get()).data()?.reservedBytes,FREE_PHOTO_CAPACITY);
   assert.equal((results.find(r=>r.status==="rejected") as PromiseRejectedResult).reason.status,507);
+});
+
+async function deletionProject() {
+ const id=`delete-${++counter}`;
+ await db.doc(`projects/${id}`).set({ownerUserId:"owner",name:"Deletion test",activeProject:true});
+ return id;
+}
+test("guarded deletion preserves source and audit, denies wrong owner and stale revisions",async()=>{
+ const {deletionOptions,deleteOpenRecord}=await import("../lib/server/record-deletion");
+ const id=await deletionProject(), room=db.doc(`projects/${id}/rooms/unused`);
+ await room.set({name:"Kitchen"});
+ await assert.rejects(deletionOptions(db,id,"other"),/unavailable/);
+ let options=await deletionOptions(db,id,"owner");
+ await room.update({name:"Edited"});
+ await assert.rejects(deleteOpenRecord(db,id,"owner","rooms","unused",options["rooms:unused"].revision!),/changed/);
+ options=await deletionOptions(db,id,"owner");
+ await deleteOpenRecord(db,id,"owner","rooms","unused",options["rooms:unused"].revision!);
+ assert.equal((await room.get()).data()?.name,"Edited");assert.ok((await room.get()).data()?.deletedAt);
+ const audit=await db.collection(`projects/${id}/deletionHistory`).get();
+ assert.equal(audit.size,1);assert.equal(audit.docs[0].data().before.name,"Edited");
+ await deleteOpenRecord(db,id,"owner","rooms","unused",options["rooms:unused"].revision!);
+ assert.equal((await db.collection(`projects/${id}/deletionHistory`).get()).size,1);
+ const backup=await exportProjectArchive(db,bucket,"owner",id);
+ assert.equal(backup.collections.deletionHistory.length,1);
+ const destination=await deletionProject();await db.doc(`projects/${destination}`).delete();
+ await restoreProject(db,"owner",destination,backup,bucket);
+ assert.ok((await db.doc(`projects/${destination}/rooms/unused`).get()).data()?.deletedAt);
+ assert.equal((await db.collection(`projects/${destination}/deletionHistory`).get()).size,1);
+});
+test("deletion rechecks new links and closed history after eligibility was displayed",async()=>{
+ const {deletionOptions,deleteOpenRecord}=await import("../lib/server/record-deletion");
+ const id=await deletionProject();
+ await db.doc(`projects/${id}/rooms/room`).set({name:"Room"});
+ await db.doc(`projects/${id}/people/person`).set({name:"Champion"});
+ const initial=await deletionOptions(db,id,"owner");
+ await db.doc(`projects/${id}/tasks/task`).set({...base,status:"complete",roomId:"room",championPersonId:"person"});
+ await assert.rejects(deleteOpenRecord(db,id,"owner","rooms","room",initial["rooms:room"].revision!),/Closed/);
+ const options=await deletionOptions(db,id,"owner");
+ assert.equal(options["rooms:room"].allowed,false);assert.equal(options["people:person"].allowed,false);assert.equal(options["tasks:task"].allowed,false);
+ await db.doc(`projects/${id}/tasks/task`).update({status:"ready"});
+ await db.doc(`projects/${id}/taskHistory/closed`).set({taskId:"task",toStatus:"complete"});
+ assert.equal((await deletionOptions(db,id,"owner"))["tasks:task"].allowed,false);
+});
+test("deleting an unused material updates readiness; empty projects can be removed",async()=>{
+ const {deletionOptions,deleteOpenRecord}=await import("../lib/server/record-deletion");
+ const id=await deletionProject();
+ await db.doc(`projects/${id}/tasks/task`).set({...base,requiredItemIds:["materials:item"],requiredItemsReady:false});
+ await db.doc(`projects/${id}/materials/item`).set({name:"Tile",taskId:"task",status:"needed"});
+ const options=await deletionOptions(db,id,"owner");
+ await deleteOpenRecord(db,id,"owner","materials","item",options["materials:item"].revision!);
+ const task=(await db.doc(`projects/${id}/tasks/task`).get()).data()!;
+ assert.deepEqual(task.requiredItemIds,[]);assert.equal(task.requiredItemsReady,true);
+ const empty=await deletionProject(), check=await deletionOptions(db,empty,"owner");
+ await deleteOpenRecord(db,empty,"owner","project",empty,check[`project:${empty}`].revision!);
+ assert.equal((await db.doc(`projects/${empty}`).get()).data()?.activeProject,false);
+ await assert.rejects(deletionOptions(db,empty,"owner"),/unavailable/);
 });

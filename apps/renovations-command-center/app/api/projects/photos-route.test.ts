@@ -8,7 +8,7 @@ beforeEach(()=>{
   vi.resetAllMocks();
   mocks.verify.mockResolvedValue({uid:"owner"});
   mocks.project.mockResolvedValue({data:()=>({ownerUserId:"owner"})});
-  mocks.task.mockResolvedValue({exists:true});
+  mocks.task.mockResolvedValue({exists:true,data:()=>({})});
   mocks.evidence.mockResolvedValue({data:()=>({path:"projects/project/evidence/photo",taskId:"tile",generation:"supabase:id:v1"})});
   mocks.info.mockResolvedValue({version:"supabase:id:v1",size:3,contentType:"image/png",metadata:{uploadedBy:"owner",taskId:"tile"}});
   mocks.read.mockResolvedValue(Buffer.from("abc"));
@@ -49,4 +49,12 @@ it("rejects invalid types, oversized actual streams and hides provider errors",a
   expect(mocks.create).not.toHaveBeenCalled();
   mocks.info.mockRejectedValueOnce(new Error("SECRET PROVIDER KEY"));
   const response=await GET(request(),context);expect(response.status).toBe(503);expect(await response.text()).not.toContain("SECRET");
+});
+
+it("rejects deleted projects and tasks before staging any media",async()=>{
+  mocks.project.mockResolvedValueOnce({data:()=>({ownerUserId:"owner",deletedAt:"yesterday"})});
+  expect((await POST(request("POST","abc"),context)).status).toBe(403);
+  mocks.task.mockResolvedValueOnce({exists:true,data:()=>({deletedAt:"yesterday"})});
+  expect((await POST(request("POST","abc"),context)).status).toBe(404);
+  expect(mocks.create).not.toHaveBeenCalled();
 });

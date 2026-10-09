@@ -123,7 +123,7 @@ function toPerson(id: string, data: Record<string, unknown>): RenovationPerson {
 
 export async function listProjectPeople(projectId: string) {
   const snapshot = await getDocs(peopleCollection(projectId));
-  const people = snapshot.docs.map((personDoc) =>
+  const people = snapshot.docs.filter(d=>!d.data().deletedAt).map((personDoc) =>
     toPerson(personDoc.id, personDoc.data())
   );
 

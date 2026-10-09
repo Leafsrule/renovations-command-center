@@ -1,4 +1,6 @@
 "use client";
+import { DeleteRecordButton } from "./DeleteRecordButton";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { displayLabel } from "@/lib/terminology";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -103,7 +105,7 @@ function RoomForm({
 
       <label className="block text-sm font-semibold text-ink">
         Floor level
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.floorLevel}
           onChange={(event) =>
@@ -118,7 +120,7 @@ function RoomForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -138,14 +140,14 @@ function RoomForm({
 
       <label className="block text-sm font-semibold text-ink">
         Status
-        <select className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal" value={form.status ?? "planning"} onChange={event => setForm(current => ({...current, status: event.target.value as RoomStatus}))}>
+        <AlphabeticalSelect className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal" value={form.status ?? "planning"} onChange={event => setForm(current => ({...current, status: event.target.value as RoomStatus}))}>
           {["design", "not_started", "planning", "active", "blocked", "complete"].map(status => <option key={status} value={status}>{displayLabel(status)}</option>)}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
         Priority
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.priority}
           onChange={(event) =>
@@ -160,7 +162,7 @@ function RoomForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -385,6 +387,7 @@ export function RoomManager() {
                 >
                   Edit
                 </button>
+                <DeleteRecordButton projectId={projectId} kind="rooms" id={room.id} name={room.name} />
               </article>
             ))}
           </div>

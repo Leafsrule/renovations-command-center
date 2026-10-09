@@ -276,6 +276,7 @@ function blockerTypeFromValue(value: unknown): TaskBlockerType {
 }
 
 function materialStatusFromValue(value: unknown): TaskMaterialStatus {
+  if (value === "design") return "needed";
   if (
     value === "design" ||
     value === "received" ||

@@ -82,7 +82,7 @@ export async function listOwnerProjects(ownerUserId: string) {
     where("ownerUserId", "==", ownerUserId)
   );
   const snapshot = await getDocs(projectsQuery);
-  const projects = snapshot.docs.map((projectDoc) =>
+  const projects = snapshot.docs.filter(d=>!d.data().deletedAt).map((projectDoc) =>
     toProject(projectDoc.id, projectDoc.data())
   );
 
@@ -92,7 +92,7 @@ export async function listOwnerProjects(ownerUserId: string) {
 export async function getOwnerProject(projectId: string, ownerUserId: string) {
   const projectDoc = await getDoc(doc(requireDb(), "projects", projectId));
 
-  if (!projectDoc.exists()) {
+  if (!projectDoc.exists() || projectDoc.data()?.deletedAt) {
     return null;
   }
 

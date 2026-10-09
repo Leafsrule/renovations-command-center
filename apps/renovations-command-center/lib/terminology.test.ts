@@ -8,9 +8,10 @@ import { buildMaterialOverview, getMaterialOverviewSummary } from "./materials-o
 describe("Design and material lifecycle", () => {
   const task = (data = {}) => toTask("test", {name:"Rail", status:"ready", readinessState:"ready", phase:"design", estimatedDurationMinutes:60, materialStatus:"received", ...data});
   it("round-trips all new statuses instead of silently resetting them", () => {
-    for (const materialStatus of ["design", "received", "stock", "partial"])
+    for (const materialStatus of ["received", "stock", "partial"])
       expect(task({status:"design", readinessState:"design", materialStatus})).toMatchObject({phase:"design", status:"design", readinessState:"design", materialStatus});
   });
+  it("maps a legacy Design material status to Needed",()=>{expect(task({materialStatus:"design"}).materialStatus).toBe("needed");});
   it("preserves legacy material values and uses the same displayed terms", () => {
     expect(displayLabel("partial")).toBe(materialLabels.partial);
     expect(displayLabel("on_site")).toBe(materialLabels.stock);

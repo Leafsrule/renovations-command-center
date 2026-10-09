@@ -43,6 +43,7 @@ export function emptyFieldRecord(): FieldRecord {
   };
 }
 export function validateFieldRecord(kind: FieldKind, record: FieldRecord) {
+  if (kind === "materials" && record.status === "design") throw new Error("Choose a material status. Design is a project/task phase.");
   if (!record.name.trim()) throw new Error("Name is required.");
   if (!record.taskId) throw new Error("Choose a linked task.");
   if (!Number.isInteger(record.version) || record.version < 0)
@@ -82,7 +83,7 @@ export async function listFieldRecords(
 ): Promise<FieldRecord[]> {
   if (!db) throw new Error("Firestore is not configured.");
   const snapshot = await getDocs(collection(db, "projects", projectId, kind));
-  return snapshot.docs.map((d) => ({ ...d.data(), id: d.id }) as FieldRecord);
+  return snapshot.docs.filter(d=>!d.data().deletedAt).map((d) => ({ ...d.data(), ...(kind === "materials" && d.data().status === "design" ? {status:"needed"} : {}), id: d.id }) as FieldRecord);
 }
 export async function saveFieldRecord(
   projectId: string,
@@ -100,7 +101,7 @@ export async function saveFieldRecord(
       tx.get(recordRef),
       tx.get(doc(db!, "projects", projectId, "tasks", record.taskId)),
     ]);
-    if (!task.exists()) throw new Error("Linked task no longer exists.");
+    if (!task.exists() || task.data()?.deletedAt) throw new Error("Linked task no longer exists.");
     if (current.exists() && current.data().taskId !== record.taskId)
       throw new Error(
         "Create a separate record to link a different task. Existing linkage is preserved.",
@@ -120,6 +121,7 @@ export async function saveFieldRecord(
           return tx.get(doc(db!, "projects", projectId, itemKind, itemId));
         }),
     );
+    if (current.data()?.deletedAt) throw new Error("This record was deleted. Reload before saving.");
     if (current.data()?.lastChangeId === changeId) return;
     if (Number(current.data()?.version || 0) !== record.version)
       throw new Error(

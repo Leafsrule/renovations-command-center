@@ -5,7 +5,7 @@ import {
   assertFails,
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 let env;
 before(async () => {
   env = await initializeTestEnvironment({
@@ -115,4 +115,26 @@ test("Design remains an owner-only planning state and cannot bypass execution pr
   await assertFails(updateDoc(ref,{qcPassed:true}));
   await assertFails(setDoc(doc(env.authenticatedContext("other").firestore(),"projects","owned","tasks","other-design"),{status:"design"}));
   await assertFails(updateDoc(doc(owner,"projects","owned","tasks","photo-required"),{status:"design",photosRequired:false}));
+});
+
+test("SDK cannot bypass guarded deletion, forge audit, or resurrect deleted records",async()=>{
+ const db=env.authenticatedContext("owner").firestore();
+ for(const kind of ["rooms","people","tasks","materials","tools","measurements","decisions"]){
+  const ref=doc(db,"projects","owned",kind,`delete-${kind}`);
+  await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),ref.path),{status:"draft",name:"Retain"}));
+  await assertFails(deleteDoc(ref));await assertFails(updateDoc(ref,{deletedAt:"now",deletedBy:"owner"}));
+  await assertFails(setDoc(doc(db,"projects","owned",kind,"forged-deleted"),{status:"draft",deletedAt:"now"}));
+  await env.withSecurityRulesDisabled(async ctx=>updateDoc(doc(ctx.firestore(),ref.path),{deletedAt:"now",deletedBy:"owner"}));
+  await assertFails(updateDoc(ref,{name:"Resurrected"}));await assertFails(setDoc(ref,{status:"draft",name:"Resurrected"}));
+ }
+ await assertFails(deleteDoc(doc(db,"projects","owned")));
+ await assertFails(setDoc(doc(db,"projects","owned","deletionHistory","forged"),{kind:"rooms",recordId:"room"}));
+});
+test("posted task links and closed field entries cannot be detached to enable deletion",async()=>{
+ const db=env.authenticatedContext("owner").firestore();
+ await assertFails(updateDoc(doc(db,"projects","owned","tasks","photo-required"),{roomId:"another",championPersonId:"another"}));
+ await env.withSecurityRulesDisabled(async ctx=>setDoc(doc(ctx.firestore(),"projects","owned","decisions","closed"),{status:"approved",taskId:"photo-required"}));
+ await assertFails(updateDoc(doc(db,"projects","owned","decisions","closed"),{status:"design",taskId:"another"}));
+ await assertFails(updateDoc(doc(db,"projects","owned","decisions","closed"),{taskId:"another"}));
+ await assertSucceeds(updateDoc(doc(db,"projects","owned","decisions","closed"),{notes:"Retained correction"}));
 });

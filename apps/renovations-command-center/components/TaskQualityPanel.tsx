@@ -192,7 +192,7 @@ export function TaskQualityPanel({
       <details>
         <summary>Owner completion exception</summary>
         <p className="text-sm">
-          An explicit exception permits completion without required evidence or
+          An explicit exception permits completion without required media or
           QC and records your reason in history.
         </p>
         <label className="block">

@@ -45,3 +45,9 @@ it("allows Design planning edits but cannot reset execution into Design", () => 
   expect(() => validateTaskEdit({...input,status:"ready"},[],{id:"door",status:"design"} as RenovationTask)).not.toThrow();
   expect(() => validateTaskEdit({...input,status:"design"},[],{id:"door",status:"in_progress"} as RenovationTask)).toThrow(/guarded/);
 });
+
+it("keeps posted room and champion links while permitting ordinary notes with empty assignments",()=>{
+ const current={id:"door",status:"in_progress",roomId:null,championPersonId:null} as RenovationTask;
+ expect(()=>validateTaskEdit({...input,status:"in_progress",roomId:"",championPersonId:""},[],current)).not.toThrow();
+ expect(()=>validateTaskEdit({...input,status:"in_progress",roomId:"other",championPersonId:""},[],current)).toThrow(/links/);
+});

@@ -44,7 +44,7 @@ export async function runTaskCommand(
     .digest("hex");
   // Check ownership before looking at private Storage objects, then recheck in the transaction.
   const project = await projectRef.get();
-  if (!project.exists || project.data()?.ownerUserId !== owner)
+  if (!project.exists || project.data()?.ownerUserId !== owner || project.data()?.deletedAt)
     throw new CommandError(403, "Project is unavailable.");
   const acknowledged = await receiptRef.get();
   if (acknowledged.exists) {
@@ -97,11 +97,11 @@ export async function runTaskCommand(
     catch (e) {
       if ((e as { code?: number }).code !== 404) throw e;
       const source = await photos.info(temporary).catch(() => {
-        throw new CommandError(400, "Uploaded evidence is unavailable. Retry after upload finishes.");
+        throw new CommandError(400, "Uploaded media is unavailable. Retry after upload finishes.");
       });
       if (!source.version || source.metadata.taskId !== taskId || source.metadata.uploadedBy !== owner
         || !PHOTO_TYPES.includes(source.contentType) || source.size <= 0 || source.size >= PHOTO_LIMIT)
-        throw new CommandError(400, "Evidence failed private-object verification.");
+        throw new CommandError(400, "Media failed private-object verification.");
       const bytes = await photos.read(temporary, source.version);
       try { await photos.create(path, bytes, source.contentType, { taskId, uploadedBy: owner, sourceGeneration: source.version, sha256: photoHash(bytes) }); }
       catch (error) { if ((error as {code?: number}).code !== 412) throw error; }
@@ -110,7 +110,7 @@ export async function runTaskCommand(
     if (!metadata.version || metadata.metadata.taskId !== taskId || metadata.metadata.uploadedBy !== owner
       || metadata.metadata.firebaseStorageDownloadTokens || !PHOTO_TYPES.includes(metadata.contentType)
       || metadata.size <= 0 || metadata.size >= PHOTO_LIMIT)
-      throw new CommandError(400, "Private evidence verification failed.");
+      throw new CommandError(400, "Private media verification failed.");
     await photos.read(path, metadata.version);
     await photos.removeStaging(temporary);
     upload = {
@@ -142,7 +142,7 @@ export async function runTaskCommand(
       tx.get(projectRef.collection("tools")),
       tx.get(projectRef.collection("people")),
     ]);
-    if (!ownedProject.exists || ownedProject.data()?.ownerUserId !== owner)
+    if (!ownedProject.exists || ownedProject.data()?.ownerUserId !== owner || ownedProject.data()?.deletedAt)
       throw new CommandError(403, "Project is unavailable.");
     if (receipt.exists) {
       if (
@@ -155,7 +155,7 @@ export async function runTaskCommand(
         );
       return receipt.data()!.result;
     }
-    if (!snapshot.exists) throw new CommandError(404, "Task no longer exists.");
+    if (!snapshot.exists || snapshot.data()?.deletedAt) throw new CommandError(404, "Task no longer exists.");
     if (tasks.size > 400)
       throw new CommandError(
         400,
@@ -177,11 +177,11 @@ export async function runTaskCommand(
     let reason = "";
     if (command.kind === "action") {
       // Neither task-universe, dates, evidence counts nor availability aggregates are trusted from the browser.
-      const universe = tasks.docs.map((d) => toTask(d.id, d.data()));
+      const universe = tasks.docs.filter(d=>!d.data().deletedAt).map((d) => toTask(d.id, d.data()));
       const linkedMaterials = materials.docs.filter(
-        (d) => d.data().taskId === taskId,
+        (d) => !d.data().deletedAt && d.data().taskId === taskId,
       );
-      const linkedTools = tools.docs.filter((d) => d.data().taskId === taskId);
+      const linkedTools = tools.docs.filter((d) => !d.data().deletedAt && d.data().taskId === taskId);
       task.requiredItemsReady =
         linkedMaterials.every((d) =>
           materialIsAvailable(d.data().status),
@@ -218,14 +218,14 @@ export async function runTaskCommand(
           );
         if (task.cureUntil && Date.parse(task.cureUntil) > Date.now())
           throw new CommandError(409, "The curing period has not ended.");
-        if (assignedWorkMinutes(task,people.docs.map(d=>({id:d.id,active:d.data().active===true,availability:d.data().availability})),today,calendar) <= 0)
+        if (assignedWorkMinutes(task,people.docs.filter(d=>!d.data().deletedAt).map(d=>({id:d.id,active:d.data().active===true,availability:d.data().availability})),today,calendar) <= 0)
           throw new CommandError(409,"Assigned worker/helper availability is unknown or unavailable today. Update the person calendar before starting.");
         if (
           task.helperRequired &&
           (!command.helperAvailable ||
             task.helperPersonIds.some(
               (id) =>
-                !people.docs.some(
+                !people.docs.filter(d=>!d.data().deletedAt).some(
                   (d) => d.id === id && d.data().active === true,
                 ),
             ))
@@ -285,7 +285,7 @@ export async function runTaskCommand(
       if (existing)
         throw new CommandError(
           409,
-          "Evidence was already linked by another command.",
+          "Media was already linked by another command.",
         );
       tx.create(ref, {
         taskId,

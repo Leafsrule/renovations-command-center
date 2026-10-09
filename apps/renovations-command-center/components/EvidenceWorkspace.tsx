@@ -1,4 +1,5 @@
 "use client";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
@@ -101,7 +102,7 @@ function EvidenceWorkspaceContent({ projectId }: { projectId: string }) {
       <form onSubmit={submit} className="space-y-3 rounded border bg-white p-4">
         <label className="block">
           Task
-          <select
+          <AlphabeticalSelect
             required
             className="block w-full rounded border p-2"
             value={taskId}
@@ -113,11 +114,11 @@ function EvidenceWorkspaceContent({ projectId }: { projectId: string }) {
                 {t.name}
               </option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
         <label className="block">
-          Category
-          <select
+          Media purpose
+          <AlphabeticalSelect
             className="block w-full rounded border p-2"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -132,7 +133,7 @@ function EvidenceWorkspaceContent({ projectId }: { projectId: string }) {
             ].map((c) => (
               <option key={c}>{c}</option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
         <label className="block">
           Photo / receipt
@@ -157,14 +158,14 @@ function EvidenceWorkspaceContent({ projectId }: { projectId: string }) {
           className="touch-target rounded bg-brand px-4 text-white"
           disabled={busy || !file || !taskId}
         >
-          {busy ? "Uploading…" : "Upload evidence"}
+          {busy ? "Uploading…" : "Upload media"}
         </button>
         <p role="status">{message}</p>
       </form>
       {items.length ? (
         items.map((item) => <EvidenceImage key={item.id} item={item} />)
       ) : (
-        <p>No evidence saved yet.</p>
+        <p>No media saved yet.</p>
       )}
     </section>
   );

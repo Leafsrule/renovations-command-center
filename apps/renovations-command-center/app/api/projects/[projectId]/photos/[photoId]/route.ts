@@ -12,7 +12,8 @@ async function access(request: Request, context: Context) {
   const { db, auth, bucket } = adminServices();
   const user = await auth.verifyIdToken(token, true).catch(() => { throw new CommandError(401, "Sign in again before accessing photos."); });
   const project = db.doc(`projects/${projectId}`);
-  if ((await project.get()).data()?.ownerUserId !== user.uid) throw new CommandError(403, "Project is unavailable.");
+  const projectData = (await project.get()).data();
+  if (projectData?.ownerUserId !== user.uid || projectData?.deletedAt) throw new CommandError(403, "Project is unavailable.");
   return { project, photoId, projectId, owner: user.uid, photos: privatePhotoStore(bucket) };
 }
 function failure(error: unknown) {
@@ -24,7 +25,8 @@ export async function POST(request: Request, context: Context) {
     const taskId = request.headers.get("x-task-id");
     const contentType = request.headers.get("content-type") ?? "";
     if (!validId(taskId) || !PHOTO_TYPES.includes(contentType)) throw new CommandError(400, "Choose a valid task and JPG, PNG or WebP image.");
-    if (!(await project.collection("tasks").doc(taskId).get()).exists) throw new CommandError(404, "Task is unavailable.");
+    const task = await project.collection("tasks").doc(taskId).get();
+    if (!task.exists || task.data()?.deletedAt) throw new CommandError(404, "Task is unavailable.");
     if (Number(request.headers.get("content-length") ?? 0) >= PHOTO_LIMIT) throw new CommandError(413, "Choose an image smaller than 10 MB.");
     const reader = request.body?.getReader();
     if (!reader) throw new CommandError(400, "Photo bytes are required.");

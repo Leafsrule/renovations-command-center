@@ -39,7 +39,7 @@ export async function exportProjectArchive(db: Firestore, bucket: Bucket | Photo
     const path = `projects/${projectId}/evidence/${row.id}`;
     if (!validId(row.id) || row.data.path !== path || !validId(row.data.taskId)
       || !photoVersionValid(row.data.generation))
-      throw new CommandError(409, "Evidence linkage needs review before backup. No files were omitted.");
+      throw new CommandError(409, "Media linkage needs review before backup. No files were omitted.");
     const metadata = await photos.info(path);
     const size = Number(metadata.size);
     if (metadata.version !== row.data.generation || metadata.metadata?.uploadedBy !== owner

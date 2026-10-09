@@ -1,4 +1,5 @@
 "use client";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
 import {auth} from "@/lib/firebase";
 import {useBrowserDraft} from "@/lib/browser-draft";
@@ -80,7 +81,7 @@ const blockerOptions: Array<{ label: string; value: TaskBlockerType }> = [
   { label: "Other", value: "other" }
 ];
 
-const materialOptions = Object.entries(materialLabels).map(([value, label]) => ({value: value as TaskMaterialStatus, label}));
+const materialOptions = Object.entries(materialLabels).filter(([value]) => value !== "design").map(([value, label]) => ({value: value as TaskMaterialStatus, label}));
 
 const schedulingLabels: Record<TaskSchedulingCategory, string> = {
   completed: "Complete",
@@ -330,6 +331,7 @@ function TaskForm({
     event.preventDefault();
     setError("");
 
+    if (form.materialStatus === "design") { setError("Choose a material status. Design is a project/task phase."); return; }
     if (!form.name.trim()) {
       setError("Enter a task name.");
       return;
@@ -381,7 +383,7 @@ function TaskForm({
 
       <label className="block text-sm font-semibold text-ink">
         Room
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.roomId}
           onChange={(event) =>
@@ -394,7 +396,7 @@ function TaskForm({
               {room.name}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
         {rooms.length === 0 ? (
           <p className="mt-2 text-sm font-normal text-muted">
             No rooms added yet.
@@ -406,7 +408,7 @@ function TaskForm({
 
       <label className="block text-sm font-semibold text-ink">
         Phase
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.phase}
           onChange={(event) =>
@@ -421,7 +423,7 @@ function TaskForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -441,7 +443,7 @@ function TaskForm({
 
       <label className="block text-sm font-semibold text-ink">
         Status
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.status}
           onChange={(event) =>
@@ -456,12 +458,12 @@ function TaskForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
         Priority
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.priority}
           onChange={(event) =>
@@ -476,12 +478,12 @@ function TaskForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
         Champion
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.championPersonId}
           onChange={(event) =>
@@ -497,7 +499,7 @@ function TaskForm({
               {person.name}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
         {people.length === 0 ? (
           <p className="mt-2 text-sm font-normal text-muted">
             No team members added yet.
@@ -613,7 +615,7 @@ function TaskForm({
 
         <label className="block text-sm font-semibold text-ink">
           Readiness state
-          <select
+          <AlphabeticalSelect
             className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
             value={form.readinessState}
             onChange={(event) =>
@@ -628,7 +630,7 @@ function TaskForm({
                 {option.label}
               </option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
 
         <fieldset className="space-y-2">
@@ -655,7 +657,7 @@ function TaskForm({
 
         <label className="block text-sm font-semibold text-ink">
           Blocker type
-          <select
+          <AlphabeticalSelect
             className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
             value={form.blockerType}
             onChange={(event) =>
@@ -670,7 +672,7 @@ function TaskForm({
                 {option.label}
               </option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
 
         <label className="block text-sm font-semibold text-ink">
@@ -730,9 +732,9 @@ function TaskForm({
 
         <label className="block text-sm font-semibold text-ink">
           Material status
-          <select
+          <AlphabeticalSelect
             className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
-            value={form.materialStatus}
+            value={form.materialStatus === "design" ? "" : form.materialStatus}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
@@ -740,12 +742,13 @@ function TaskForm({
               }))
             }
           >
+            {form.materialStatus === "design" ? <option value="">Choose material status</option> : null}
             {materialOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </AlphabeticalSelect>
         </label>
 
         <label className="block text-sm font-semibold text-ink">
@@ -861,7 +864,7 @@ function TaskForm({
 
       <label className="block text-sm font-semibold text-ink">
         Critical path risk
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.criticalPathRisk}
           onChange={(event) =>
@@ -876,7 +879,7 @@ function TaskForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">

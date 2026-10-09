@@ -9,6 +9,7 @@ export const collections = [
   "decisions",
   "evidence",
   "recordHistory",
+  "deletionHistory",
   "taskHistory",
   "scheduleRuns",
 ] as const;
@@ -121,7 +122,7 @@ export function validateProjectBackup(
     const photos = backup.photoObjects;
     const evidence = backup.collections.evidence ?? [];
     if (!Array.isArray(photos) || photos.length !== evidence.length)
-      throw new Error("Backup must contain every evidence photo.");
+      throw new Error("Backup must contain every media photo.");
     const ids = new Set<string>();
     let total = 0;
     for (const photo of photos) {

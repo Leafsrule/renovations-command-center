@@ -43,7 +43,7 @@ export function taskFormToDuration(value: string) {
 
 export async function listProjectTasks(projectId: string) {
   const snapshot = await getDocs(tasksCollection(projectId));
-  const tasks = snapshot.docs.map((taskDoc) =>
+  const tasks = snapshot.docs.filter(d=>!d.data().deletedAt).map((taskDoc) =>
     toTask(taskDoc.id, taskDoc.data())
   );
 
@@ -53,7 +53,7 @@ export async function listProjectTasks(projectId: string) {
 export async function getProjectTask(projectId: string, taskId: string) {
   const taskDoc = await getDoc(taskDocument(projectId, taskId));
 
-  if (!taskDoc.exists()) {
+  if (!taskDoc.exists() || taskDoc.data()?.deletedAt) {
     return null;
   }
 

@@ -52,7 +52,7 @@ describe("app-scoped backup validation", () => {
   it("requires a complete one-to-one portable photo manifest", () => {
     const value: ProjectBackup = { ...backup(), schemaVersion: 2, photoObjects: [], collections: { ...backup().collections,
       evidence: [{ id: "photo", data: { taskId: "tile" } }] } };
-    expect(() => validateProjectBackup(value, "owner")).toThrow(/every evidence/);
+    expect(() => validateProjectBackup(value, "owner")).toThrow(/every media/);
     value.photoObjects = [{ id: "photo", contentType: "image/jpeg", size: 3, sha256: "a".repeat(64), base64: "/9j/" }];
     expect(validateProjectBackup(value, "owner")).toBe(value);
     value.photoObjects.push(value.photoObjects[0]);

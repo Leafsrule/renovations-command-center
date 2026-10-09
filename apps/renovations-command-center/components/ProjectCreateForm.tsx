@@ -1,4 +1,5 @@
 "use client";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -88,7 +89,7 @@ export function ProjectCreateForm() {
 
       <label className="block text-sm font-semibold text-ink">
         Project type
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.type}
           onChange={(event) =>
@@ -103,7 +104,7 @@ export function ProjectCreateForm() {
               {type.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">

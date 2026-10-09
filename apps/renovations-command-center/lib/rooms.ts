@@ -85,7 +85,7 @@ function toRoom(id: string, data: Record<string, unknown>): RenovationRoom {
 
 export async function listProjectRooms(projectId: string) {
   const snapshot = await getDocs(roomsCollection(projectId));
-  const rooms = snapshot.docs.map((roomDoc) =>
+  const rooms = snapshot.docs.filter(d=>!d.data().deletedAt).map((roomDoc) =>
     toRoom(roomDoc.id, roomDoc.data())
   );
 

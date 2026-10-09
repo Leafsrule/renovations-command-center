@@ -172,7 +172,7 @@ export function evaluateTaskTransition(
       }
 
       if (task.cureUntil && Date.parse(task.cureUntil) > Date.now()) return deny(action, "The recorded curing period has not ended.");
-      if (task.photosRequired && !task.completionOverrideReason?.trim() && !(task.evidenceCount && task.evidenceCount > 0)) return deny(action, "Upload required task evidence before completion.");
+      if (task.photosRequired && !task.completionOverrideReason?.trim() && !(task.evidenceCount && task.evidenceCount > 0)) return deny(action, "Upload required task media before completion.");
       if (task.qcRequired && !task.completionOverrideReason?.trim() && !task.qcPassed) return deny(action, "Required quality review must pass before completion.");
 
       return allow(action, "Task completed.", {

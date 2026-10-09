@@ -4,6 +4,7 @@ export function validateTaskEdit(
   tasks: RenovationTask[],
   current?: RenovationTask,
 ) {
+  if (input.materialStatus === "design") throw new Error("Choose a material status. Design is a project/task phase.");
   if (!input.name.trim()) throw new Error("Task name is required.");
   if (
     input.status !== current?.status &&
@@ -24,7 +25,7 @@ export function validateTaskEdit(
     !["design", "draft", "not_ready", "ready"].includes(current.status)
   )
     throw new Error(
-      "Record an owner exception through quality review; required evidence cannot be removed during execution.",
+      "Record an owner exception through quality review; required media cannot be removed during execution.",
     );
   if (
     current &&
@@ -34,6 +35,9 @@ export function validateTaskEdit(
     throw new Error(
       "Completed or cancelled work requires an audited reopening workflow.",
     );
+  if (current && !["design", "draft", "not_ready", "ready"].includes(current.status) &&
+    ((input.roomId || null) !== (current.roomId || null) || (input.championPersonId || null) !== (current.championPersonId || null)))
+    throw new Error("Room and champion links must be retained after work is posted.");
   const id = current?.id ?? "__new_task__";
   const graph = new Map(tasks.map((t) => [t.id, t.dependencyTaskIds]));
   graph.set(id, input.dependencyTaskIds);

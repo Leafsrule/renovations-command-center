@@ -1,4 +1,6 @@
 "use client";
+import { DeleteRecordButton } from "./DeleteRecordButton";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -112,7 +114,7 @@ function PersonForm({
 
       <label className="block text-sm font-semibold text-ink">
         Role
-        <select
+        <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
           value={form.roleType}
           onChange={(event) =>
@@ -127,7 +129,7 @@ function PersonForm({
               {option.label}
             </option>
           ))}
-        </select>
+        </AlphabeticalSelect>
       </label>
 
       <label className="block text-sm font-semibold text-ink">
@@ -422,6 +424,7 @@ export function PeopleManager() {
                 >
                   Edit
                 </button>
+                <DeleteRecordButton projectId={projectId} kind="people" id={person.id} name={person.name} />
               </article>
             ))}
           </div>

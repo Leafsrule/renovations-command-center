@@ -55,7 +55,7 @@ export function parseTaskCommand(value: unknown): TaskCommand {
         c.category,
       )
     )
-      throw new CommandError(400, "Invalid evidence details.");
+      throw new CommandError(400, "Invalid media details.");
     return c;
   }
   if (typeof c.expectedRevision !== "string" || c.expectedRevision.length > 100)

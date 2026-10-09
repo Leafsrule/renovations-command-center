@@ -45,7 +45,7 @@ export async function restoreProject(
   if ((backup.collections.evidence ?? []).length && (backup.schemaVersion !== 2 || !bucket))
     throw new CommandError(
       400,
-      "Evidence-backed restore requires private file-copy verification. No changes were made.",
+      "Media-backed restore requires private file-copy verification. No changes were made.",
     );
   const digest = createHash("sha256")
     .update(JSON.stringify(backup))

@@ -1,4 +1,6 @@
 "use client";
+import { DeleteRecordButton } from "./DeleteRecordButton";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { displayLabel, materialIsAvailable } from "@/lib/terminology";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -20,11 +22,10 @@ import {
 } from "@/lib/field-records";
 const options: Record<FieldKind, string[]> = {
   materials: [
-    "design",
+    "needed",
     "partial",
     "received",
     "stock",
-    "needed",
     "ordered",
     "purchased",
     "used",
@@ -258,7 +259,7 @@ function FieldRecordsContent({
           </label>
           <label className="block">
             Task
-            <select
+            <AlphabeticalSelect
               required
               className="block w-full rounded border p-2"
               value={form.taskId}
@@ -270,22 +271,23 @@ function FieldRecordsContent({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </AlphabeticalSelect>
           </label>
           <label className="block">
             Status
-            <select
+            <AlphabeticalSelect
               className="block w-full rounded border p-2"
-              value={form.status}
+              value={kind === "materials" && form.status === "design" ? "" : form.status}
               onChange={(e) => update("status", e.target.value)}
             >
-              {!options[kind].includes(form.status) ? <option value={form.status}>{displayLabel(form.status)}</option> : null}
+              {kind === "materials" && form.status === "design" ? <option value="">Choose material status</option> : null}
+              {!options[kind].includes(form.status) && !(kind === "materials" && form.status === "design") ? <option value={kind === "materials" && form.status === "design" ? "" : form.status}>{displayLabel(form.status)}</option> : null}
               {options[kind].map((status) => (
                 <option key={status} value={status}>
                   {displayLabel(status)}
                 </option>
               ))}
-            </select>
+            </AlphabeticalSelect>
           </label>
           {kind === "materials" ? (
             <>
@@ -451,6 +453,7 @@ function FieldRecordsContent({
             >
               Edit
             </button>
+            <DeleteRecordButton projectId={projectId} kind={kind} id={r.id} name={r.name} />
             {pending?.state === "conflicting" && r.id === form?.id ? (
               <button
                 className="touch-target block underline"

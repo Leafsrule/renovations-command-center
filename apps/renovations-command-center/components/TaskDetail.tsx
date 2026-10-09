@@ -1,4 +1,5 @@
 "use client";
+import { DeleteRecordButton } from "./DeleteRecordButton";
 import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
 
 import {TaskQualityPanel} from "./TaskQualityPanel";
@@ -290,6 +291,7 @@ export function TaskDetail() {
 
   return (
     <section className="space-y-5">
+      <DeleteRecordButton projectId={projectId} kind="tasks" id={task.id} name={task.name} />
       <TaskQualityPanel key={`${task.id}:${formatUnknownTimestamp(task.updatedAt)}`} projectId={projectId} task={task} onSaved={() => {void getProjectTask(projectId,taskId).then(setTask);}} />
       <div className="flex flex-wrap items-center gap-2">
         <Link
