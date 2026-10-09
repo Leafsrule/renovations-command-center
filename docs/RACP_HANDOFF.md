@@ -1,6 +1,8 @@
 # RACP continuation handoff
 
-Status: IN PROGRESS / EXTERNALLY BLOCKED. No production app completion is claimed.
+Status: IN PROGRESS / FREE-SERVICE ADAPTATION REQUIRED. No production app completion is claimed.
+
+Owner correction on October 9: all services must be free. Do not request a Blaze upgrade. `FREE_SERVICE_PLAN.md` supersedes the earlier Storage/billing prerequisite. Existing application code still uses Firebase Storage; no replacement or release is claimed.
 
 Repository: Leafsrule/renovations-command-center
 Branch: racp/rev02-completion
@@ -69,4 +71,4 @@ The previous sign-in blocker is resolved: renewed authorization and the owner's 
 
 Verified live: Email/Password enabled; Firestore `(default)` in `nam5` with old June 9 owner-based rules and existing test records. No rules/data changes. Storage is not operationally verified and the console requires Blaze billing on the current Spark plan; provider backups/PITR also show an upgrade prerequisite. Server credential/ADC remains missing, so the Node Admin read-only live check failed despite successful browser access. Do not extract browser tokens or generate new keys as an implicit workaround.
 
-Next dependent steps: owner-completed billing upgrade if the owner accepts usage charges; an authorized app-specific hosting arrangement and server identity; provision/verify private Storage; coordinated release of tested server and stricter rules only after remaining development, browser, independent review and provider recovery/rollback gates. No paid resource, IAM change, service-account key, provider deployment or production mutation has been authorized or performed. Continue offline/form queues and resource/space/waiver/cleanup work from this checkpoint. Application commit `e8a458d` CI `37871933283` passed all three jobs. Browser access must be freshly verified when resuming; prior handoff is not proof of ongoing sign-in.
+Superseded by the October 9 no-paid-services correction: a billing upgrade is prohibited. Next dependent steps: implement the free private-storage adapter, verify a free hosting arrangement and securely provision server identity; coordinated release of tested server and stricter rules only after remaining development, browser, independent review and provider recovery/rollback gates. No paid resource, IAM change, service-account key, provider deployment or production mutation has been authorized or performed. Continue offline/form queues and resource/space/waiver/cleanup work from this checkpoint. Application commit `e8a458d` CI `37871933283` passed all three jobs. Browser access must be freshly verified when resuming; prior handoff is not proof of ongoing sign-in.

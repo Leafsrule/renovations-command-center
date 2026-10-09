@@ -4,7 +4,7 @@ Date: 2026-10-06. Base: 37a83fb. Branch: racp/rev02-completion.
 
 ## Architecture and boundaries
 
-Renovations Command Center is the Next.js/React/TypeScript app using Firebase Authentication, Firestore and private Storage. It will own `apps/renovations-command-center`, its manifest, lockfile, configuration, tests, environment and private operational data. Site Control is the independent static app at `docs/site-control`; its HTML, JSON, browser settings and Pages URL stay there. No cross-app data migration. No new backend projects or paid resources are provisioned.
+Renovations Command Center is the Next.js/React/TypeScript app. The revised target retains Firebase Authentication/Firestore on Spark and replaces Firebase Cloud Storage with private Supabase Free storage. This storage adaptation is planned, not implemented. `FREE_SERVICE_PLAN.md` is the current infrastructure plan and supersedes all billing-upgrade instructions. It will own `apps/renovations-command-center`, its manifest, lockfile, configuration, tests, environment and private operational data. Site Control is the independent static app at `docs/site-control`; its HTML, JSON, browser settings and Pages URL stay there. No cross-app data migration. No paid resources, billing accounts or automatic overages are permitted. Free provider resources have not yet been provisioned; availability and secure account access must be verified before deployment.
 
 ## Reconciliation
 

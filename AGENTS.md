@@ -5,6 +5,7 @@ This repository uses GitHub Codespaces as the primary development environment.
 - Use the available Linux/bash checkout. Run core npm commands from `apps/renovations-command-center`; Site Control stays independent at `docs/site-control`.
 - Use feature branches for changes; do not work directly on `main`.
 - Never commit secrets or `.env` files.
+- The owner requires no paid services: do not enable billing, Blaze, trials that convert to paid plans, paid instances or automatic overage charges. Keep Firebase on Spark. A free allowance on a paid plan does not satisfy this requirement. See `docs/FREE_SERVICE_PLAN.md` before infrastructure work.
 - Keep port `3000` private and do not expose it publicly.
 - Do not weaken Firebase Authentication or Firestore security.
 - Preserve existing screens and task flows when updating scheduling logic.
