@@ -1,0 +1,1436 @@
+"use client";
+import { useLinkedSection } from "@/lib/section-navigation";
+import { AlphabeticalSelect } from "./AlphabeticalSelect";
+import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
+import {auth} from "@/lib/firebase";
+import {useBrowserDraft} from "@/lib/browser-draft";
+
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Plus } from "lucide-react";
+import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { listProjectPeople, type RenovationPerson } from "@/lib/people";
+import { listProjectRooms, type RenovationRoom } from "@/lib/rooms";
+import {
+  getProjectSchedulingInsights,
+  getProjectSchedulingSummary,
+  getRecommendedNextTasks,
+  getTodayDateString,
+  type TaskSchedulingCategory
+} from "@/lib/scheduling";
+import {
+  createProjectTask,
+  listProjectTasks,
+  updateProjectTask,
+  type RenovationTask,
+  type TaskBlockerType,
+  type TaskCriticalPathRisk,
+  type TaskFormInput,
+  type TaskMaterialStatus,
+  type TaskPhase,
+  type TaskPriority,
+  type TaskReadinessState,
+  type TaskStatus
+} from "@/lib/tasks";
+
+const phaseOptions = Object.entries(phaseLabels).map(([value, label]) => ({value: value as TaskPhase, label}));
+
+const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({value: value as TaskStatus, label}));
+
+const priorityOptions: Array<{ label: string; value: TaskPriority }> = [
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+  { label: "Urgent", value: "urgent" }
+];
+
+const riskOptions: Array<{ label: string; value: TaskCriticalPathRisk }> = [
+  { label: "None", value: "none" },
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" }
+];
+
+const readinessOptions = Object.entries(readinessLabels).map(([value, label]) => ({value: value as TaskReadinessState, label}));
+
+const readinessReasonOptions: Array<{ label: string; value: string }> = [
+  { label: "Dependency not complete", value: "dependency_not_complete" },
+  { label: "Materials not ready", value: "materials_not_ready" },
+  { label: "Site not prepared", value: "site_not_prepared" },
+  { label: "Access not ready", value: "access_not_ready" },
+  { label: "Labor not available", value: "labor_not_available" },
+  { label: "Inspection required", value: "inspection_required" },
+  { label: "Client decision needed", value: "client_decision_needed" },
+  { label: "Weather issue", value: "weather_issue" },
+  { label: "Safety concern", value: "safety_concern" },
+  { label: "Other", value: "other" }
+];
+
+const blockerOptions: Array<{ label: string; value: TaskBlockerType }> = [
+  { label: "None", value: "none" },
+  { label: "Dependency", value: "dependency" },
+  { label: "Material", value: "material" },
+  { label: "Site condition", value: "site_condition" },
+  { label: "Labor", value: "labor" },
+  { label: "Access", value: "access" },
+  { label: "Inspection", value: "inspection" },
+  { label: "Client decision", value: "client_decision" },
+  { label: "Weather", value: "weather" },
+  { label: "Safety", value: "safety" },
+  { label: "Other", value: "other" }
+];
+
+const materialOptions = Object.entries(materialLabels).filter(([value]) => value !== "design").map(([value, label]) => ({value: value as TaskMaterialStatus, label}));
+
+const schedulingLabels: Record<TaskSchedulingCategory, string> = {
+  completed: "Complete",
+  recommended_next: "Recommended next",
+  ready_now: "Ready now",
+  overdue: "Overdue",
+  due_soon: "Due soon",
+  blocked: "Blocked",
+  waiting_on_dependencies: "Waiting on dependencies",
+  waiting_on_materials: "Waiting on materials",
+  needs_review: "Needs review",
+  scheduled_later: "Scheduled later",
+  not_ready: "Not ready"
+};
+
+const emptyForm: TaskFormInput = {
+  name: "",
+  roomId: "",
+  phase: "setup",
+  description: "",
+  status: "draft",
+  priority: "medium",
+  championPersonId: "",
+  helperPersonIds: [],
+  dependencyTaskIds: [],
+  helperRequired: false,
+  estimatedDurationMinutes: "",
+  earliestStartDate: "",
+  dueDate: "",
+  notes: "",
+  photosRequired: false,
+  canRunConcurrent: false,
+  criticalPathRisk: "none",
+  readinessState: "not_ready",
+  readinessReasons: [],
+  blockerType: "none",
+  blockerNotes: "",
+  blockedUntilDate: "",
+  materialStatus: "not_required",
+  materialItemsText: "",
+  materialNotes: "",
+  materialNeededByDate: "",
+  materialBlockerNotes: ""
+};
+
+function friendlyTaskError(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "Tasks could not be saved. Please try again.";
+}
+
+function labelFromValue<T extends string>(
+  options: Array<{ label: string; value: T }>,
+  value: T
+) {
+  return options.find((option) => option.value === value)?.label || value;
+}
+
+function taskToForm(task: RenovationTask): TaskFormInput {
+  return {
+    expectedUpdatedAt: JSON.stringify(task.updatedAt ?? null),
+    name: task.name,
+    roomId: task.roomId || "",
+    phase: task.phase,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    championPersonId: task.championPersonId || "",
+    helperPersonIds: task.helperPersonIds,
+    dependencyTaskIds: task.dependencyTaskIds,
+    helperRequired: task.helperRequired,
+    estimatedDurationMinutes:
+      task.estimatedDurationMinutes === null
+        ? ""
+        : String(task.estimatedDurationMinutes),
+    earliestStartDate: task.earliestStartDate || "",
+    dueDate: task.dueDate || "",
+    notes: task.notes,
+    photosRequired: task.photosRequired,
+    canRunConcurrent: task.canRunConcurrent,
+    criticalPathRisk: task.criticalPathRisk,
+    readinessState: task.readinessState,
+    readinessReasons: task.readinessReasons,
+    blockerType: task.blockerType,
+    blockerNotes: task.blockerNotes,
+    blockedUntilDate: task.blockedUntilDate ?? "",
+    materialStatus: task.materialStatus,
+    materialItemsText: task.materialItems.join("\n"),
+    materialNotes: task.materialNotes,
+    materialNeededByDate: task.materialNeededByDate ?? "",
+    materialBlockerNotes: task.materialBlockerNotes
+  };
+}
+
+function readinessTone(
+  readinessState: TaskReadinessState
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (readinessState === "ready") {
+    return "ready";
+  }
+
+  if (readinessState === "blocked") {
+    return "blocked";
+  }
+
+  if (readinessState === "needs_review") {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function dependencyCompletion(
+  dependencyTaskIds: string[],
+  tasks: RenovationTask[]
+) {
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const completed = dependencyTaskIds.filter(
+    (dependencyTaskId) => taskById.get(dependencyTaskId)?.status === "complete"
+  ).length;
+
+  return {
+    completed,
+    total: dependencyTaskIds.length
+  };
+}
+
+function materialTone(
+  materialStatus: TaskMaterialStatus
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (["ready", "received", "stock"].includes(materialStatus)) {
+    return "ready";
+  }
+
+  if (materialStatus === "blocked") {
+    return "blocked";
+  }
+
+  if (
+    materialStatus === "needed" ||
+    materialStatus === "ordered" ||
+    materialStatus === "partial"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function schedulingTone(
+  category: TaskSchedulingCategory
+): "neutral" | "ready" | "blocked" | "warning" {
+  if (category === "recommended_next" || category === "ready_now") {
+    return "ready";
+  }
+
+  if (category === "blocked" || category === "overdue") {
+    return "blocked";
+  }
+
+  if (
+    category === "waiting_on_dependencies" ||
+    category === "waiting_on_materials" ||
+    category === "needs_review" ||
+    category === "due_soon"
+  ) {
+    return "warning";
+  }
+
+  return "neutral";
+}
+
+function TaskForm({
+  initialValue,
+  isSaving,
+  onCancel,
+  onSubmit,
+  people,
+  rooms,
+  roomNameById,
+  submitLabel,
+  tasks,
+  taskId
+}: {
+  initialValue: TaskFormInput;
+  isSaving: boolean;
+  onCancel: () => void;
+  onSubmit: (input: TaskFormInput) => Promise<void>;
+  people: RenovationPerson[];
+  rooms: RenovationRoom[];
+  roomNameById: Map<string, string>;
+  submitLabel: string;
+  tasks: RenovationTask[];
+  taskId: string | null;
+}) {
+  const {projectId: draftProjectId}=useParams<{projectId:string}>();
+  const [form, setForm, , draftStorageError] = useBrowserDraft(`rcc:task-draft:${auth?.currentUser?.uid??"signed-out"}:${draftProjectId}:${taskId??"new"}`,initialValue);
+  const [error, setError] = useState("");
+  const dependencyOptions = tasks.filter((task) => task.id !== taskId);
+
+  function toggleHelper(personId: string) {
+    setForm((current) => {
+      const helperPersonIds = current.helperPersonIds.includes(personId)
+        ? current.helperPersonIds.filter((helperId) => helperId !== personId)
+        : [...current.helperPersonIds, personId];
+
+      return {
+        ...current,
+        helperPersonIds
+      };
+    });
+  }
+
+  function toggleDependency(dependencyTaskId: string) {
+    setForm((current) => {
+      const dependencyTaskIds = current.dependencyTaskIds.includes(
+        dependencyTaskId
+      )
+        ? current.dependencyTaskIds.filter(
+            (taskDependencyId) => taskDependencyId !== dependencyTaskId
+          )
+        : [...current.dependencyTaskIds, dependencyTaskId];
+
+      return {
+        ...current,
+        dependencyTaskIds
+      };
+    });
+  }
+
+  function toggleReadinessReason(reason: string) {
+    setForm((current) => {
+      const readinessReasons = current.readinessReasons.includes(reason)
+        ? current.readinessReasons.filter(
+            (readinessReason) => readinessReason !== reason
+          )
+        : [...current.readinessReasons, reason];
+
+      return {
+        ...current,
+        readinessReasons
+      };
+    });
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (form.materialStatus === "design") { setError("Choose a material status. Design is a project/task phase."); return; }
+    if (!form.name.trim()) {
+      setError("Enter a task name.");
+      return;
+    }
+
+    if (
+      form.estimatedDurationMinutes.trim() &&
+      !Number.isFinite(Number(form.estimatedDurationMinutes.trim()))
+    ) {
+      setError("Estimated duration must be a number of minutes.");
+      return;
+    }
+
+    if (Number(form.estimatedDurationMinutes.trim()) < 0) {
+      setError("Estimated duration cannot be negative.");
+      return;
+    }
+
+    await onSubmit(form);
+  }
+
+  const formDependencyCompletion = dependencyCompletion(
+    form.dependencyTaskIds,
+    tasks
+  );
+  useLinkedSection();
+  const incompleteDependencyCount =
+    formDependencyCompletion.total - formDependencyCompletion.completed;
+
+  return (
+    <form id="task-form" className="space-y-4" onSubmit={handleSubmit}>
+      {draftStorageError ? <p role="alert" className="text-danger">{draftStorageError}</p> : <p className="text-sm text-muted">Edits are kept as a device draft until you save the task.</p>}
+      {error ? (
+        <div className="rounded-md border border-danger bg-panel p-3 text-sm leading-6 text-danger">
+          {error}
+        </div>
+      ) : null}
+
+      <label className="block text-sm font-semibold text-ink">
+        Task name
+        <input
+          className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
+          placeholder="Demo protection and prep"
+          value={form.name}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, name: event.target.value }))
+          }
+        />
+      </label>
+
+      <label id="task-room" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Room
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.roomId}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, roomId: event.target.value }))
+          }
+        >
+          <option value="">No room selected</option>
+          {rooms.map((room) => (
+            <option key={room.id} value={room.id}>
+              {room.name}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+        {rooms.length === 0 ? (
+          <p className="mt-2 text-sm font-normal text-muted">
+            No rooms added yet.
+          </p>
+        ) : null}
+      </label>
+
+      <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/rooms`}>Add / manage rooms</Link>
+
+      <label id="task-phase" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Phase
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.phase}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              phase: event.target.value as TaskPhase
+            }))
+          }
+        >
+          {phaseOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
+        Description
+        <textarea
+          className="mt-2 min-h-24 w-full rounded-md border border-line px-3 py-3 text-sm font-normal"
+          placeholder="Protect surrounding areas and prepare the work zone."
+          value={form.description}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              description: event.target.value
+            }))
+          }
+        />
+      </label>
+
+      <label id="task-status" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Status
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.status}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              status: event.target.value as TaskStatus
+            }))
+          }
+        >
+          {statusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+      </label>
+
+      <label id="task-priority" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Priority
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.priority}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              priority: event.target.value as TaskPriority
+            }))
+          }
+        >
+          {priorityOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+      </label>
+
+      <label id="task-champion" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Champion
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.championPersonId}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              championPersonId: event.target.value
+            }))
+          }
+        >
+          <option value="">No champion selected</option>
+          {people.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.name}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+        {people.length === 0 ? (
+          <p className="mt-2 text-sm font-normal text-muted">
+            No team members added yet.
+          </p>
+        ) : null}
+      </label>
+
+      <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/people`}>Add / manage champions and helpers</Link>
+
+      <fieldset id="task-helpers" className="space-y-2">
+        <legend className="text-sm font-semibold text-ink">Helpers</legend>
+        {people.length === 0 ? (
+          <p className="rounded-md border border-line bg-panel p-3 text-sm text-muted">
+            No team members added yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {people.map((person) => (
+              <label
+                className="flex min-h-11 items-center gap-3 rounded-md border border-line px-3 text-sm font-semibold text-ink"
+                key={person.id}
+              >
+                <input
+                  checked={form.helperPersonIds.includes(person.id)}
+                  className="h-5 w-5"
+                  onChange={() => toggleHelper(person.id)}
+                  type="checkbox"
+                />
+                {person.name}
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
+
+      <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
+        <input
+          checked={form.helperRequired}
+          className="h-5 w-5"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              helperRequired: event.target.checked
+            }))
+          }
+          type="checkbox"
+        />
+        Helper required
+      </label>
+
+      <fieldset id="task-dependencies" className="space-y-2">
+        <legend className="text-sm font-semibold text-ink">Dependencies</legend>
+        <p className="text-sm leading-6 text-muted">
+          Select tasks that must be completed before this task can start.
+        </p>
+        {dependencyOptions.length === 0 ? (
+          <p className="rounded-md border border-line bg-panel p-3 text-sm text-muted">
+            No other tasks available to depend on.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {dependencyOptions.map((dependencyTask) => (
+              <label
+                className="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-3 text-sm font-semibold text-ink"
+                key={dependencyTask.id}
+              >
+                <input
+                  checked={form.dependencyTaskIds.includes(dependencyTask.id)}
+                  className="mt-0.5 h-5 w-5"
+                  onChange={() => toggleDependency(dependencyTask.id)}
+                  type="checkbox"
+                />
+                <span>
+                  <span className="block">{dependencyTask.name}</span>
+                  <span className="mt-1 block font-normal text-muted">
+                    {labelFromValue(statusOptions, dependencyTask.status)}
+                    {dependencyTask.roomId
+                      ? ` - ${
+                          roomNameById.get(dependencyTask.roomId) ||
+                          "Unknown room"
+                        }`
+                      : ""}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-4 rounded-md border border-line bg-panel p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Readiness / Blockers
+        </legend>
+        <p className="text-sm leading-6 text-muted">
+          Mark whether this task is ready to start and record anything blocking
+          it.
+        </p>
+
+        {formDependencyCompletion.total > 0 ? (
+          <div className="rounded-md border border-line bg-white p-3 text-sm text-muted">
+            <p className="font-semibold text-ink">
+              Dependencies complete: {formDependencyCompletion.completed}/
+              {formDependencyCompletion.total}
+            </p>
+            {incompleteDependencyCount > 0 ? (
+              <p className="mt-1">
+                Some dependency tasks are not complete yet.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <label id="task-readiness" className="block text-sm font-semibold text-ink">
+          Readiness state
+          <AlphabeticalSelect
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.readinessState}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                readinessState: event.target.value as TaskReadinessState
+              }))
+            }
+          >
+            {readinessOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </AlphabeticalSelect>
+        </label>
+
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold text-ink">
+            Readiness reasons
+          </legend>
+          <div className="space-y-2">
+            {readinessReasonOptions.map((reason) => (
+              <label
+                className="flex min-h-11 items-center gap-3 rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+                key={reason.value}
+              >
+                <input
+                  checked={form.readinessReasons.includes(reason.value)}
+                  className="h-5 w-5"
+                  onChange={() => toggleReadinessReason(reason.value)}
+                  type="checkbox"
+                />
+                {reason.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label id="task-blockers" className="block text-sm font-semibold text-ink">
+          Blocker type
+          <AlphabeticalSelect
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.blockerType}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockerType: event.target.value as TaskBlockerType
+              }))
+            }
+          >
+            {blockerOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </AlphabeticalSelect>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Blocker notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Waiting for inspection before tile can begin."
+            value={form.blockerNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockerNotes: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Blocked until / review date
+          <input
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            type="date"
+            value={form.blockedUntilDate}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                blockedUntilDate: event.target.value
+              }))
+            }
+          />
+        </label>
+      </fieldset>
+
+      <fieldset id="task-materials" className="space-y-4 rounded-md border border-line bg-panel p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Materials
+        </legend>
+        <p className="text-sm leading-6 text-muted">
+          Track whether this task has the materials needed before work starts.
+        </p>
+
+        {form.materialStatus === "needed" ||
+        form.materialStatus === "partial" ||
+        form.materialStatus === "blocked" ? (
+          <div className="rounded-md border border-line bg-white p-3 text-sm text-muted">
+            <p className="font-semibold text-ink">
+              Materials may not be ready for this task.
+            </p>
+            {form.materialStatus === "blocked" ? (
+              <p className="mt-1">
+                Consider setting Blocker type to Material if this task is
+                blocked by materials.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <label className="block text-sm font-semibold text-ink">
+          Material status
+          <AlphabeticalSelect
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            value={form.materialStatus === "design" ? "" : form.materialStatus}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialStatus: event.target.value as TaskMaterialStatus
+              }))
+            }
+          >
+            {form.materialStatus === "design" ? <option value="">Choose material status</option> : null}
+            {materialOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </AlphabeticalSelect>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material items
+          <textarea
+            className="mt-2 min-h-28 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Waterproofing membrane"
+            value={form.materialItemsText}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialItemsText: event.target.value
+              }))
+            }
+          />
+          <span className="mt-2 block text-sm font-normal text-muted">
+            Enter one item per line.
+          </span>
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Tile is available but setting materials still need confirmation."
+            value={form.materialNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialNotes: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Materials needed by
+          <input
+            className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+            type="date"
+            value={form.materialNeededByDate}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialNeededByDate: event.target.value
+              }))
+            }
+          />
+        </label>
+
+        <label className="block text-sm font-semibold text-ink">
+          Material blocker notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-3 text-sm font-normal"
+            placeholder="Thinset and grout still need to be confirmed."
+            value={form.materialBlockerNotes}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                materialBlockerNotes: event.target.value
+              }))
+            }
+          />
+          <span className="mt-2 block text-sm font-normal text-muted">
+            Use this if material issues are delaying or blocking the task.
+          </span>
+        </label>
+      </fieldset>
+
+      <label className="block text-sm font-semibold text-ink">
+        Estimated duration in minutes
+        <input
+          className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
+          inputMode="numeric"
+          placeholder="120"
+          type="number"
+          value={form.estimatedDurationMinutes}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              estimatedDurationMinutes: event.target.value
+            }))
+          }
+        />
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
+        Earliest start date
+        <input
+          className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
+          type="date"
+          value={form.earliestStartDate}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              earliestStartDate: event.target.value
+            }))
+          }
+        />
+      </label>
+
+      <label id="task-dates" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Due date
+        <input
+          className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
+          type="date"
+          value={form.dueDate}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, dueDate: event.target.value }))
+          }
+        />
+      </label>
+
+      <label id="task-risk" className="block text-sm font-semibold text-ink scroll-mt-4">
+        Critical path risk
+        <AlphabeticalSelect
+          className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
+          value={form.criticalPathRisk}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              criticalPathRisk: event.target.value as TaskCriticalPathRisk
+            }))
+          }
+        >
+          {riskOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </AlphabeticalSelect>
+      </label>
+
+      <label className="block text-sm font-semibold text-ink">
+        Notes
+        <textarea
+          className="mt-2 min-h-24 w-full rounded-md border border-line px-3 py-3 text-sm font-normal"
+          placeholder="First test task for task manager foundation"
+          value={form.notes}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, notes: event.target.value }))
+          }
+        />
+      </label>
+
+      <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
+        <input
+          checked={form.photosRequired}
+          className="h-5 w-5"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              photosRequired: event.target.checked
+            }))
+          }
+          type="checkbox"
+        />
+        Photos required
+      </label>
+
+      <label id="task-concurrent" className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
+        <input
+          checked={form.canRunConcurrent}
+          className="h-5 w-5"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              canRunConcurrent: event.target.checked
+            }))
+          }
+          type="checkbox"
+        />
+        Can run concurrent
+      </label>
+
+      <div className="grid grid-cols-1 gap-2">
+        <button
+          className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white disabled:opacity-60"
+          disabled={isSaving}
+          type="submit"
+        >
+          {isSaving ? "Saving..." : submitLabel}
+        </button>
+        <button
+          className="touch-target rounded-md border border-line px-4 text-sm font-semibold text-ink"
+          onClick={onCancel}
+          type="button"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function TaskManager() {
+  const params = useParams<{ projectId: string }>();
+  const projectId = params.projectId;
+  const [tasks, setTasks] = useState<RenovationTask[]>([]);
+  const [rooms, setRooms] = useState<RenovationRoom[]>([]);
+  const [people, setPeople] = useState<RenovationPerson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [addFormVersion, setAddFormVersion] = useState(0);
+  const [error, setError] = useState("");
+  const formPanelRef = useRef<HTMLDivElement>(null);
+
+  const editingTask = useMemo(
+    () => tasks.find((task) => task.id === editingTaskId) || null,
+    [editingTaskId, tasks]
+  );
+
+  const roomNameById = useMemo(
+    () => new Map(rooms.map((room) => [room.id, room.name])),
+    [rooms]
+  );
+  const personNameById = useMemo(
+    () => new Map(people.map((person) => [person.id, person.name])),
+    [people]
+  );
+  const today = useMemo(() => getTodayDateString(), []);
+  const schedulingInsights = useMemo(
+    () => getProjectSchedulingInsights(tasks, today),
+    [tasks, today]
+  );
+  const schedulingSummary = useMemo(
+    () => getProjectSchedulingSummary(schedulingInsights),
+    [schedulingInsights]
+  );
+  const schedulingInsightByTaskId = useMemo(
+    () =>
+      new Map(schedulingInsights.map((insight) => [insight.taskId, insight])),
+    [schedulingInsights]
+  );
+  const recommendedTasks = useMemo(
+    () =>
+      getRecommendedNextTasks(tasks, { today })
+        .slice(0, 3)
+        .map((recommendation) => recommendation.task),
+    [tasks, today]
+  );
+
+  async function refreshTasks() {
+    const nextTasks = await listProjectTasks(projectId);
+    setTasks(nextTasks);
+  }
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTasks() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [projectTasks, projectRooms, projectPeople] = await Promise.all([
+          listProjectTasks(projectId),
+          listProjectRooms(projectId),
+          listProjectPeople(projectId)
+        ]);
+
+        if (!cancelled) {
+          setTasks(projectTasks);
+          const editId=new URLSearchParams(window.location.search).get("edit");
+          if(new URLSearchParams(window.location.search).get("new")==="1")setShowAddForm(true);
+          if(editId && projectTasks.some(task=>task.id===editId)) setEditingTaskId(editId);
+          setRooms(projectRooms);
+          setPeople(projectPeople);
+        }
+      } catch (taskError) {
+        if (!cancelled) {
+          setError(friendlyTaskError(taskError));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadTasks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  async function handleCreate(input: TaskFormInput) {
+    setSaving(true);
+    setError("");
+
+    try {
+      await createProjectTask(projectId, input);
+      localStorage.removeItem(`rcc:task-draft:${auth?.currentUser?.uid??"signed-out"}:${projectId}:new`);
+      await refreshTasks();
+      setShowAddForm(false);
+      setAddFormVersion((version) => version + 1);
+    } catch (taskError) {
+      setError(friendlyTaskError(taskError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!showAddForm && !editingTask) {
+      return;
+    }
+
+    if(window.location.hash) return;
+    formPanelRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, [editingTask, showAddForm]);
+
+  async function handleUpdate(input: TaskFormInput) {
+    if (!editingTask) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      await updateProjectTask(projectId, editingTask.id, {
+        ...input,
+        dependencyTaskIds: input.dependencyTaskIds.filter(
+          (dependencyTaskId) => dependencyTaskId !== editingTask.id
+        )
+      });
+      localStorage.removeItem(`rcc:task-draft:${auth?.currentUser?.uid??"signed-out"}:${projectId}:${editingTask.id}`);
+      setEditingTaskId(null);
+      await refreshTasks();
+    } catch (taskError) {
+      setError(friendlyTaskError(taskError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <p className="text-sm text-muted">Loading tasks...</p>;
+  }
+
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink" href={`/projects/${projectId}`}>
+          &larr; Back to Project
+        </Link>
+        <Link
+          className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+          href="/projects"
+        >
+          Projects
+        </Link>
+        <h1 className="min-h-11 flex items-center text-xl font-semibold text-ink">
+          Tasks
+        </h1>
+      </div>
+
+      {error ? (
+        <div className="rounded-md border border-danger bg-panel p-3 text-sm leading-6 text-danger">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="rounded-md border border-line bg-white p-4 shadow-soft">
+        <h2 className="text-lg font-semibold text-ink">
+          Scheduling Intelligence
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=recommended_next#schedule-tasks`}
+            label={`Recommended next: ${schedulingSummary.recommendedNextCount}`}
+            tone="ready"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=ready_now#schedule-tasks`}
+            label={`Ready now: ${schedulingSummary.readyNowCount}`}
+            tone="ready"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=blocked#schedule-tasks`}
+            label={`Blocked: ${schedulingSummary.blockedCount}`}
+            tone="blocked"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=waiting_on_dependencies#schedule-tasks`}
+            label={`Waiting on dependencies: ${schedulingSummary.waitingOnDependenciesCount}`}
+            tone="warning"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=waiting_on_materials#schedule-tasks`}
+            label={`Waiting on materials: ${schedulingSummary.waitingOnMaterialsCount}`}
+            tone="warning"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=needs_review#schedule-tasks`}
+            label={`Needs review: ${schedulingSummary.needsReviewCount}`}
+            tone="warning"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=overdue#schedule-tasks`}
+            label={`Overdue: ${schedulingSummary.overdueCount}`}
+            tone="blocked"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=due_soon#schedule-tasks`}
+            label={`Due soon: ${schedulingSummary.dueSoonCount}`}
+            tone="warning"
+          />
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=scheduled_later#schedule-tasks`}
+            label={`Scheduled later: ${schedulingSummary.scheduledLaterCount}`}
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-ink">Recommended Next</h3>
+          {recommendedTasks.length === 0 ? (
+            <p className="mt-2 rounded-md border border-line bg-panel p-3 text-sm text-muted">
+              No recommended next tasks yet.
+            </p>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {recommendedTasks.map((task) => {
+                const insight = schedulingInsightByTaskId.get(task.id);
+
+                return (
+                  <div
+                    className="rounded-md border border-line bg-panel p-3"
+                    key={task.id}
+                  >
+                    <p className="font-semibold text-ink">{task.name}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {labelFromValue(phaseOptions, task.phase)} -{" "}
+                      {labelFromValue(priorityOptions, task.priority)}
+                      {task.estimatedDurationMinutes !== null
+                        ? ` - ${task.estimatedDurationMinutes} min`
+                        : ""}
+                    </p>
+                    {insight ? (
+                      <ul className="mt-2 list-inside list-disc text-sm text-muted">
+                        {insight.reasons.slice(0, 2).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="rounded-md border border-line bg-panel p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Current Tasks</h2>
+            <p className="mt-1 text-sm text-muted">
+              Task records for this project.
+            </p>
+          </div>
+          <a
+            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white" href={`/projects/${projectId}/tasks?new=1#task-form`}>
+            Add Task
+          </a>
+        </div>
+
+        {tasks.length === 0 ? (
+          <p className="mt-4 rounded-md border border-line bg-white p-4 text-sm text-muted">
+            No tasks added yet.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {tasks.map((task) => (
+              <article
+                className="rounded-md border border-line bg-white p-4 shadow-soft"
+                key={task.id}
+              >
+                {(() => {
+                  const taskDependencyCompletion = dependencyCompletion(
+                    task.dependencyTaskIds,
+                    tasks
+                  );
+                  const schedulingInsight = schedulingInsightByTaskId.get(
+                    task.id
+                  );
+
+                  return (
+                    <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-ink">
+                      {task.name}
+                    </h3>
+                    {task.roomId ? (
+                      <p className="mt-1 text-sm text-muted">
+                        {roomNameById.get(task.roomId) || "Unknown room"}
+                      </p>
+                    ) : null}
+                  </div>
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-status`} label={labelFromValue(statusOptions, task.status)} />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-priority`}
+                    label={`Priority: ${labelFromValue(
+                      priorityOptions,
+                      task.priority
+                    )}`}
+                  />
+                  {task.championPersonId ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-champion`}
+                      label={`Champion: ${
+                        personNameById.get(task.championPersonId) ||
+                        "Unknown person"
+                      }`}
+                    />
+                  ) : null}
+                  {task.helperRequired ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-helpers`} label="Helper required" tone="warning" />
+                  ) : null}
+                  {task.helperPersonIds.length > 0 ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-helpers`}
+                      label={`${task.helperPersonIds.length} helper${
+                        task.helperPersonIds.length === 1 ? "" : "s"
+                      }`}
+                    />
+                  ) : null}
+                  {task.dependencyTaskIds.length > 0 ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dependencies`}
+                      label={`Depends on ${task.dependencyTaskIds.length} task${
+                        task.dependencyTaskIds.length === 1 ? "" : "s"
+                      }`}
+                    />
+                  ) : null}
+                  {task.criticalPathRisk !== "none" ? (
+                    <CriticalPathRiskBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-risk`} risk={task.criticalPathRisk} />
+                  ) : null}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-readiness`}
+                    label={labelFromValue(
+                      readinessOptions,
+                      task.readinessState
+                    )}
+                    tone={readinessTone(task.readinessState)}
+                  />
+                  {task.blockerType !== "none" ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-blockers`}
+                      label={`Blocker: ${labelFromValue(
+                        blockerOptions,
+                        task.blockerType
+                      )}`}
+                      tone="blocked"
+                    />
+                  ) : null}
+                  {task.readinessReasons.length > 0 ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-readiness`}
+                      label={`${task.readinessReasons.length} readiness reason${
+                        task.readinessReasons.length === 1 ? "" : "s"
+                      }`}
+                      tone="warning"
+                    />
+                  ) : null}
+                  {taskDependencyCompletion.total > 0 ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dependencies`}
+                      label={`Dependencies complete: ${taskDependencyCompletion.completed}/${taskDependencyCompletion.total}`}
+                    />
+                  ) : null}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
+                    label={labelFromValue(materialOptions, task.materialStatus)}
+                    tone={materialTone(task.materialStatus)}
+                  />
+                  {task.materialItems.length > 0 ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
+                      label={`${task.materialItems.length} material item${
+                        task.materialItems.length === 1 ? "" : "s"
+                      }`}
+                    />
+                  ) : null}
+                  {task.materialNeededByDate ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
+                      label={`Needed by: ${task.materialNeededByDate}`}
+                    />
+                  ) : null}
+                  {task.materialStatus === "blocked" ? (
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`} label="Material blocker" tone="blocked" />
+                  ) : null}
+                </div>
+
+                {task.materialStatus === "needed" ||
+                task.materialStatus === "partial" ||
+                task.materialStatus === "blocked" ? (
+                  <p className="mt-3 text-sm text-muted">
+                    Materials may not be ready for this task.
+                  </p>
+                ) : null}
+
+                {task.dueDate ? (
+                  <p className="mt-3 text-sm text-muted">
+                    Due: {task.dueDate}
+                  </p>
+                ) : null}
+
+                {schedulingInsight ? (
+                  <div className="mt-3">
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dates`}
+                      label={schedulingLabels[schedulingInsight.category]}
+                      tone={schedulingTone(schedulingInsight.category)}
+                    />
+                    {schedulingInsight.reasons.length > 0 ? (
+                      <ul className="mt-2 list-inside list-disc text-sm text-muted">
+                        {schedulingInsight.reasons.slice(0, 2).map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  <a
+                    className="touch-target rounded-md border border-line px-4 text-sm font-semibold text-ink" href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-form`}>Edit</a>
+                  <Link
+                    className="touch-target flex items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
+                    href={`/projects/${projectId}/tasks/${task.id}`}
+                  >
+                    View Details
+                  </Link>
+                </div>
+                    </>
+                  );
+                })()}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showAddForm || editingTask ? (
+        <div
+          className="rounded-md border border-line bg-white p-4 shadow-soft"
+          ref={formPanelRef}
+        >
+          <h2 className="text-lg font-semibold text-ink">
+            {editingTask ? "Edit Task" : "Add Task"}
+          </h2>
+          <div className="mt-4">
+            <TaskForm
+              initialValue={editingTask ? taskToForm(editingTask) : emptyForm}
+              isSaving={saving}
+              key={editingTask?.id || `new-task-${addFormVersion}`}
+              onCancel={() => {
+                setEditingTaskId(null);
+                setShowAddForm(false);
+                setAddFormVersion((version) => version + 1);
+              }}
+              onSubmit={editingTask ? handleUpdate : handleCreate}
+              people={people}
+              rooms={rooms}
+              roomNameById={roomNameById}
+              submitLabel={editingTask ? "Save Task" : "Add Task"}
+              tasks={tasks}
+              taskId={editingTask?.id || null}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {!showAddForm && !editingTask ? (
+        <a
+          aria-label="Add task"
+          className="touch-target fixed bottom-24 left-1/2 z-20 ml-32 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft" href={`/projects/${projectId}/tasks?new=1#task-form`}>
+          <Plus aria-hidden="true" className="h-6 w-6" />
+        </a>
+      ) : null}
+    </section>
+  );
+}

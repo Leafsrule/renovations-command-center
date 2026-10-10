@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isProjectOwner(projectId) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.get('deletedAt', null) == null;
+    }
+
+    function isProjectOwnerAfter(projectId) {
+      return request.auth != null
+        && getAfter(/databases/$(database)/documents/projects/$(projectId)).data.ownerUserId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/projects/$(projectId)).data.get('deletedAt', null) == null;
+    }
+
+    function closedRecord() { return resource.data.get('status', '') in ['complete', 'cancelled', 'archived', 'closed', 'used', 'approved', 'verified', 'superseded', 'rejected']; }
+    function safeRecordCreate() { return !request.resource.data.keys().hasAny(['deletedAt','deletedBy']); }
+    function safeRecordUpdate() { return resource.data.get('deletedAt', null) == null && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt','deletedBy']); }
+
+    match /projects/{projectId} {
+      allow create: if safeRecordCreate() && request.auth != null
+        && request.resource.data.ownerUserId == request.auth.uid
+        && !request.resource.data.keys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest', 'creationDigest']);
+
+      allow delete: if false;
+      allow read: if request.auth != null
+        && resource.data.ownerUserId == request.auth.uid;
+      allow update: if safeRecordUpdate() && request.auth != null
+        && resource.data.ownerUserId == request.auth.uid
+        && request.resource.data.ownerUserId == resource.data.ownerUserId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['restoredFrom', 'restoredBy', 'restoredAt', 'restoreDigest', 'creationDigest']);
+
+      match /rooms/{roomId} {
+        allow read: if isProjectOwner(projectId);
+        allow create: if isProjectOwnerAfter(projectId) && safeRecordCreate();
+        allow update: if isProjectOwnerAfter(projectId) && safeRecordUpdate();
+        allow delete: if false;
+      }
+
+      match /people/{personId} {
+        allow read: if isProjectOwner(projectId);
+        allow create: if isProjectOwnerAfter(projectId) && safeRecordCreate();
+        allow update: if isProjectOwnerAfter(projectId) && safeRecordUpdate();
+        allow delete: if false;
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isProjectOwner(projectId);
+        // Historical imports and sensitive execution/proof are server-only.
+        allow create: if isProjectOwnerAfter(projectId) && safeRecordCreate()
+          && request.resource.data.status in ['design', 'draft', 'not_ready', 'ready', 'cancelled']
+          && request.resource.data.get('actualDurationMinutes', null) == null
+          && !request.resource.data.keys().hasAny(['evidenceCount', 'qcPassed', 'qcChecklist', 'qcRequired', 'cureUntil', 'completionOverrideReason', 'overrideAuditId']);
+        allow update: if isProjectOwner(projectId) && safeRecordUpdate()
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['evidenceCount', 'qcPassed', 'qcChecklist', 'qcRequired', 'cureUntil', 'completionOverrideReason', 'overrideAuditId', 'actualDurationMinutes'])
+          && (request.resource.data.status == resource.data.status
+            || (resource.data.status in ['design', 'draft', 'not_ready', 'ready'] && request.resource.data.status in ['design', 'draft', 'not_ready', 'ready', 'cancelled']))
+          && (resource.data.status in ['design', 'draft', 'not_ready', 'ready']
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['photosRequired', 'dependencyTaskIds', 'helperRequired', 'helperPersonIds', 'roomId', 'championPersonId']));
+        allow delete: if false;
+      }
+      match /{recordKind}/{recordId} {
+        allow read: if isProjectOwner(projectId) && recordKind in ['materials', 'tools', 'measurements', 'decisions'];
+        allow create: if isProjectOwnerAfter(projectId) && safeRecordCreate()
+          && recordKind in ['materials', 'tools', 'measurements', 'decisions'];
+        allow update: if isProjectOwnerAfter(projectId) && safeRecordUpdate()
+          && recordKind in ['materials', 'tools', 'measurements', 'decisions']
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['taskId'])
+          && (!closedRecord()
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'taskId', 'roomId']));
+        allow delete: if false;
+      }
+      match /deletionHistory/{historyId} { allow read: if isProjectOwner(projectId); allow write: if false; }
+      match /taskHistory/{historyId} { allow read: if isProjectOwner(projectId); allow create: if false; }
+      match /recordHistory/{historyId} { allow read: if isProjectOwner(projectId); allow create: if isProjectOwnerAfter(projectId); }
+      match /settings/{settingId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if isProjectOwnerAfter(projectId);
+      }
+      match /scheduleRuns/{runId} {
+        allow read: if isProjectOwner(projectId); allow create: if isProjectOwnerAfter(projectId);
+      }
+      match /evidence/{evidenceId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if false;
+      }
+      match /commandReceipts/{receiptId} {
+        allow read: if isProjectOwner(projectId);
+        allow write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,17 @@
+import { readJsonRequest } from "@/lib/server/request-body";
+import { adminServices } from "@/lib/server/firebase-admin";
+import { createProject } from "@/lib/server/project-create";
+import { CommandError } from "@/lib/task-command";
+export const runtime="nodejs";
+export async function POST(request:Request) {
+  try {
+    const token=request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
+    if (!token) throw new CommandError(401,"Sign in before creating a project.");
+    const value=await readJsonRequest(request,64_000);
+    const {db,auth}=adminServices();
+    const user=await auth.verifyIdToken(token,true).catch(()=>{throw new CommandError(401,"Sign in again before creating a project.");});
+    return Response.json({projectId:await createProject(db,user.uid,value)},{headers:{"Cache-Control":"no-store"}});
+  } catch (error) {
+    return Response.json({error:error instanceof CommandError?error.message:"Project creation is unconfirmed. Retry the retained draft."},{status:error instanceof CommandError?error.status:503,headers:{"Cache-Control":"no-store"}});
+  }
+}

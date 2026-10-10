@@ -1,0 +1,84 @@
+# RACP QA and Security review — 2026-10-06
+
+Mode: separate specialist review passes by the same work session. No independent agent, external model, Claude, licensed-professional or owner acceptance is claimed.
+
+## Decision
+
+DO NOT RELEASE. This is an in-progress development candidate. Required A–I scope has not yet met full acceptance. Main and existing production resources were not changed.
+
+## Evidence
+
+- Lint, typecheck and Next.js 16.4 production build passed.
+- 139 Vitest tests passed, including mounted navigation/planner and browser draft tests, transactional actions, calendar/DST, input integrity, app-scoped backup validation and lint-glob compatibility.
+- Nine Firestore/Storage emulator tests passed: ownership immutability, cross-owner/anonymous isolation, missing evidence, guarded completed-task creation, atomic restore, private image access, rejected nonimages and object-overwrite denial. The overwrite test caught a defect; adding `resource == null` fixed it.
+- `npm audit --audit-level=high`: zero vulnerabilities after dependency updates. Scoped replacements: gRPC 1.14.5 and Next lint's sole globSync consumer uses tinyglobby 0.2.17. The real lint caller is tested. No audit exclusions or forced downgrade.
+- Static app isolation check passed: original Site Control HTML and JSON are byte-identical; original relative data/save paths remain.
+- Browser installation failed: permitted Playwright download produced invalid/empty ZIPs. No rendered phone/desktop or authenticated E2E claim.
+- Rules tests used Firebase CLI 14 with the available Java runtime; latest CLI requires Java 21. Repeat on Java 21/current CLI in CI before release.
+
+## QA findings that still block full acceptance
+
+1. Full owner workflow, real upload/CORS, second-device changes, restart/auth-expiry/reconnect and rendered accessibility need live/browser verification.
+2. Core task metadata now compares the original updatedAt and validates a freshly read dependency graph transactionally. Project metadata and QC editing still need comparable version-conflict coverage.
+3. Task edits have durable drafts; field records have durable queues/version conflicts/idempotency. Today execution commands, new-project creation and quality/work forms do not yet have a complete durable offline queue. Offline navigation currently shows a fallback, not a fully functional offline app.
+4. Scheduling is a conservative serial date plan. Persisted worker/helper availability, timed cure propagation through every entry point, resource/space validation and fully audited cancelled-prerequisite waivers remain incomplete. Legacy concurrency flags are deliberately shown as needing review.
+5. Task completion/photo/QC guards and override history exist. However, client-writable proof fields and all sensitive task transitions still need stronger authoritative enforcement or a trusted service boundary; a user with direct SDK access can bypass some client policy. This is release-critical.
+6. Backup restore checks IDs/counts/semantic parity into a new project, but rejects evidence-backed restores until private object backup/copy is implemented and verified. Actual provider backups and release rollback have not been rehearsed.
+7. Draft/queue failure paths and the new material/tool aggregate need additional mounted/integration coverage. Preserve legacy material requirements separately from structured required items.
+8. Existing app requirements include broader templates and daily records; the current bathroom template and printable lists are only basic implementations, not full I acceptance.
+
+## Security / release findings
+
+No Firebase web configuration, backend deployment credential or Render authorization was present in this environment. Connected-service discovery via Rube failed with a connection error. Repository permissions are admin/push, but they do not establish backend or hosting authority. No deployed-rule comparison, live IAM check, production smoke test, backup/restore rehearsal or rollback occurred. PR #5's genuine external/provider gates were not forged or bypassed.
+
+Site Control retains pre-existing public-JSON, GitHub-token, whole-file overwrite, unsafe text-rendering and offline limitations; these are not fixed by isolating it. Do not add private evidence there. No cross-app data migration occurred.
+
+## October 8 interim QA review
+
+Separate review pass after implementation; same work session, no independent-agent or external-model approval. The bounded command/queue increment is reviewable, but this is not the final A–I acceptance review.
+
+The previous stale QC/project edit findings now have persisted original-revision checks. Execution/QC replay and restore destination reuse have rejection/reload tests. Device sync has mounted startup/reconnect/conflict/acknowledgment coverage. Toronto midnight/DST report grouping excludes undated events and never infers hours. Pause and terminal blocker-clearing regressions have coverage.
+
+Meaningful migration of coverage: the old mocked client transaction suite was replaced by server-backed transport tests and real Admin SDK/demo-emulator command tests; test counts must not imply dropped policy coverage.
+
+Remaining QA blockers: rendered phone/desktop/authenticated workflow, live upload/CORS/private-file access, actual browser restart and second-device exercise; complete offline navigation/capture/new-project workflows; all scheduling/helper/cure/resource/waiver acceptance; photo recovery and provider rollback. The new daily report has logic tests, not rendered print acceptance.
+
+## October 8 interim Security & Release review
+
+Separate review pass focused on the privileged mutation boundary. Firestore now denies direct SDK execution/proof/history/receipt forgery and restored-project bypass. Storage permits only scoped temporary uploads and owner reads; final writes are server-only. Tests exercise other-owner rejection, fresh prerequisites, concurrent starts, forged counters, actual file/task/owner verification, audited exceptions, immutable command IDs, replay without doubled work, and separate-copy restore. API authentication rejects absent/revoked identity, takes the actor only from the verified token and hides private internal errors. Body limits measure streamed bytes instead of trusting Content-Length. Server secrets are not public environment variables.
+
+Review/test findings corrected: emulator token revocation did not work via metadata patch; verified uploads now copy to token-free final storage and delete the temporary path. Historical restore originally allowed a client status bypass; it is now server-only. Clear-blocker could reopen terminal work; the policy now rejects it.
+
+Release is still denied. Verify the server credential's least privilege and app-specific project/bucket on real infrastructure; configure existing Firebase resources securely; verify final-object privacy and temporary cleanup against the live provider; audit abandoned upload cleanup; add photo-object backup/restore and validate rollback. No production security or external Claude review is claimed. Direct Render read access works, but the connected workspace has no renovation-app service.
+
+Validation for the October 8 application increment: fresh install, lint, typecheck, build, 156 Vitest tests (25 files), 22 demo backend/rules/Storage tests, zero-vulnerability audit, whitespace and app isolation passed. The Firebase CLI 15/Java 21 GitHub job must be checked separately before any release.
+
+## October 8 Firebase/field continuation review
+
+Interim QA pass: checked matching project/bucket validation, production emulator rejection, private loopback Auth-to-HTTP integration, atomic template creation/retry, person blackouts/hours and conservative Toronto cure propagation, retained raw photo bytes, interruption/replay and changed-account rejection. 169 app tests, 24 demo backend/security tests and the HTTP smoke workflow passed locally, with lint/typecheck/build and audit zero vulnerabilities.
+
+Interim security pass: server project creation derives actor from a revocation-checked token, reserves creationDigest from browser writes, validates destinations/fields and refuses overwrite. No credential contents are logged or copied by the setup scripts; local configuration is ignored and created with restrictive permissions. Browser/server project and bucket mismatches and production emulator settings fail closed. Photo records are account scoped in the UI and retain bytes until confirmation. Live sign-in was cancelled; no project, credential, rules or IAM change occurred.
+
+These are distinct review passes in the same work session, not independent external approval. Remaining gates include actual provider access/rules/CORS, shared-device storage/privacy and multi-tab/device acceptance, complete offline navigation/metadata queues, photo backup/restore/cleanup, resource/space scheduling and dependency waivers, rendered mobile/print/accessibility, genuine external review and recovery/rollback. Do not merge/release based on these interim checks.
+
+## Portable recovery interim review — October 8 evening
+
+QA: demo recovery now succeeds after deleting the source photo and source project. Tests cover simultaneous identical restores, interruption after the first private file, same-destination resume, conflicting reservation, missing evidence, altered checksum, private path/generation remapping, original preservation and browser photo readback before clearing the recovery ID. Field-draft tests cover immutable unconfirmed submissions and late-response preservation of newer reviewed drafts. 175 app tests and 27 backend/security tests pass. The Auth-to-HTTP smoke verifies the new routes with actual demo tokens, unsigned/invalid-token rejection and restore replay.
+
+Security: export takes a transactional record snapshot after ownership verification, bounds records/bytes and downloads generation-pinned immutable objects. Restore verifies all photo hashes before writing, binds reservations to actor/digest, uses create-only Storage preconditions and token-free metadata, verifies private byte readback, and publishes records atomically only after objects are ready. Default-deny rules protect server-only reservations. Restore parsing authenticates before accepting the larger bounded request. No live rules or IAM changes occurred.
+
+Limitations: local emulator privacy is not live bucket/CORS/IAM verification. Portable backups are plaintext private downloads with 20 MB total photo/32 MB JSON/450-record limits. Abandoned reservations/objects need a reviewed cleanup workflow; large projects still need a storage archive. No rendered phone/print, provider recovery/rollback or independent external review is claimed. Live sign-in is blocked by automatic review following prior cancellation. Release remains denied.
+
+## Free-service architecture correction — October 9
+
+No new application validation or production approval is claimed. The no-paid-services requirement supersedes the former Blaze/Storage setup prerequisite. Retain the trusted mutation boundary and Firebase identity/records; adapt private photo storage to Supabase Free. Independent review must verify immutable object identity/checksums (not pretend Supabase supplies GCS generations), server-only write permissions, account isolation, resumable transfers and provider-specific recovery. Verify free quotas and fail-closed quota exhaustion, no automatic charges, host suitability and inactivity behavior. Existing tests certify only the Firebase candidate. See `FREE_SERVICE_PLAN.md`.
+
+## Free-photo candidate interim review — October 9
+
+Security review in this same work session: photo routes take identity only from revocation-checked Firebase tokens, enforce project/task ownership, bound actual streamed bytes, deny unlinked reads and hide provider error details. Supabase credentials remain server-only; public buckets are rejected. Files are create-only with server manifests; ID/version/size/type and actual SHA-256 readback protect evidence, completion, export and restore. The Firestore default-deny catchall protects manifests/capacity; a new rule test verifies owner, other-account and anonymous denial. Numeric legacy GCS versions and explicitly tagged Supabase versions are separate identities. Existing trusted receipts/owner exceptions and separate-project recovery are preserved.
+
+QA review: interrupted upload responses reserve capacity once and recover at the same ID; altered same-ID payloads fail; changed versions and same-sized changed bytes fail readback. Browser originals remain after failed final readback or account change. Cleanup locks staging allocations during deletion, retains capacity after unknown deletion and resumes exactly once. Real demo Firestore transactions exercise concurrent reservations at the ceiling and concurrent separate-copy photo restores with a fake Supabase transport. A saved photo replay does not recreate staging.
+
+Limits: the 800 MiB counter is app-specific, not provider/account-wide storage or egress metering. Dedicated Free project/bucket, actual SDK/version behavior, private RLS/default-deny policy, existing server-role access, ADC and no-charge hosting remain unverified. Abandoned reservations/final objects need cleanup; larger archives, inactivity/egress exhaustion and real device/browser acceptance remain open. Do not disable security or upgrade plans to close these gaps. These are same-session review passes, not independent external approval. Release remains denied.
+
+Validation for the October 9 free-photo candidate: npm ci, lint, typecheck, production build, 188 Vitest tests, 30 demo backend/security tests, actual demo Auth-to-Next HTTP photo staging/link/read and backup/restore replay, audit with zero vulnerabilities, Site Control isolation and whitespace checks passed locally. Supabase transport is faked in its unit/integration tests; the HTTP smoke uses the actual Firebase Storage emulator adapter. Remote CI must be verified for the published commit. No live provider acceptance or independent external review is claimed.

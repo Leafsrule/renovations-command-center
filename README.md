@@ -1,14 +1,8 @@
-# renovations-command-center
-Mobile-first AI-assisted renovation scheduling app
+# Renovation applications
 
-## Development environment
+These applications are independent. There is no shared operational database, authentication or runtime.
 
-This repository is configured to use GitHub Codespaces as the primary development environment.
+- **Renovations Command Center:** `apps/renovations-command-center`. Run `npm ci`, `npm run dev`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `npm audit --audit-level=high` from that directory. Keep port 3000 private. Firebase environment variables belong only to that app.
+- **Site Control:** `docs/site-control`. Serve this directory as static files or use its existing GitHub Pages path. It has no npm dependencies. Its existing records and entry point are preserved. See its README for known limitations.
 
-- Repository: `Leafsrule/renovations-command-center`
-- Branch: `main`
-- Workspace: `/workspaces/renovations-command-center`
-- Operating system: Linux
-- Shell: bash
-
-For setup and Codespaces workflow, see `docs/CODESPACES_DEVELOPMENT.md`.
+Application boundaries and acceptance tracking: `docs/RACP_IMPLEMENTATION_PLAN.md`. Work is in progress; no production release is certified.

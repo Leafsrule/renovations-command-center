@@ -1,0 +1,9 @@
+// @vitest-environment jsdom
+import {cleanup,fireEvent,render,screen} from "@testing-library/react";
+import {afterEach,it,expect,vi} from "vitest";
+import {useBrowserDraft} from "./browser-draft";
+function Editor({draftKey}:{draftKey:string}){const [draft,setDraft,clear,error]=useBrowserDraft(draftKey,{name:""});return <><label>Name<input value={draft.name} onChange={e=>setDraft({name:e.target.value})}/></label><button onClick={clear}>Clear</button><p role="status">{error}</p></>}
+afterEach(()=>{cleanup();vi.restoreAllMocks();localStorage.clear()});
+it("restores a task draft after unmount/reload",()=>{const first=render(<Editor draftKey="reload-draft"/>);fireEvent.change(screen.getByLabelText("Name"),{target:{value:"Tile shower"}});first.unmount();render(<Editor draftKey="reload-draft"/>);expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Tile shower")});
+it("keeps edits recoverable in memory and visibly flags storage failure",()=>{vi.spyOn(Storage.prototype,"setItem").mockImplementation(()=>{throw new Error("QuotaExceeded")});render(<Editor draftKey="quota-draft"/>);fireEvent.change(screen.getByLabelText("Name"),{target:{value:"Keep my edit"}});expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Keep my edit");expect(screen.getByRole("status").textContent).toContain("only in memory")});
+it("isolates keys and supports explicit discard",()=>{localStorage.setItem("other-project",JSON.stringify({name:"Other"}));render(<Editor draftKey="this-project"/>);expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("");fireEvent.change(screen.getByLabelText("Name"),{target:{value:"Draft"}});fireEvent.click(screen.getByText("Clear"));expect(localStorage.getItem("this-project")).toBeNull();expect(localStorage.getItem("other-project")).toContain("Other")});
