@@ -1,4 +1,5 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { displayLabel, phaseLabels } from "@/lib/terminology";
 import { useState, type FormEvent } from "react";
@@ -63,8 +64,9 @@ export function ProjectEditor({
       setBusy(false);
     }
   }
+  useLinkedSection();
   return (
-    <details className="rounded border p-4">
+    <details id="project-settings" className="rounded border p-4">
       <summary className="cursor-pointer font-semibold">
         Edit / archive / reopen project
       </summary>
@@ -105,7 +107,7 @@ export function ProjectEditor({
             onChange={(e) => setFinish(e.target.value)}
           />
         </label>
-        <label className="block">
+        <label id="project-status" className="block">
           Status
           <AlphabeticalSelect
             className="block w-full rounded border p-2"
@@ -130,7 +132,7 @@ export function ProjectEditor({
             ))}
           </AlphabeticalSelect>
         </label>
-        <label className="block">
+        <label id="project-phase" className="block">
           Phase
           <AlphabeticalSelect className="block w-full rounded border p-2" value={draft.phase ?? project.currentPhase} onChange={e => setDraft(d => ({...d, phase: e.target.value}))}>
             {!Object.hasOwn(phaseLabels, draft.phase ?? project.currentPhase) ? <option value={draft.phase ?? project.currentPhase}>{displayLabel(draft.phase ?? project.currentPhase)}</option> : null}

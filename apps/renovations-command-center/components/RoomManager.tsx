@@ -1,11 +1,12 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { DeleteRecordButton } from "./DeleteRecordButton";
 import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { displayLabel } from "@/lib/terminology";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   createProjectRoom,
@@ -83,8 +84,9 @@ function RoomForm({
     await onSubmit(form);
   }
 
+  useLinkedSection();
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form id="room-form" className="space-y-4" onSubmit={handleSubmit}>
       {error ? (
         <div className="rounded-md border border-[#e4bbbb] bg-[#fae8e8] p-3 text-sm leading-6 text-danger">
           {error}
@@ -123,7 +125,7 @@ function RoomForm({
         </AlphabeticalSelect>
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="room-dimensions" className="block text-sm font-semibold text-ink">
         Dimensions
         <input
           className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
@@ -138,14 +140,14 @@ function RoomForm({
         />
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="room-status" className="block text-sm font-semibold text-ink">
         Status
         <AlphabeticalSelect className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal" value={form.status ?? "planning"} onChange={event => setForm(current => ({...current, status: event.target.value as RoomStatus}))}>
           {["design", "not_started", "planning", "active", "blocked", "complete"].map(status => <option key={status} value={status}>{displayLabel(status)}</option>)}
         </AlphabeticalSelect>
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="room-priority" className="block text-sm font-semibold text-ink">
         Priority
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -212,7 +214,6 @@ function roomToForm(room: RenovationRoom): RoomFormInput {
 
 export function RoomManager() {
   const params = useParams<{ projectId: string }>();
-  const router = useRouter();
   const projectId = params.projectId;
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,6 +244,9 @@ export function RoomManager() {
 
         if (!cancelled) {
           setRooms(projectRooms);
+          const editId=new URLSearchParams(window.location.search).get("edit");
+          if(new URLSearchParams(window.location.search).get("new")==="1")setShowAddForm(true);
+          if(editId && projectRooms.some(room=>room.id===editId)) setEditingRoomId(editId);
         }
       } catch (roomError) {
         if (!cancelled) {
@@ -303,13 +307,10 @@ export function RoomManager() {
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
-          onClick={() => router.push(`/projects/${projectId}`)}
-          type="button"
-        >
+        <Link
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink" href={`/projects/${projectId}`}>
           &larr; Back to Project
-        </button>
+        </Link>
         <Link
           className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
           href="/projects"
@@ -335,16 +336,8 @@ export function RoomManager() {
               Saved rooms and areas for this project.
             </p>
           </div>
-          <button
-            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white"
-            onClick={() => {
-              setEditingRoomId(null);
-              setShowAddForm(true);
-            }}
-            type="button"
-          >
-            Add Room
-          </button>
+          <a
+            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white" href={`/projects/${projectId}/rooms?new=1#room-form`}>Add Room</a>
         </div>
 
         {rooms.length === 0 ? (
@@ -367,26 +360,18 @@ export function RoomManager() {
                       {labelFromValue(floorOptions, room.floorLevel)}
                     </p>
                   </div>
-                  <StatusBadge label={room.priority} tone="neutral" />
+                  <StatusBadge href={`/projects/${projectId}/rooms?edit=${encodeURIComponent(room.id)}#room-priority`} label={room.priority} tone="neutral" />
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusBadge label={displayLabel(room.status)} />
+                  <StatusBadge href={`/projects/${projectId}/rooms?edit=${encodeURIComponent(room.id)}#room-status`} label={displayLabel(room.status)} />
                   {room.dimensions ? (
-                    <StatusBadge label={room.dimensions} />
+                    <StatusBadge href={`/projects/${projectId}/rooms?edit=${encodeURIComponent(room.id)}#room-dimensions`} label={room.dimensions} />
                   ) : null}
                 </div>
 
-                <button
-                  className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingRoomId(room.id);
-                  }}
-                  type="button"
-                >
-                  Edit
-                </button>
+                <a
+                  className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink" href={`/projects/${projectId}/rooms?edit=${encodeURIComponent(room.id)}#room-form`}>Edit</a>
                 <DeleteRecordButton key={JSON.stringify(room.updatedAt ?? null)} projectId={projectId} kind="rooms" id={room.id} name={room.name} />
               </article>
             ))}

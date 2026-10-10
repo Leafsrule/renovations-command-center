@@ -1,5 +1,6 @@
 type StatusBadgeProps = {
   label: string;
+  href?: string;
   tone?: "neutral" | "ready" | "blocked" | "warning";
 };
 
@@ -10,7 +11,9 @@ const toneClass = {
   warning: "border-[#ead2a7] bg-[#fff4db] text-caution"
 };
 
-export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps) {
+export function StatusBadge({ label, href, tone = "neutral" }: StatusBadgeProps) {
+  const classes=`inline-flex min-h-11 items-center rounded-md border px-2 py-1 text-xs font-semibold ${toneClass[tone]}`;
+  if(href)return <a href={href} className={`${classes} underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-brand`}>{label}</a>;
   return (
     <span
       className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-semibold ${toneClass[tone]}`}

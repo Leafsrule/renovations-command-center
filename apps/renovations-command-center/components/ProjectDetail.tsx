@@ -114,11 +114,11 @@ export function ProjectDetail() {
       <Link className="touch-target block underline" href={`/projects/${project.id}/blackouts`}>Work calendar and blackout dates</Link>
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <div className="flex flex-wrap gap-2">
-          <StatusBadge label={displayLabel(project.status)} tone="ready" />
-          <StatusBadge label={`Phase: ${displayLabel(project.currentPhase)}`} />
-          {project.activeProject ? <StatusBadge label="Active project" /> : null}
+          <StatusBadge href={`/projects/${project.id}#project-status`} label={displayLabel(project.status)} tone="ready" />
+          <StatusBadge href={`/projects/${project.id}#project-phase`} label={`Phase: ${displayLabel(project.currentPhase)}`} />
+          {project.activeProject ? <StatusBadge href={`/projects/${project.id}#project-settings`} label="Active project" /> : null}
           {project.criticalPathWarning ? (
-            <CriticalPathRiskBadge risk="high" />
+            <CriticalPathRiskBadge href={`/projects/${project.id}/schedule?view=critical#schedule-tasks`} risk="high" />
           ) : null}
         </div>
 
@@ -153,14 +153,14 @@ export function ProjectDetail() {
       </article>
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <div className="flex items-center justify-between gap-3">
-          <div>
+          <Link className="block underline underline-offset-2" href={`/projects/${project.id}/rooms`}>
             <h2 className="text-lg font-semibold text-ink">Rooms / areas</h2>
             <p className="mt-1 text-sm text-muted">
               {roomCount === null
                 ? "Room count unavailable"
                 : `${roomCount} room${roomCount === 1 ? "" : "s"} added`}
             </p>
-          </div>
+          </Link>
           <Link
             className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
             href={`/projects/${project.id}/rooms`}
@@ -171,14 +171,14 @@ export function ProjectDetail() {
       </article>
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <div className="flex items-center justify-between gap-3">
-          <div>
+          <Link className="block underline underline-offset-2" href={`/projects/${project.id}/people`}>
             <h2 className="text-lg font-semibold text-ink">People / team</h2>
             {peopleCount ? (
               <p className="mt-1 text-sm text-muted">
                 {peopleCount.total} people ({peopleCount.active} active)
               </p>
             ) : null}
-          </div>
+          </Link>
           <Link
             className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
             href={`/projects/${project.id}/people`}
@@ -189,14 +189,14 @@ export function ProjectDetail() {
       </article>
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <div className="flex items-center justify-between gap-3">
-          <div>
+          <Link className="block underline underline-offset-2" href={`/projects/${project.id}/tasks`}>
             <h2 className="text-lg font-semibold text-ink">Tasks</h2>
             {taskCount ? (
               <p className="mt-1 text-sm text-muted">
                 {taskCount.total} task{taskCount.total === 1 ? "" : "s"}
               </p>
             ) : null}
-          </div>
+          </Link>
           <Link
             className="touch-target flex items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
             href={`/projects/${project.id}/tasks`}

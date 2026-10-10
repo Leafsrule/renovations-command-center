@@ -1,4 +1,5 @@
 type CriticalPathRiskBadgeProps = {
+  href?: string;
   risk?: "none" | "low" | "medium" | "high";
 };
 
@@ -17,8 +18,10 @@ const riskClass = {
 };
 
 export function CriticalPathRiskBadge({
+  href,
   risk = "none"
 }: CriticalPathRiskBadgeProps) {
+  if(href)return <a href={href} className={`inline-flex min-h-11 items-center rounded-md border px-2 py-1 text-xs font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-brand ${riskClass[risk]}`}>{riskLabel[risk]}</a>;
   return (
     <span
       className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-semibold ${riskClass[risk]}`}

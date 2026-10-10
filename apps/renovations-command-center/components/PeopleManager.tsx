@@ -1,10 +1,11 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { DeleteRecordButton } from "./DeleteRecordButton";
 import { AlphabeticalSelect } from "./AlphabeticalSelect";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { taskRevision } from "@/lib/task-command";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -92,8 +93,9 @@ function PersonForm({
     await onSubmit(form);
   }
 
+  useLinkedSection();
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form id="person-form" className="space-y-4" onSubmit={handleSubmit}>
       {error ? (
         <div className="rounded-md border border-[#e4bbbb] bg-[#fae8e8] p-3 text-sm leading-6 text-danger">
           {error}
@@ -201,7 +203,7 @@ function PersonForm({
       {isEditing ? (
         <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
           <input
-            checked={form.active}
+            id="person-active" checked={form.active}
             className="h-5 w-5"
             onChange={(event) =>
               setForm((current) => ({
@@ -237,7 +239,6 @@ function PersonForm({
 
 export function PeopleManager() {
   const params = useParams<{ projectId: string }>();
-  const router = useRouter();
   const projectId = params.projectId;
   const [people, setPeople] = useState<RenovationPerson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +269,9 @@ export function PeopleManager() {
 
         if (!cancelled) {
           setPeople(projectPeople);
+          const editId=new URLSearchParams(window.location.search).get("edit");
+          if(new URLSearchParams(window.location.search).get("new")==="1")setShowAddForm(true);
+          if(editId && projectPeople.some(person=>person.id===editId)) setEditingPersonId(editId);
         }
       } catch (peopleError) {
         if (!cancelled) {
@@ -328,13 +332,10 @@ export function PeopleManager() {
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
-          onClick={() => router.push(`/projects/${projectId}`)}
-          type="button"
-        >
+        <Link
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink" href={`/projects/${projectId}`}>
           &larr; Back to Project
-        </button>
+        </Link>
         <Link
           className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
           href="/projects"
@@ -360,16 +361,8 @@ export function PeopleManager() {
               Team records for this project.
             </p>
           </div>
-          <button
-            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white"
-            onClick={() => {
-              setEditingPersonId(null);
-              setShowAddForm(true);
-            }}
-            type="button"
-          >
-            Add Person
-          </button>
+          <a
+            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white" href={`/projects/${projectId}/people?new=1#person-form`}>Add Person</a>
         </div>
 
         {people.length === 0 ? (
@@ -392,7 +385,7 @@ export function PeopleManager() {
                       {labelFromValue(roleOptions, person.roleType)}
                     </p>
                   </div>
-                  <StatusBadge
+                  <StatusBadge href={`/projects/${projectId}/people?edit=${encodeURIComponent(person.id)}#person-active`}
                     label={person.active ? "Active" : "Inactive"}
                     tone={person.active ? "ready" : "neutral"}
                   />
@@ -414,16 +407,8 @@ export function PeopleManager() {
                   </p>
                 ) : null}
 
-                <button
-                  className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingPersonId(person.id);
-                  }}
-                  type="button"
-                >
-                  Edit
-                </button>
+                <a
+                  className="touch-target mt-4 w-full rounded-md border border-line px-4 text-sm font-semibold text-ink" href={`/projects/${projectId}/people?edit=${encodeURIComponent(person.id)}#person-form`}>Edit</a>
                 <DeleteRecordButton projectId={projectId} kind="people" id={person.id} name={person.name} />
               </article>
             ))}

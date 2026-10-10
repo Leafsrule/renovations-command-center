@@ -1,4 +1,6 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
+import { matchesScheduleFilter } from "@/lib/navigation-filters";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -35,6 +37,7 @@ export function ScheduleBoard() {
 function ScheduleBoardContent({projectId}: {projectId:string}) {
   const [tasks, setTasks] = useState<RenovationTask[]>([]);
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
+  const [filter,setFilter]=useState("all");
   const [view, setView] = useState<ScheduleView>("week");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +70,13 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
   useEffect(() => {
     let live = true;
     Promise.all([listProjectTasks(projectId), listProjectRooms(projectId)])
-      .then(([projectTasks, projectRooms]) => { if(live) {setTasks(projectTasks); setRooms(projectRooms);} })
+      .then(([projectTasks, projectRooms]) => { if(live) {
+        const search=new URLSearchParams(window.location.search), requestedView=search.get("view"), requestedFilter=search.get("filter")??"all";
+        setFilter(requestedFilter);
+        if(requestedFilter!=="all")setView("all");
+        else if(["day","week","month","critical","all"].includes(requestedView??""))setView(requestedView as ScheduleView);
+        setTasks(projectTasks); setRooms(projectRooms);
+      } })
       .catch(e => {if(live) setError(e instanceof Error ? e.message : "Schedule could not be loaded.");})
       .finally(() => {if(live) setLoading(false);});
     return () => {live = false;};
@@ -95,8 +104,9 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
   );
 
   const visibleItems = useMemo(() => {
+    const matching=items.filter(item=>matchesScheduleFilter(item.insight,filter));
     if (view === "critical") {
-      return items.filter(
+      return matching.filter(
         (item) =>
           item.task.criticalPathRisk === "high" ||
           item.task.criticalPathRisk === "medium" ||
@@ -106,13 +116,13 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
     }
 
     if (["day","week","month"].includes(view)) {
-      return items.filter(
+      return matching.filter(
         (item) => item.isUnscheduled || windowDates.has(item.anchorDate)
       );
     }
 
-    return items;
-  }, [items, view, windowDates]);
+    return matching;
+  }, [items, view, windowDates, filter]);
 
   const groups = useMemo(() => {
     const grouped = new Map<string, ScheduleBoardItem[]>();
@@ -129,6 +139,7 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
     });
   }, [visibleItems]);
 
+  useLinkedSection(!loading);
   if (loading) {
     return (
       <div className="rounded-2xl border border-line bg-white p-6 text-sm text-muted">
@@ -137,10 +148,7 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
     );
   }
 
-  const restricted =
-    summary.blockedCount +
-    summary.waitingOnDependenciesCount +
-    summary.waitingOnMaterialsCount;
+  const restricted = insights.filter(insight=>matchesScheduleFilter(insight,"restricted")).length;
 
   return (
     <div className="space-y-4">
@@ -152,15 +160,15 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
 
       <section className="grid grid-cols-2 gap-3" aria-label="Schedule summary">
         {[
-          ["Complete", `${summary.completedCount}/${summary.totalTasks}`],
-          ["Ready now", summary.readyNowCount],
-          ["Restricted", restricted],
-          ["Late", summary.overdueCount]
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+          ["Complete", `${summary.completedCount}/${summary.totalTasks}`, "completed"],
+          ["Ready now", summary.readyNowCount, "ready_now"],
+          ["Restricted", restricted, "restricted"],
+          ["Late", summary.overdueCount, "overdue"]
+        ].map(([label, value, target]) => (
+          <a href={`/projects/${projectId}/schedule?filter=${target}#schedule-tasks`} key={label} className="rounded-2xl border border-line bg-white p-3 shadow-sm">
             <p className="text-2xl font-semibold text-ink">{value}</p>
             <p className="text-xs text-muted">{label}</p>
-          </div>
+          </a>
         ))}
       </section>
 
@@ -194,10 +202,10 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {(["day", "week", "month", "critical", "all"] as const).map((value) => (
-            <button
+            <a
               key={value}
-              type="button"
-              onClick={() => setView(value)}
+              href={`/projects/${projectId}/schedule?view=${value}#schedule-tasks`}
+              aria-current={view===value && filter==="all"?"page":undefined}
               className={`touch-target rounded-md px-2 text-xs font-semibold ${
                 view === value ? "bg-brand text-white" : "bg-panel text-muted"
               }`}
@@ -207,11 +215,13 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
                 : value === "critical"
                   ? "Critical"
                   : "All tasks"}
-            </button>
+            </a>
           ))}
         </div>
       </section>
 
+      <div id="schedule-tasks" className="space-y-4">
+      {filter!=="all"?<p>Showing: {filter.replaceAll("_"," ")}. <a className="underline" href={`/projects/${projectId}/schedule?view=all#schedule-tasks`}>Show all tasks</a></p>:null}
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line bg-panel p-6 text-center text-sm text-muted">
           No tasks match this view.
@@ -239,6 +249,7 @@ function ScheduleBoardContent({projectId}: {projectId:string}) {
           </section>
         ))
       )}
+      </div>
     </div>
   );
 }

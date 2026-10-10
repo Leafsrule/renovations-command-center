@@ -5,7 +5,7 @@ import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/li
 import {TaskQualityPanel} from "./TaskQualityPanel";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -165,7 +165,6 @@ function schedulingTone(
 
 export function TaskDetail() {
   const params = useParams<{ projectId: string; taskId: string }>();
-  const router = useRouter();
   const { projectId, taskId } = params;
   const [task, setTask] = useState<RenovationTask | null>(null);
   const [dependencyTasks, setDependencyTasks] = useState<RenovationTask[]>([]);
@@ -300,13 +299,10 @@ export function TaskDetail() {
         >
           &larr; Back to Tasks
         </Link>
-        <button
-          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
-          onClick={() => router.push(`/projects/${projectId}`)}
-          type="button"
-        >
+        <Link
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink" href={`/projects/${projectId}`}>
           Back to Project
-        </button>
+        </Link>
         <Link
           className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
           href="/projects"
@@ -318,10 +314,10 @@ export function TaskDetail() {
       <article className="rounded-md border border-line bg-white p-4 shadow-soft">
         <h1 className="text-xl font-semibold text-ink">{task.name}</h1>
         <div className="mt-3 flex flex-wrap gap-2">
-          <StatusBadge label={statusLabels[task.status]} />
-          <StatusBadge label={`Priority: ${priorityLabels[task.priority]}`} />
-          <StatusBadge label={`Phase: ${phaseLabels[task.phase]}`} />
-          <CriticalPathRiskBadge risk={task.criticalPathRisk} />
+          <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-status`} label={statusLabels[task.status]} />
+          <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-priority`} label={`Priority: ${priorityLabels[task.priority]}`} />
+          <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-phase`} label={`Phase: ${phaseLabels[task.phase]}`} />
+          <CriticalPathRiskBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-risk`} risk={task.criticalPathRisk} />
         </div>
 
         <dl className="mt-4 space-y-3 text-sm">
@@ -378,7 +374,7 @@ export function TaskDetail() {
                             {dependencyTask?.name || "Unknown task"}
                           </Link>
                           {dependencyTask ? (
-                            <StatusBadge
+                            <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(dependencyTask.id)}#task-status`}
                               label={statusLabels[dependencyTask.status]}
                             />
                           ) : null}
@@ -400,11 +396,11 @@ export function TaskDetail() {
             <dt className="font-semibold text-ink">Readiness / Blockers</dt>
             <dd className="mt-2 space-y-3">
               <div className="flex flex-wrap gap-2">
-                <StatusBadge
+                <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-readiness`}
                   label={readinessLabels[task.readinessState]}
                   tone={readinessTone(task.readinessState)}
                 />
-                <StatusBadge
+                <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-blockers`}
                   label={`Blocker: ${blockerLabels[task.blockerType]}`}
                   tone={task.blockerType === "none" ? "neutral" : "blocked"}
                 />
@@ -466,12 +462,12 @@ export function TaskDetail() {
             <dt className="font-semibold text-ink">Materials</dt>
             <dd className="mt-2 space-y-3">
               <div className="flex flex-wrap gap-2">
-                <StatusBadge
+                <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
                   label={materialLabels[task.materialStatus]}
                   tone={materialTone(task.materialStatus)}
                 />
                 {task.materialStatus === "blocked" ? (
-                  <StatusBadge label="Material blocker" tone="blocked" />
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`} label="Material blocker" tone="blocked" />
                 ) : null}
               </div>
 
@@ -547,15 +543,15 @@ export function TaskDetail() {
               <dt className="font-semibold text-ink">Scheduling Insight</dt>
               <dd className="mt-2 space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  <StatusBadge
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dates`}
                     label={schedulingLabels[schedulingInsight.category]}
                     tone={schedulingTone(schedulingInsight.category)}
                   />
                   {schedulingInsight.isOverdue ? (
-                    <StatusBadge label="Due date passed" tone="blocked" />
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dates`} label="Due date passed" tone="blocked" />
                   ) : null}
                   {schedulingInsight.isDueSoon ? (
-                    <StatusBadge label="Due soon" tone="warning" />
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dates`} label="Due soon" tone="warning" />
                   ) : null}
                 </div>
 

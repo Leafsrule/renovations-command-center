@@ -1,4 +1,5 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { statusLabels } from "@/lib/terminology";
 import Link from "next/link";
@@ -133,6 +134,7 @@ export function TodayPlanner() {
     };
   }, [projectId]);
 
+  useLinkedSection(!loading);
   const today = useMemo(() => getTodayDateString(), []);
 
   const todayPlan = useMemo(
@@ -316,7 +318,7 @@ export function TodayPlanner() {
               {task.helperRequired ? <span>• Helper needed</span> : null}
             </div>
           </div>
-          <StatusBadge label={getStatusLabel(task.status)} />
+          <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-status`} label={getStatusLabel(task.status)} />
         </div>
 
         <div className="my-3 space-y-2 text-sm text-muted">
@@ -426,11 +428,11 @@ export function TodayPlanner() {
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-line bg-white p-4">
+        <a href="#today-hours" className="block rounded-2xl border border-line bg-white p-4 underline underline-offset-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Available today</p>
           <p className="mt-2 text-2xl font-semibold text-ink">{availableHours}h</p>
-        </div>
-        <div className="rounded-2xl border border-line bg-white p-4">
+        </a>
+        <a href="#today-buffer" className="block rounded-2xl border border-line bg-white p-4 underline underline-offset-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Protected buffer</p>
           <p className="mt-2 text-2xl font-semibold text-ink">
             {bufferPercent}%
@@ -438,19 +440,19 @@ export function TodayPlanner() {
           <p className="mt-1 text-xs text-muted">
             {formatMinutes(todayPlan.capacity.bufferMinutes)} of crew capacity
           </p>
-        </div>
-        <div className="rounded-2xl border border-line bg-white p-4">
+        </a>
+        <a href="#today-capacity" className="block rounded-2xl border border-line bg-white p-4 underline underline-offset-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">Schedulable target</p>
           <p className="mt-2 text-2xl font-semibold text-ink">
             {formatMinutes(todayPlan.capacity.schedulableMinutes)}
           </p>
-        </div>
+        </a>
       </section>
 
       <section className="rounded-2xl border border-line bg-white p-4">
         <h2 className="text-sm font-semibold text-ink">Planning controls</h2>
         <div className="mt-4 space-y-4">
-          <label className="grid gap-2 text-sm font-semibold text-ink">
+          <label id="today-hours" className="grid gap-2 text-sm font-semibold text-ink">
             Crew capacity hours
             <input
               className="rounded-md border border-line px-3 py-2 text-sm"
@@ -461,7 +463,7 @@ export function TodayPlanner() {
               onChange={(event) => setAvailableHours(Number(event.target.value))}
             />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-ink">
+          <label id="today-buffer" className="grid gap-2 text-sm font-semibold text-ink">
             Protected crew buffer percentage
             <input
               className="rounded-md border border-line px-3 py-2 text-sm"
@@ -487,7 +489,7 @@ export function TodayPlanner() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
+      <section id="today-capacity" className="rounded-2xl border border-line bg-white p-4">
         <h2 className="text-lg font-semibold text-ink">Today&apos;s capacity</h2>
         <div className="mt-3 grid gap-2 text-sm text-muted">
           <p>

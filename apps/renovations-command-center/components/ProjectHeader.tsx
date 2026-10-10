@@ -49,7 +49,7 @@ export function ProjectHeader({ eyebrow, title, subtitle }: ProjectHeaderProps) 
       <nav aria-label="Project management" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <Link href="/projects" className="touch-target inline-flex items-center underline">Projects</Link>
         {projectId ? <>
-          <Link href={`/projects/${projectId}`} className="touch-target inline-flex items-center underline">Project settings</Link>
+          <Link href={`/projects/${projectId}#project-settings`} className="touch-target inline-flex items-center underline">Project settings</Link>
           <Link href={`/projects/${projectId}/rooms`} className="touch-target inline-flex items-center underline">Rooms</Link>
           <Link href={`/projects/${projectId}/people`} className="touch-target inline-flex items-center underline">Champions and helpers</Link>
         </> : null}

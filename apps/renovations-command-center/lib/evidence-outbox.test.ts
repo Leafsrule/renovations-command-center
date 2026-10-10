@@ -47,3 +47,10 @@ it("keeps original bytes after successful command acknowledgment until matching 
   const [row]=await listQueuedPhotos("owner");expect(row.file).not.toBeNull();expect(row.state).toBe("pending");
   expect(row.error).toContain("readback");
 });
+
+it("reports upload stages and the original error while retaining failed uploads",async()=>{
+ const report=vi.fn();mocks.request.mockResolvedValueOnce({ok:false,json:async()=>({error:"Project save unavailable. Retry."})});
+ expect(await uploadEvidence("ensuite","tile",file(),"Tile","During",report)).toBe(false);
+ expect(report).toHaveBeenCalledWith("Sending the file to this project…");expect(report).toHaveBeenLastCalledWith("Project save unavailable. Retry.");
+ expect((await listQueuedPhotos("owner"))[0].file).not.toBeNull();
+});

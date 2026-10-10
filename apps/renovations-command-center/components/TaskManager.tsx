@@ -1,4 +1,5 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { AlphabeticalSelect } from "./AlphabeticalSelect";
 import { phaseLabels, statusLabels, readinessLabels, materialLabels } from "@/lib/terminology";
 import {auth} from "@/lib/firebase";
@@ -6,7 +7,7 @@ import {useBrowserDraft} from "@/lib/browser-draft";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { CriticalPathRiskBadge } from "@/components/CriticalPathRiskBadge";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -357,11 +358,12 @@ function TaskForm({
     form.dependencyTaskIds,
     tasks
   );
+  useLinkedSection();
   const incompleteDependencyCount =
     formDependencyCompletion.total - formDependencyCompletion.completed;
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form id="task-form" className="space-y-4" onSubmit={handleSubmit}>
       {draftStorageError ? <p role="alert" className="text-danger">{draftStorageError}</p> : <p className="text-sm text-muted">Edits are kept as a device draft until you save the task.</p>}
       {error ? (
         <div className="rounded-md border border-danger bg-panel p-3 text-sm leading-6 text-danger">
@@ -381,7 +383,7 @@ function TaskForm({
         />
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-room" className="block text-sm font-semibold text-ink scroll-mt-4">
         Room
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -406,7 +408,7 @@ function TaskForm({
 
       <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/rooms`}>Add / manage rooms</Link>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-phase" className="block text-sm font-semibold text-ink scroll-mt-4">
         Phase
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -441,7 +443,7 @@ function TaskForm({
         />
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-status" className="block text-sm font-semibold text-ink scroll-mt-4">
         Status
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -461,7 +463,7 @@ function TaskForm({
         </AlphabeticalSelect>
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-priority" className="block text-sm font-semibold text-ink scroll-mt-4">
         Priority
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -481,7 +483,7 @@ function TaskForm({
         </AlphabeticalSelect>
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-champion" className="block text-sm font-semibold text-ink scroll-mt-4">
         Champion
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -509,7 +511,7 @@ function TaskForm({
 
       <Link className="touch-target inline-flex items-center underline text-brand" href={`/projects/${draftProjectId}/people`}>Add / manage champions and helpers</Link>
 
-      <fieldset className="space-y-2">
+      <fieldset id="task-helpers" className="space-y-2">
         <legend className="text-sm font-semibold text-ink">Helpers</legend>
         {people.length === 0 ? (
           <p className="rounded-md border border-line bg-panel p-3 text-sm text-muted">
@@ -550,7 +552,7 @@ function TaskForm({
         Helper required
       </label>
 
-      <fieldset className="space-y-2">
+      <fieldset id="task-dependencies" className="space-y-2">
         <legend className="text-sm font-semibold text-ink">Dependencies</legend>
         <p className="text-sm leading-6 text-muted">
           Select tasks that must be completed before this task can start.
@@ -613,7 +615,7 @@ function TaskForm({
           </div>
         ) : null}
 
-        <label className="block text-sm font-semibold text-ink">
+        <label id="task-readiness" className="block text-sm font-semibold text-ink">
           Readiness state
           <AlphabeticalSelect
             className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -655,7 +657,7 @@ function TaskForm({
           </div>
         </fieldset>
 
-        <label className="block text-sm font-semibold text-ink">
+        <label id="task-blockers" className="block text-sm font-semibold text-ink">
           Blocker type
           <AlphabeticalSelect
             className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -706,7 +708,7 @@ function TaskForm({
         </label>
       </fieldset>
 
-      <fieldset className="space-y-4 rounded-md border border-line bg-panel p-4">
+      <fieldset id="task-materials" className="space-y-4 rounded-md border border-line bg-panel p-4">
         <legend className="px-1 text-sm font-semibold text-ink">
           Materials
         </legend>
@@ -850,7 +852,7 @@ function TaskForm({
         />
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-dates" className="block text-sm font-semibold text-ink scroll-mt-4">
         Due date
         <input
           className="touch-target mt-2 w-full rounded-md border border-line px-3 text-sm font-normal"
@@ -862,7 +864,7 @@ function TaskForm({
         />
       </label>
 
-      <label className="block text-sm font-semibold text-ink">
+      <label id="task-risk" className="block text-sm font-semibold text-ink scroll-mt-4">
         Critical path risk
         <AlphabeticalSelect
           className="touch-target mt-2 w-full rounded-md border border-line bg-white px-3 text-sm font-normal"
@@ -909,7 +911,7 @@ function TaskForm({
         Photos required
       </label>
 
-      <label className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
+      <label id="task-concurrent" className="flex min-h-11 items-center gap-3 text-sm font-semibold text-ink">
         <input
           checked={form.canRunConcurrent}
           className="h-5 w-5"
@@ -946,7 +948,6 @@ function TaskForm({
 
 export function TaskManager() {
   const params = useParams<{ projectId: string }>();
-  const router = useRouter();
   const projectId = params.projectId;
   const [tasks, setTasks] = useState<RenovationTask[]>([]);
   const [rooms, setRooms] = useState<RenovationRoom[]>([]);
@@ -999,12 +1000,6 @@ export function TaskManager() {
     setTasks(nextTasks);
   }
 
-  function handleStartAddTask() {
-    setError("");
-    setEditingTaskId(null);
-    setAddFormVersion((version) => version + 1);
-    setShowAddForm(true);
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1022,6 +1017,9 @@ export function TaskManager() {
 
         if (!cancelled) {
           setTasks(projectTasks);
+          const editId=new URLSearchParams(window.location.search).get("edit");
+          if(new URLSearchParams(window.location.search).get("new")==="1")setShowAddForm(true);
+          if(editId && projectTasks.some(task=>task.id===editId)) setEditingTaskId(editId);
           setRooms(projectRooms);
           setPeople(projectPeople);
         }
@@ -1065,6 +1063,7 @@ export function TaskManager() {
       return;
     }
 
+    if(window.location.hash) return;
     formPanelRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -1103,13 +1102,10 @@ export function TaskManager() {
   return (
     <section className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
-          onClick={() => router.push(`/projects/${projectId}`)}
-          type="button"
-        >
+        <Link
+          className="touch-target rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink" href={`/projects/${projectId}`}>
           &larr; Back to Project
-        </button>
+        </Link>
         <Link
           className="touch-target flex items-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
           href="/projects"
@@ -1132,39 +1128,39 @@ export function TaskManager() {
           Scheduling Intelligence
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=recommended_next#schedule-tasks`}
             label={`Recommended next: ${schedulingSummary.recommendedNextCount}`}
             tone="ready"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=ready_now#schedule-tasks`}
             label={`Ready now: ${schedulingSummary.readyNowCount}`}
             tone="ready"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=blocked#schedule-tasks`}
             label={`Blocked: ${schedulingSummary.blockedCount}`}
             tone="blocked"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=waiting_on_dependencies#schedule-tasks`}
             label={`Waiting on dependencies: ${schedulingSummary.waitingOnDependenciesCount}`}
             tone="warning"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=waiting_on_materials#schedule-tasks`}
             label={`Waiting on materials: ${schedulingSummary.waitingOnMaterialsCount}`}
             tone="warning"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=needs_review#schedule-tasks`}
             label={`Needs review: ${schedulingSummary.needsReviewCount}`}
             tone="warning"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=overdue#schedule-tasks`}
             label={`Overdue: ${schedulingSummary.overdueCount}`}
             tone="blocked"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=due_soon#schedule-tasks`}
             label={`Due soon: ${schedulingSummary.dueSoonCount}`}
             tone="warning"
           />
-          <StatusBadge
+          <StatusBadge href={`/projects/${projectId}/schedule?filter=scheduled_later#schedule-tasks`}
             label={`Scheduled later: ${schedulingSummary.scheduledLaterCount}`}
           />
         </div>
@@ -1216,13 +1212,10 @@ export function TaskManager() {
               Task records for this project.
             </p>
           </div>
-          <button
-            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white"
-            onClick={handleStartAddTask}
-            type="button"
-          >
+          <a
+            className="touch-target rounded-md bg-brand px-4 text-sm font-semibold text-white" href={`/projects/${projectId}/tasks?new=1#task-form`}>
             Add Task
-          </button>
+          </a>
         </div>
 
         {tasks.length === 0 ? (
@@ -1258,18 +1251,18 @@ export function TaskManager() {
                       </p>
                     ) : null}
                   </div>
-                  <StatusBadge label={labelFromValue(statusOptions, task.status)} />
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-status`} label={labelFromValue(statusOptions, task.status)} />
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusBadge
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-priority`}
                     label={`Priority: ${labelFromValue(
                       priorityOptions,
                       task.priority
                     )}`}
                   />
                   {task.championPersonId ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-champion`}
                       label={`Champion: ${
                         personNameById.get(task.championPersonId) ||
                         "Unknown person"
@@ -1277,29 +1270,29 @@ export function TaskManager() {
                     />
                   ) : null}
                   {task.helperRequired ? (
-                    <StatusBadge label="Helper required" tone="warning" />
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-helpers`} label="Helper required" tone="warning" />
                   ) : null}
                   {task.helperPersonIds.length > 0 ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-helpers`}
                       label={`${task.helperPersonIds.length} helper${
                         task.helperPersonIds.length === 1 ? "" : "s"
                       }`}
                     />
                   ) : null}
                   {task.dependencyTaskIds.length > 0 ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dependencies`}
                       label={`Depends on ${task.dependencyTaskIds.length} task${
                         task.dependencyTaskIds.length === 1 ? "" : "s"
                       }`}
                     />
                   ) : null}
                   {task.criticalPathRisk !== "none" ? (
-                    <CriticalPathRiskBadge risk={task.criticalPathRisk} />
+                    <CriticalPathRiskBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-risk`} risk={task.criticalPathRisk} />
                   ) : null}
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusBadge
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-readiness`}
                     label={labelFromValue(
                       readinessOptions,
                       task.readinessState
@@ -1307,7 +1300,7 @@ export function TaskManager() {
                     tone={readinessTone(task.readinessState)}
                   />
                   {task.blockerType !== "none" ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-blockers`}
                       label={`Blocker: ${labelFromValue(
                         blockerOptions,
                         task.blockerType
@@ -1316,7 +1309,7 @@ export function TaskManager() {
                     />
                   ) : null}
                   {task.readinessReasons.length > 0 ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-readiness`}
                       label={`${task.readinessReasons.length} readiness reason${
                         task.readinessReasons.length === 1 ? "" : "s"
                       }`}
@@ -1324,31 +1317,31 @@ export function TaskManager() {
                     />
                   ) : null}
                   {taskDependencyCompletion.total > 0 ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dependencies`}
                       label={`Dependencies complete: ${taskDependencyCompletion.completed}/${taskDependencyCompletion.total}`}
                     />
                   ) : null}
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <StatusBadge
+                  <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
                     label={labelFromValue(materialOptions, task.materialStatus)}
                     tone={materialTone(task.materialStatus)}
                   />
                   {task.materialItems.length > 0 ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
                       label={`${task.materialItems.length} material item${
                         task.materialItems.length === 1 ? "" : "s"
                       }`}
                     />
                   ) : null}
                   {task.materialNeededByDate ? (
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`}
                       label={`Needed by: ${task.materialNeededByDate}`}
                     />
                   ) : null}
                   {task.materialStatus === "blocked" ? (
-                    <StatusBadge label="Material blocker" tone="blocked" />
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-materials`} label="Material blocker" tone="blocked" />
                   ) : null}
                 </div>
 
@@ -1368,7 +1361,7 @@ export function TaskManager() {
 
                 {schedulingInsight ? (
                   <div className="mt-3">
-                    <StatusBadge
+                    <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-dates`}
                       label={schedulingLabels[schedulingInsight.category]}
                       tone={schedulingTone(schedulingInsight.category)}
                     />
@@ -1383,16 +1376,8 @@ export function TaskManager() {
                 ) : null}
 
                 <div className="mt-4 grid grid-cols-1 gap-2">
-                  <button
-                    className="touch-target rounded-md border border-line px-4 text-sm font-semibold text-ink"
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setEditingTaskId(task.id);
-                    }}
-                    type="button"
-                  >
-                    Edit
-                  </button>
+                  <a
+                    className="touch-target rounded-md border border-line px-4 text-sm font-semibold text-ink" href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(task.id)}#task-form`}>Edit</a>
                   <Link
                     className="touch-target flex items-center justify-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
                     href={`/projects/${projectId}/tasks/${task.id}`}
@@ -1440,14 +1425,11 @@ export function TaskManager() {
       ) : null}
 
       {!showAddForm && !editingTask ? (
-        <button
+        <a
           aria-label="Add task"
-          className="touch-target fixed bottom-24 left-1/2 z-20 ml-32 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft"
-          onClick={handleStartAddTask}
-          type="button"
-        >
+          className="touch-target fixed bottom-24 left-1/2 z-20 ml-32 flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft" href={`/projects/${projectId}/tasks?new=1#task-form`}>
           <Plus aria-hidden="true" className="h-6 w-6" />
-        </button>
+        </a>
       ) : null}
     </section>
   );

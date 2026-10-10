@@ -1,4 +1,5 @@
 "use client";
+import { useLinkedSection } from "@/lib/section-navigation";
 import { displayLabel } from "@/lib/terminology";
 
 import {FieldRecordsWorkspace} from "./FieldRecordsWorkspace";
@@ -26,13 +27,14 @@ const tones = {
 
 export function MaterialsWorkspace() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [filter,setFilter]=useState("all");
   const [tasks, setTasks] = useState<RenovationTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     listProjectTasks(projectId)
-      .then(setTasks)
+      .then(rows=>{setTasks(rows);setFilter(new URLSearchParams(window.location.search).get("filter")??"all");})
       .catch((loadError) =>
         setError(
           loadError instanceof Error
@@ -49,6 +51,8 @@ export function MaterialsWorkspace() {
     [materials]
   );
 
+  const visibleMaterials=materials.filter(m=>filter==="ready"?["ready","received","stock"].includes(m.status):["blocked","needed"].includes(filter)?m.status===filter:true);
+  useLinkedSection(!loading);
   if (loading) {
     return (
       <div className="rounded-2xl border border-line bg-white p-6 text-sm text-muted">
@@ -68,25 +72,27 @@ export function MaterialsWorkspace() {
 
       <section className="grid grid-cols-2 gap-3">
         {[
-          ["Tracked", summary.total],
-          ["Blocked", summary.blocked],
-          ["Needed", summary.needed],
-          ["Ready", summary.ready]
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+          ["Tracked", summary.total, "all"],
+          ["Blocked", summary.blocked, "blocked"],
+          ["Needed", summary.needed, "needed"],
+          ["Ready", summary.ready, "ready"]
+        ].map(([label, value, target]) => (
+          <a href={`/projects/${projectId}/materials?filter=${target}#material-overview`} key={label} className="rounded-2xl border border-line bg-white p-3 shadow-sm">
             <p className="text-2xl font-semibold text-ink">{value}</p>
             <p className="text-xs text-muted">{label}</p>
-          </div>
+          </a>
         ))}
       </section>
 
-      {materials.length === 0 ? (
+      <div id="material-overview" className="space-y-3">
+      {filter!=="all"?<p>Showing: {filter}. <a className="underline" href={`/projects/${projectId}/materials#material-overview`}>Show all materials</a></p>:null}
+      {visibleMaterials.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line bg-panel p-6 text-center text-sm text-muted">
-          No task-linked materials have been entered yet.
+          No materials match this view.
         </div>
       ) : (
         <ul className="space-y-3">
-          {materials.map((material) => (
+          {visibleMaterials.map((material) => (
             <li key={material.key} className="rounded-2xl border border-line bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -95,7 +101,7 @@ export function MaterialsWorkspace() {
                     Needed by {material.neededByDate ?? "date not set"}
                   </p>
                 </div>
-                <StatusBadge
+                <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(tasks.find(task=>material.taskIds.includes(task.id) && task.materialStatus===material.status)?.id ?? material.taskIds[0])}#task-materials`}
                   label={displayLabel(material.status)}
                   tone={tones[material.status]}
                 />
@@ -116,6 +122,7 @@ export function MaterialsWorkspace() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }

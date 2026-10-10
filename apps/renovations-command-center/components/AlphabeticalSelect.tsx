@@ -2,7 +2,7 @@ import {
   Children,
   isValidElement,
   type ReactNode,
-  type SelectHTMLAttributes,
+  type ComponentPropsWithRef,
 } from "react";
 function text(node: ReactNode): string {
   return Children.toArray(node)
@@ -16,7 +16,7 @@ function text(node: ReactNode): string {
 export function AlphabeticalSelect({
   children,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+}: ComponentPropsWithRef<"select">) {
   const choices = Children.toArray(children);
   const placeholder = (node: ReactNode) =>
     isValidElement<{ value?: unknown; children?: ReactNode }>(node) &&

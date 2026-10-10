@@ -45,18 +45,18 @@ export function ScheduleTaskCard({
             {item.roomName} • {formatMinutes(item.task.estimatedDurationMinutes)}
           </p>
         </div>
-        <StatusBadge label={state.label} tone={state.tone} />
+        <StatusBadge href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(item.task.id)}#task-status`} label={state.label} tone={state.tone} />
       </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-        <span className="rounded-md bg-panel px-2 py-1">Due {item.task.dueDate ?? "not set"}</span>
-        {item.task.canRunConcurrent ? <span className="rounded-md bg-panel px-2 py-1">Concurrent</span> : null}
+        <a href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(item.task.id)}#task-dates`} className="rounded-md bg-panel px-2 py-1 underline">Due {item.task.dueDate ?? "not set"}</a>
+        {item.task.canRunConcurrent ? <a href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(item.task.id)}#task-concurrent`} className="rounded-md bg-panel px-2 py-1 underline">Concurrent</a> : null}
         {item.task.dependencyTaskIds.length ? (
-          <span className="rounded-md bg-panel px-2 py-1">{item.task.dependencyTaskIds.length} dependencies</span>
+          <a href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(item.task.id)}#task-dependencies`} className="rounded-md bg-panel px-2 py-1 underline">{item.task.dependencyTaskIds.length} dependencies</a>
         ) : null}
         {item.task.materialStatus !== "not_required" ? (
-          <span className="rounded-md bg-panel px-2 py-1">
+          <a href={`/projects/${projectId}/tasks?edit=${encodeURIComponent(item.task.id)}#task-materials`} className="rounded-md bg-panel px-2 py-1 underline">
             Materials: {displayLabel(item.task.materialStatus)}
-          </span>
+          </a>
         ) : null}
       </div>
       {item.insight.reasons[0] ? (

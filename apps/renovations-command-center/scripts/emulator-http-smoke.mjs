@@ -45,8 +45,8 @@ try {
   assert.equal((await db.collection(`projects/${id}/taskHistory`).get()).size,1);
   const bucket=getStorage(app).bucket();
     const photoEndpoint=`${base}/api/projects/${id}/photos/photo`;
-  const bytes=Buffer.from([255,216,255]);
-  const photoHeaders={Authorization:`Bearer ${idToken}`,"Content-Type":"image/jpeg","x-task-id":"work"};
+  const bytes=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==","base64");
+  const photoHeaders={Authorization:`Bearer ${idToken}`,"Content-Type":"image/png","x-task-id":"work"};
   assert.equal((await fetch(photoEndpoint,{method:"POST",headers:{"Content-Type":"image/jpeg","x-task-id":"work"},body:bytes})).status,401);
   for(let retry=0;retry<2;retry++)assert.equal((await fetch(photoEndpoint,{method:"POST",headers:photoHeaders,body:bytes})).status,200);
   const link={kind:"evidence",commandId:"http-photo-link",evidenceId:"photo",caption:"Demo photo",category:"After"};
@@ -83,7 +83,7 @@ try {
   assert.equal((await fetch(restoreEndpoint,{method:"POST",headers:{...headers,Authorization:"Bearer invalid-demo-token"},body:restoreBody})).status,401);
   for (let attempt=0;attempt<2;attempt++) assert.equal((await fetch(restoreEndpoint,{method:"POST",headers,body:restoreBody})).status,200);
   assert.equal((await db.collection(`projects/${destination}/evidence`).get()).size,1);
-  assert.deepEqual((await bucket.file(`projects/${destination}/evidence/photo`).download())[0],Buffer.from([255,216,255]));
+  assert.deepEqual((await bucket.file(`projects/${destination}/evidence/photo`).download())[0],bytes);
   console.log("PASS: real demo Auth token → private Next HTTP routes → Firestore/Storage; project/template creation, guarded task replay, unsigned/invalid-token rejection and private upload/download guarded deletion with retained audit, and verified portable photo backup/restore replay.");
 } finally {
   process.kill(-child.pid,"SIGTERM");

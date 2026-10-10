@@ -44,6 +44,7 @@ export async function uploadEvidence(
   file: File,
   caption: string,
   category: string,
+  report?: (message:string)=>void,
 ) {
   if (!db || !auth?.currentUser)
     throw new Error("Sign in to the configured project before uploading.");
@@ -53,13 +54,14 @@ export async function uploadEvidence(
   )
     throw new Error("Choose a JPG, PNG or WebP smaller than 10 MB.");
   const row:QueuedPhoto={id:crypto.randomUUID(),ownerId:auth.currentUser.uid,projectId,taskId,file,name:file.name,caption,category,uploaded:false,state:"pending",error:""};
+  report?.("Keeping a copy on this device…");
   await saveQueuedPhoto(row);
   // Capture succeeds only after the IndexedDB transaction commits.
-  try {await retryQueuedPhoto(row);return true;} catch { return false; /* The visible durable outbox reports unsaved/error state. */ }
+  try {await retryQueuedPhoto(row,report);return true;} catch(error) { report?.(error instanceof Error?error.message:"Upload was not confirmed."); return false; /* The visible durable outbox reports unsaved/error state. */ }
 }
 const runningPhotos=new Map<string,Promise<void>>();
 export function isPhotoSyncing(id:string) {return runningPhotos.has(id);}
-export async function retryQueuedPhoto(original:QueuedPhoto) {
+export async function retryQueuedPhoto(original:QueuedPhoto,report?: (message:string)=>void) {
   const running=runningPhotos.get(original.id);
   if (running) return running;
   const attempt=async()=>{
@@ -71,13 +73,16 @@ export async function retryQueuedPhoto(original:QueuedPhoto) {
         if (!navigator.onLine) throw new Error("Offline. Photo is retained on this device; project save is pending.");
         if (!row.uploaded) {
           if (!row.file) throw new Error("Original photo is missing from device storage.");
+          report?.("Sending the file to this project…");
           await photoRequest(row.projectId,row.id,{method:"POST", headers:{"Content-Type":row.file.type,"x-task-id":row.taskId},body:row.file});
           row={...row,uploaded:true};
           await saveQueuedPhoto(row);
         }
         if (auth.currentUser?.uid!==row.ownerId) throw new Error("Account changed before confirming the photo.");
+        report?.("Linking the file to the selected task…");
         await sendTaskCommand(row.projectId,row.taskId,{kind:"evidence",evidenceId:row.id,caption:row.caption,category:row.category},row.id);
       }
+      report?.("Checking the saved file…");
       const final = await evidenceBlob(`projects/${row.projectId}/evidence/${row.id}`);
       if (row.file) {
         const originalBytes = await row.file.arrayBuffer(), finalBytes = await final.arrayBuffer();

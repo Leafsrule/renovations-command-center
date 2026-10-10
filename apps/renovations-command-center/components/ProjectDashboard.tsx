@@ -135,15 +135,15 @@ export function ProjectDashboard() {
                   </p>
                 </div>
                 {project.activeProject ? (
-                  <StatusBadge label="Active" tone="ready" />
+                  <StatusBadge href={`/projects/${project.id}#project-settings`} label="Active" tone="ready" />
                 ) : null}
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <StatusBadge label={displayLabel(project.status)} />
-                <StatusBadge label={`Phase: ${displayLabel(project.currentPhase)}`} />
+                <StatusBadge href={`/projects/${project.id}#project-status`} label={displayLabel(project.status)} />
+                <StatusBadge href={`/projects/${project.id}#project-phase`} label={`Phase: ${displayLabel(project.currentPhase)}`} />
                 {project.criticalPathWarning ? (
-                  <CriticalPathRiskBadge risk="high" />
+                  <CriticalPathRiskBadge href={`/projects/${project.id}/schedule?view=critical#schedule-tasks`} risk="high" />
                 ) : null}
               </div>
 
